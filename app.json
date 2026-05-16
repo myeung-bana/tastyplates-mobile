@@ -1,34 +1,35 @@
 {
   "expo": {
     "newArchEnabled": true,
-    "name": "expo-router-template",
+    "name": "TastyPlates",
     "slug": "tastyplates",
+    "description": "TastyPlates — restaurant discovery, reviews, and food stories from people whose taste you trust.",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
-    "scheme": "acme",
+    "icon": "./assets/icons/Favicon_Orange_Square.png",
+    "scheme": "tastyplates",
     "userInterfaceStyle": "automatic",
+    "primaryColor": "#ff7c0a",
     "runtimeVersion": "1.0.0",
     "splash": {
-      "image": "./assets/images/splash.png",
+      "image": "./assets/icons/Favicon_Orange_Square.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#ff7c0a"
     },
-    "assetBundlePatterns": [
-      "**/*"
-    ],
+    "assetBundlePatterns": ["**/*"],
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.toyama.rodrigo.expo-router-template",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "CFBundleDisplayName": "TastyPlates"
       }
     },
     "android": {
       "package": "com.toyama.rodrigo.exporoutertemplate",
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "foregroundImage": "./assets/icons/Favicon_Orange_Square.png",
+        "backgroundColor": "#ff7c0a"
       }
     },
     "extra": {
@@ -40,14 +41,13 @@
     "web": {
       "bundler": "metro",
       "output": "static",
-      "favicon": "./assets/images/favicon.png"
+      "favicon": "./assets/icons/Favicon_Orange_Square.png",
+      "name": "TastyPlates",
+      "shortName": "TastyPlates",
+      "description": "TastyPlates — restaurant discovery, reviews, and food stories from people whose taste you trust.",
+      "themeColor": "#ff7c0a"
     },
-    "plugins": [
-      "expo-router",
-      "expo-font",
-      "expo-web-browser",
-      "expo-secure-store"
-    ],
+    "plugins": ["expo-router", "expo-font", "expo-web-browser", "expo-secure-store"],
     "experiments": {
       "typedRoutes": true
     },

@@ -71,11 +71,15 @@ export const SCREEN_LISTING_DRAFT = '/listing/draft' as const
 
 export const SCREEN_OWN_PROFILE = '/profile' as const
 export const SCREEN_EDIT_PROFILE = '/profile/edit' as const
-export const SCREEN_PUBLIC_PROFILE = '/profile/[username]' as const
+export const SCREEN_PUBLIC_PROFILE = '/profile/[userId]' as const
+export const SCREEN_PUBLIC_PROFILE_FOLLOWERS =
+  '/profile/[userId]/followers' as const
+export const SCREEN_PUBLIC_PROFILE_FOLLOWING =
+  '/profile/[userId]/following' as const
 
-/** Build the public profile path for a given username. */
-export function publicProfilePath(username: string): string {
-  return `/profile/${encodeURIComponent(username)}`
+/** Build the public profile path for `restaurant_users.id` (UUID). */
+export function publicProfilePath(restaurantUserId: string): string {
+  return `/profile/${encodeURIComponent(restaurantUserId)}`
 }
 
 // ─── Hashtag feed ─────────────────────────────────────────────────────────────

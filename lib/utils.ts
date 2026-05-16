@@ -17,11 +17,11 @@ export function formatLikeCount(count: number): string {
 }
 
 /**
- * Generate the public profile URL path for a given username.
- * e.g. "johndoe" → "/profile/johndoe"
+ * Public profile segment is `restaurant_users.id` (UUID).
+ * e.g. "/profile/550e8400-e29b-..."
  */
-export function generateProfileUrl(username: string): string {
-  return `/profile/${encodeURIComponent(username)}`
+export function generateProfileUrl(restaurantUserId: string): string {
+  return `/profile/${encodeURIComponent(restaurantUserId)}`
 }
 
 /**

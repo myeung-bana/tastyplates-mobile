@@ -2,9 +2,9 @@ import { Pressable, Text, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { useRouter } from 'expo-router'
 
-import { SCREEN_HOME } from '@/constants/screens'
+import { BRAND_PRIMARY, TEXT_HEADING } from '@/constants/brand'
 
-const BRAND = '#ff7c0a'
+import { SCREEN_HOME } from '@/constants/screens'
 
 type AuthScreenHeaderProps = {
   /** Optional title on the left (e.g. "Log in"). */
@@ -22,9 +22,13 @@ export function AuthScreenHeader({ title }: AuthScreenHeaderProps) {
   }
 
   return (
-    <View className="flex-row items-center justify-between border-b border-gray-100 bg-white px-4 pb-3 pt-2">
+    <View className="flex-row items-center justify-between border-b border-gray-100 bg-[#FCFCFC] px-4 pb-3 pt-2">
       {title ? (
-        <Text className="font-semibold text-lg text-[#31343F]" numberOfLines={1}>
+        <Text
+          className="text-lg font-semibold"
+          style={{ color: TEXT_HEADING }}
+          numberOfLines={1}
+        >
           {title}
         </Text>
       ) : (
@@ -37,7 +41,7 @@ export function AuthScreenHeader({ title }: AuthScreenHeaderProps) {
         onPress={goHome}
         className="rounded-lg p-2 active:opacity-70"
       >
-        <Ionicons name="home-outline" size={26} color={BRAND} />
+        <Ionicons name="home-outline" size={26} color={BRAND_PRIMARY} />
       </Pressable>
     </View>
   )

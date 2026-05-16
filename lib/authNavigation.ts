@@ -7,6 +7,8 @@ import {
   SCREEN_USER_VERIFICATION,
 } from '@/constants/screens'
 
+import type { TypedResumeHref } from '@/lib/authRoutes'
+
 function isOnboardingComplete(user: User | null): boolean {
   if (!user?.metadata || typeof user.metadata !== 'object') return false
   const m = user.metadata as Record<string, unknown>
@@ -23,6 +25,8 @@ export function navigateAfterAuth(
     needsEmailVerification: boolean
     user: User | null
   },
+  /** Deep link resume when auth is fully complete (skipped for verification / onboarding redirects). */
+  resumeHref?: TypedResumeHref,
 ): void {
   const { needsEmailVerification, user } = options
 
@@ -41,5 +45,6 @@ export function navigateAfterAuth(
     return
   }
 
-  router.replace(SCREEN_HOME)
+  const target = resumeHref ?? SCREEN_HOME
+  router.replace(target)
 }

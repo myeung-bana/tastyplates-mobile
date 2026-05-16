@@ -91,6 +91,15 @@ The Restaurants tab is the primary discovery surface. Users can:
 
 The most interesting behavior is **palate-based ranking**: restaurants reviewed by users who share your palate preferences surface first, with ratings calculated specifically from those matching reviewers.
 
+### Restaurant detail (`/restaurants/[slug]`)
+
+Tapping a restaurant from the **Restaurants** list (or elsewhere) opens a **stack** screen (`app/restaurants/_layout.tsx` + `[slug].tsx`) with a native header and back affordance.
+
+- **Data:** Restaurant row via `restaurants-v2/get-restaurant-by-id?slug=…`; aggregate **overall / authentic** ratings via `restaurants-v2/get-rating-summary?uuid=…`; review previews via `restaurant-reviews/get-reviews-by-restaurant`. Pull-to-refresh reloads the same bundle.
+- **Layout (recovery doc §4):** Paging **image carousel** (4:3, brand orange active dots per `restaurant.md`), **header** (title, share, palate/category/price pills, star row, address), **quick actions** — primary pill **Write a review** → Studio (`/studio/add-review/[slug]`), **Save** / **Check-in** use `restaurant-users/toggle-favorite` and `toggle-checkin` (requires sign-in; otherwise routes to login). **Ratings** — horizontal metric cards (Overall, Authentic). **Reviews** — horizontal preview cards and **View all** → `/reviews/viewer` with `restaurant_uuid` (viewer UI still evolving). **Location** — static map tile + link to Google Maps directions when lat/lng exist; phone `tel:`; optional hours string from JSON. **About** — text from `content` (HTML stripped). **Menu** — opens `menu_url` when HTTP(S).
+- **Visual system:** Typography and colors follow `documentation/design_system.md` via `constants/brand` (e.g. `#31343F`, `#494D5D`, `#e5e7eb` borders, `#ff7c0a` CTAs, `#f59e0b` stars). Structural detail is specified in `documentation/restaurant.md` §4.
+- **Deferred / not yet in native:** Full-screen image lightbox, embedded `MapView`, community-recognition badge aggregates (§4.7), and FlashList-based review rails can be layered on later.
+
 ### Reading and engaging with reviews
 
 Reviews are the heart of the product. From a restaurant screen or the home feed, users can:
@@ -116,6 +125,16 @@ Photo uploads go directly to Nhost Storage with a single progress bar surface �
 ### Saving and tracking
 
 Users can save restaurants to a **wishlist** (places they want to try) and log **check-ins** (places they've actually been). Both are accessible from their profile tab.
+
+### Profile tab (signed-in)
+
+The **`/(tabs)/profile`** screen is the signed-in member hub. It implements:
+
+- **Identity card** — Avatar (remote URL from Hasura when present, otherwise initials on a neutral surface), display name, bio from `users.metadata.bio`, and **palate pills** from `metadata.palates` using the same selected-state styling as cuisine/palate selectors in `design_system.md` (brand orange border, warm tint).
+- **Activity metrics** — Counts for **reviews**, **wishlist**, **check-ins**, **followers**, and **following**. Data is loaded via Nhost HTTP functions (`restaurant-users/get-followers-count`, `get-following-count`, `get-reviews`, `get-wishlist`, `get-checkins`) with bearer auth where required; see `documentation/api_guide.md` §8.6. Users can **pull to refresh** to reload metrics.
+- **Actions** — Rows for **Edit profile** (`/profile/edit`), **Settings** (`/settings`), **My reviews** (`/studio/review-listing`), and **Following feed** (`/(tabs)/following`). Visual design (cards, borders, typography colors, press feedback) follows `documentation/design_system.md`; detailed layout and data mapping are specified in `documentation/profile.md`.
+
+**Signed-out:** Same tab shows short explanatory copy and a **Sign in** CTA that opens the full **`/login`** stack screen (pill switch **Log in** / **Sign up**); **`resume`** returns the user here after verification and onboarding (`lib/authRoutes.ts`).
 
 ### Social graph
 
@@ -166,7 +185,7 @@ Every screen in the app exists for a specific reason. Below is the full map of s
 |--------|-------|--------------|
 | **Home** | `/(tabs)/` | The landing experience. Shows the main review feed and featured/recommended restaurants. No sign-in required to browse. |
 | **Restaurants** | `/(tabs)/restaurants` | The main discovery screen. Browse, filter, and sort restaurants by location, cuisine, palate match, and rating. |
-| **Restaurant detail** | `/restaurants/[slug]` | A single restaurant's full profile — photos, address, ratings breakdown, all reviews. |
+| **Restaurant detail** | `/restaurants/[slug]` | **Implemented:** Stack screen with carousel, header, quick actions (review / save / check-in), rating cards, review previews, location + about + menu. See **Restaurant detail** under Core product flows and `documentation/restaurant.md` §4. |
 | **Cuisine browse** | `/restaurants/cuisines/[slug]` | Filtered restaurant view for a specific cuisine type. |
 | **Hashtag feed** | `/hashtag/[hashtag]` | Reviews tagged with a specific hashtag. |
 | **Review viewer** | `/reviews/viewer` | Full-screen immersive review viewer, opened from cards in the feed or restaurant screen. Swipeable, photo-forward. |
@@ -198,7 +217,7 @@ Every screen in the app exists for a specific reason. Below is the full map of s
 
 | Screen | Route | What it does |
 |--------|-------|--------------|
-| **Own profile** | `/(tabs)/profile` | The current user's public profile — their reviews, wishlists, check-ins, followers, and following. |
+| **Own profile** | `/(tabs)/profile` | **Implemented:** identity (avatar, name, bio, palates), live activity counts (reviews, wishlist, check-ins, followers, following via Nhost functions), and shortcuts to edit profile, settings, studio review list, and following feed. Signed-out: login sheet. Full spec: `documentation/profile.md`. |
 | **Edit own profile** | `/profile/edit` | Edit display name, bio, profile photo, and palate preferences. |
 | **Public profile** | `/profile/[username]` | Another user's public profile — same layout, viewed in read-only mode with follow/unfollow action. |
 

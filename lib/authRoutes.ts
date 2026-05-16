@@ -1,0 +1,63 @@
+import type { Href, Router } from 'expo-router'
+
+import { SCREEN_LOGIN } from '@/constants/screens'
+
+/**
+ * Serialized path for returning after successful auth (`navigateAfterAuth` → `resumeHref`).
+ */
+export type TypedResumeHref = Parameters<Router['replace']>[0]
+
+/** Paths from URL params (`resume=`) cast for `router.replace` (Expo literal `Href`). */
+export function coerceResumeHref(path: string | undefined): TypedResumeHref | undefined {
+  if (path == null || path.length === 0) return undefined
+  return path as TypedResumeHref
+}
+
+export function serializeAuthResume(
+  href?: Parameters<Router['replace']>[0],
+): string | undefined {
+  if (href == null) return undefined
+  if (typeof href === 'string') return href
+  const o = href as { pathname?: string; params?: Record<string, unknown> }
+  if (typeof o.pathname !== 'string') return undefined
+  if (!o.params || typeof o.params !== 'object') return o.pathname
+
+  try {
+    const entries = Object.entries(o.params).filter(
+      ([, v]) => v != null && String(v).length > 0,
+    ) as [string, string][]
+    if (entries.length === 0) return o.pathname
+    const q = new URLSearchParams(entries).toString()
+    return `${o.pathname}?${q}`
+  } catch {
+    return o.pathname
+  }
+}
+
+/**
+ * Stable `Href` for the login screen (supports `resume` + `mode=signup`).
+ */
+export function loginScreenHref(options?: {
+  resume?: string
+  mode?: 'signin' | 'signup'
+}): Href {
+  const params: Record<string, string> = {}
+  if (options?.mode === 'signup') params.mode = 'signup'
+  if (options?.resume?.length) params.resume = options.resume
+  return Object.keys(params).length === 0
+    ? SCREEN_LOGIN
+    : { pathname: SCREEN_LOGIN, params }
+}
+
+export function pushLoginScreen(
+  router: Router,
+  options?: { resume?: Parameters<Router['replace']>[0]; mode?: 'signin' | 'signup' },
+): void {
+  const resume = serializeAuthResume(options?.resume)
+  router.push(
+    loginScreenHref({
+      mode: options?.mode,
+      resume,
+    }),
+  )
+}

@@ -24,6 +24,7 @@
     "@gluestack-style/react": "^1.0.57",
     "@gluestack-ui/config": "^1.1.20",
     "@gluestack-ui/themed": "^1.1.73",
+    "@gorhom/bottom-sheet": "^5",
     "@hookform/resolvers": "^5.2.2",
     "@nhost/apollo": "^9.0.1",
     "@nhost/nhost-js": "^3.3.1",

@@ -1,165 +1,160 @@
-import { useEffect } from 'react'
+import { useEffect, useMemo } from 'react'
 import {
-  ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
   Pressable,
   ScrollView,
   Text,
-  TextInput,
   View,
 } from 'react-native'
+import * as Haptics from 'expo-haptics'
+import { useLocalSearchParams, useRouter } from 'expo-router'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { Link, useRouter } from 'expo-router'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { Controller, useForm } from 'react-hook-form'
-import { useSignInEmailPassword } from '@nhost/react'
-import { z } from 'zod'
 
 import { AuthScreenHeader } from '@/components/auth/AuthScreenHeader'
+import { LoginForm } from '@/components/auth/LoginForm'
+import { RegisterEmailForm } from '@/components/auth/RegisterEmailForm'
 import {
-  SCREEN_FORGOT_PASSWORD,
-  SCREEN_REGISTER,
-} from '@/constants/screens'
+  BRAND_PRIMARY,
+  TEXT_HEADING,
+  TEXT_MUTED,
+} from '@/constants/brand'
 import { useAuth } from '@/hooks/useAuth'
 import { useSession } from '@/hooks/useSession'
 import { navigateAfterAuth } from '@/lib/authNavigation'
-import { toast } from '@/utils/toast'
+import { coerceResumeHref } from '@/lib/authRoutes'
 
-const loginSchema = z.object({
-  email: z.string().trim().email('Enter a valid email'),
-  password: z.string().min(1, 'Password is required'),
-})
+function firstParam(value: string | string[] | undefined): string | undefined {
+  if (value == null) return undefined
+  return Array.isArray(value) ? value[0] : value
+}
 
-type LoginForm = z.infer<typeof loginSchema>
+type AuthSegment = 'signin' | 'signup'
 
 export default function LoginScreen() {
   const router = useRouter()
+  const raw = useLocalSearchParams<{ resume?: string | string[]; mode?: string | string[] }>()
+  const resume = firstParam(raw.resume)
+  const modeParam = firstParam(raw.mode)
+
+  const segment: AuthSegment = modeParam === 'signup' ? 'signup' : 'signin'
+
+  const resumeForNav = useMemo(() => coerceResumeHref(resume), [resume])
+
   const { isAuthenticated, loading: authLoading } = useAuth()
   const { user, isReady } = useSession()
-  const { signInEmailPassword, isLoading } = useSignInEmailPassword()
-
-  const {
-    control,
-    handleSubmit,
-    formState: { errors },
-  } = useForm<LoginForm>({
-    resolver: zodResolver(loginSchema),
-    defaultValues: { email: '', password: '' },
-  })
 
   useEffect(() => {
     if (!isReady || authLoading || !isAuthenticated || !user) return
-    navigateAfterAuth(router, { needsEmailVerification: false, user })
-  }, [isReady, authLoading, isAuthenticated, user, router])
+    navigateAfterAuth(router, { needsEmailVerification: false, user }, resumeForNav)
+  }, [isReady, authLoading, isAuthenticated, user, router, resumeForNav])
 
-  const onSubmit = handleSubmit(async ({ email, password }) => {
-    const result = await signInEmailPassword(email, password)
-    if (result.isError && result.error) {
-      toast.error(result.error.message ?? 'Could not sign in')
-      return
-    }
-    navigateAfterAuth(router, {
-      needsEmailVerification: result.needsEmailVerification,
-      user: result.user,
-    })
-  })
-
-  const busy = isLoading || (isAuthenticated && authLoading)
+  const setSegment = (next: AuthSegment) => {
+    void Haptics.selectionAsync()
+    if (resume) router.setParams({ mode: next, resume })
+    else router.setParams({ mode: next })
+  }
 
   return (
-    <SafeAreaView className="flex-1 bg-white" edges={['top', 'left', 'right']}>
-      <AuthScreenHeader title="Log in" />
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        className="flex-1"
-      >
-        <ScrollView
-          keyboardShouldPersistTaps="handled"
-          contentContainerClassName="grow px-4 pb-8 pt-4"
-        >
-          <Text className="mb-6 text-base text-gray-600">
-            Sign in with the email and password for your Tastyplates account.
-          </Text>
+    <SafeAreaView className="flex-1 bg-[#FCFCFC]" edges={['top', 'left', 'right']}>
+      <AuthScreenHeader title="Account" />
 
-          <Text className="mb-1 text-sm font-medium text-gray-700">Email</Text>
-          <Controller
-            control={control}
-            name="email"
-            render={({ field: { onChange, onBlur, value } }) => (
-              <TextInput
-                autoCapitalize="none"
-                autoComplete="email"
-                autoCorrect={false}
-                keyboardType="email-address"
-                onBlur={onBlur}
-                onChangeText={onChange}
-                placeholder="you@example.com"
-                placeholderTextColor="#9ca3af"
-                value={value}
-                className="mb-1 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-base text-gray-900"
-              />
-            )}
-          />
-          {errors.email ? (
-            <Text className="mb-4 text-sm text-red-600">{errors.email.message}</Text>
-          ) : (
-            <View className="mb-4" />
-          )}
-
-          <Text className="mb-1 text-sm font-medium text-gray-700">Password</Text>
-          <Controller
-            control={control}
-            name="password"
-            render={({ field: { onChange, onBlur, value } }) => (
-              <TextInput
-                autoCapitalize="none"
-                autoComplete="password"
-                onBlur={onBlur}
-                onChangeText={onChange}
-                placeholder="••••••••"
-                placeholderTextColor="#9ca3af"
-                secureTextEntry
-                value={value}
-                className="mb-1 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-base text-gray-900"
-              />
-            )}
-          />
-          {errors.password ? (
-            <Text className="mb-4 text-sm text-red-600">{errors.password.message}</Text>
-          ) : (
-            <View className="mb-2" />
-          )}
-
-          <Link href={SCREEN_FORGOT_PASSWORD} asChild>
-            <Pressable className="mb-6 self-start py-1">
-              <Text className="text-sm font-medium text-[#ff7c0a]">Forgot password?</Text>
-            </Pressable>
-          </Link>
-
-          <Pressable
-            accessibilityRole="button"
-            disabled={busy}
-            onPress={onSubmit}
-            className="mb-6 items-center rounded-xl bg-[#ff7c0a] py-4 active:opacity-90 disabled:opacity-50"
-          >
-            {busy ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text className="text-base font-semibold text-white">Sign in</Text>
-            )}
+      <View className="border-b border-gray-100 bg-[#FCFCFC] px-4 pb-3 pt-1">
+        <View className="flex-row rounded-full bg-gray-100 p-1">
+          <Pressable onPress={() => setSegment('signin')} className="flex-1">
+            <View
+              className="rounded-full py-2.5"
+              style={
+                segment === 'signin'
+                  ? {
+                      backgroundColor: '#fff',
+                      shadowColor: '#000',
+                      shadowOpacity: 0.06,
+                      shadowRadius: 4,
+                      elevation: 2,
+                    }
+                  : undefined
+              }
+            >
+              <Text
+                className="text-center text-sm font-normal"
+                style={{ color: segment === 'signin' ? BRAND_PRIMARY : TEXT_MUTED }}
+              >
+                Log in
+              </Text>
+            </View>
           </Pressable>
+          <Pressable onPress={() => setSegment('signup')} className="flex-1">
+            <View
+              className="rounded-full py-2.5"
+              style={
+                segment === 'signup'
+                  ? {
+                      backgroundColor: '#fff',
+                      shadowColor: '#000',
+                      shadowOpacity: 0.06,
+                      shadowRadius: 4,
+                      elevation: 2,
+                    }
+                  : undefined
+              }
+            >
+              <Text
+                className="text-center text-sm font-normal"
+                style={{
+                  color: segment === 'signup' ? BRAND_PRIMARY : TEXT_MUTED,
+                }}
+              >
+                Sign up
+              </Text>
+            </View>
+          </Pressable>
+        </View>
+      </View>
 
-          <View className="flex-row flex-wrap justify-center gap-1">
-            <Text className="text-center text-sm text-gray-600">New here?</Text>
-            <Link href={SCREEN_REGISTER} asChild>
-              <Pressable>
-                <Text className="text-sm font-semibold text-[#ff7c0a]">Create an account</Text>
-              </Pressable>
-            </Link>
-          </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
+      <Text
+        className="pb-2 pt-6 text-center text-2xl font-normal"
+        style={{ color: TEXT_HEADING }}
+      >
+        {segment === 'signin' ? 'Welcome back' : 'Create an account'}
+      </Text>
+
+      {segment === 'signin' ? (
+        <LoginForm
+          resume={resume}
+          showIntro={false}
+          onSignInSuccess={async (payload) => {
+            await navigateAfterAuth(router, {
+              needsEmailVerification: payload.needsEmailVerification,
+              user: payload.user,
+            }, resumeForNav)
+          }}
+        />
+      ) : (
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          className="flex-1"
+        >
+          <ScrollView
+            keyboardShouldPersistTaps="handled"
+            contentContainerClassName="grow px-4 pb-8"
+          >
+            <RegisterEmailForm
+              resume={resume}
+              onRegisterSuccess={async (payload) => {
+                await navigateAfterAuth(
+                  router,
+                  {
+                    needsEmailVerification: payload.needsEmailVerification,
+                    user: payload.user,
+                  },
+                  resumeForNav,
+                )
+              }}
+            />
+          </ScrollView>
+        </KeyboardAvoidingView>
+      )}
     </SafeAreaView>
   )
 }

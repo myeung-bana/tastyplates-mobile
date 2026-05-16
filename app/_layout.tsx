@@ -2,6 +2,8 @@ import { useEffect, useMemo } from 'react'
 import { Slot } from 'expo-router'
 import { SplashScreen } from 'expo-router'
 import { useFonts } from 'expo-font'
+import { GestureHandlerRootView } from 'react-native-gesture-handler'
+import { BottomSheetModalProvider } from '@gorhom/bottom-sheet'
 import { GluestackUIProvider } from '@gluestack-ui/themed'
 import { config } from '@gluestack-ui/config'
 import { NhostProvider } from '@nhost/react'
@@ -29,12 +31,16 @@ export default function RootLayout() {
   }
 
   return (
-    <NhostProvider nhost={nhost}>
-      <ApolloProvider client={apolloClient}>
-        <GluestackUIProvider config={config}>
-          <Slot />
-        </GluestackUIProvider>
-      </ApolloProvider>
-    </NhostProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <NhostProvider nhost={nhost}>
+        <ApolloProvider client={apolloClient}>
+          <GluestackUIProvider config={config}>
+            <BottomSheetModalProvider>
+              <Slot />
+            </BottomSheetModalProvider>
+          </GluestackUIProvider>
+        </ApolloProvider>
+      </NhostProvider>
+    </GestureHandlerRootView>
   )
 }

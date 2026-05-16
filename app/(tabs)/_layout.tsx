@@ -1,6 +1,8 @@
 import { Tabs } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 
+import { SearchCuisinesSheetProvider } from '@/contexts/SearchCuisinesSheetContext'
+
 const BRAND_PRIMARY = '#ff7c0a'
 const TAB_INACTIVE = '#9ca3af'
 const TAB_BG = '#ffffff'
@@ -49,8 +51,9 @@ const TABS: TabConfig[] = [
 
 export default function TabsLayout() {
   return (
-    <Tabs
-      screenOptions={{
+    <SearchCuisinesSheetProvider>
+      <Tabs
+        screenOptions={{
         tabBarActiveTintColor: BRAND_PRIMARY,
         tabBarInactiveTintColor: TAB_INACTIVE,
         tabBarStyle: {
@@ -84,6 +87,7 @@ export default function TabsLayout() {
           }}
         />
       ))}
-    </Tabs>
+      </Tabs>
+    </SearchCuisinesSheetProvider>
   )
 }

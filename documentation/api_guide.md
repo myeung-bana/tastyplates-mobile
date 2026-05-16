@@ -1,0 +1,410 @@
+# Tastyplates Nhost Functions — API Guide
+
+This document describes every HTTP function exposed by `tastyplates-nhost/functions`, how URLs are formed, how authentication works, and how to call the API from a frontend or backend client.
+---
+
+## 1. How routing works
+
+Nhost maps each file under `functions/` to an HTTP route. Internal paths like `_lib/` are not exposed.
+
+| Source file | URL path after the version segment |
+|---|---|
+| `health.ts` | `health` |
+| `featured-restaurants.ts` | `featured-restaurants` |
+| `categories/get-categories.ts` | `categories/get-categories` |
+| `restaurant-reviews/create-review.ts` | `restaurant-reviews/create-review` |
+
+Full pattern:
+
+```text
+{FUNCTIONS_BASE}/{API_VERSION}/{path}
+```
+
+In the [Nhost dashboard](https://app.nhost.io), copy the Functions base URL shown for your project. Some projects expose `/v1`, others `/v0`. Do not duplicate the version segment. If your env var already ends with `/v1`, append `health`, not `v1/health`.
+
+Examples:
+
+```text
+https://<subdomain>.functions.<region>.nhost.run/v1/health
+https://<subdomain>.functions.<region>.nhost.run/v1/categories/get-categories
+```
+
+Local development uses the same path rules with the URL printed by `nhost up`.
+
+---
+
+## 2. Response envelope
+
+All handlers use the shared helpers in `functions/_lib/respond.ts`.
+
+Success:
+
+```json
+{
+  "ok": true,
+  "data": {}
+}
+```
+
+Error:
+
+```json
+{
+  "ok": false,
+  "error": "Human-readable message",
+  "details": null
+}
+```
+
+`details` is optional, usually for validation issues on `422`. Always check `ok` before reading `data`.
+
+Common statuses:
+
+| Status | Meaning |
+|---|---|
+| `200` | Success |
+| `201` | Created |
+| `400` | Missing or invalid query/body input |
+| `401` | Missing or invalid Bearer token |
+| `403` | Authenticated but not allowed |
+| `404` | Not found or intentionally hidden private resource |
+| `410` | Deprecated endpoint stub |
+| `422` | Validation failed |
+| `500` | Server / Hasura error |
+
+---
+
+## 3. Authentication
+
+### 3.1 User Bearer token
+
+Protected routes expect:
+
+```http
+Authorization: Bearer <access_token>
+```
+
+The token is the Nhost access token from the logged-in user.
+
+This project currently verifies JWTs with **HS256**. The secret is configured in `nhost.toml` as `HASURA_GRAPHQL_JWT_SECRET`; in the Functions runtime Nhost exposes that as `NHOST_JWT_SECRET` JSON, and the shared env helper extracts the signing key before verification.
+
+Authorization decisions are made from the verified Hasura claims inside the JWT, especially `x-hasura-user-id`. Do not rely on caller-supplied `user_id`, `author_id`, `follower_id`, or similar fields for ownership decisions.
+
+### 3.2 Conditional auth routes
+
+Some read routes are public by default but become private when a caller asks for owner-only data:
+
+- `restaurant-reviews/get-review-by-id`: approved reviews are public; non-approved reviews require a valid Bearer token for the review owner.
+- `restaurant-reviews/get-user-reviews`: approved reviews are public; `status=draft` or `status=pending` requires the owner’s Bearer token.
+- `restaurant-users/get-reviews`: same behavior as `get-user-reviews`, but keyed by `user_id`.
+- `restaurant-users/suggested`: Bearer is optional; if present and valid, the current user is excluded from suggestions.
+
+### 3.3 Required-owner Bearer routes
+
+These routes always require a valid Bearer token and reject cross-user access:
+
+- `restaurant-reviews/get-following-feed`
+- `restaurant-users/get-wishlist`
+- `restaurant-users/get-checkins`
+- all write / toggle / upload routes that mutate user data
+
+### 3.4 Admin secret
+
+`admin/backfill-rating-summary` does not use a user JWT. It expects:
+
+```http
+x-admin-secret: <value of HASURA_GRAPHQL_ADMIN_SECRET>
+```
+
+Operational note: in the Functions runtime this is read as `NHOST_ADMIN_SECRET` by `_lib/env.ts`, with a fallback to the legacy name for local or transitional setups.
+
+Treat this as a root credential. Only trusted tooling or internal jobs should call it.
+
+---
+
+## 4. Runtime configuration and secrets
+
+The functions runtime gets a mix of Nhost system variables and project secrets. For cloud deploys, set secrets in the Nhost dashboard. For local `nhost up`, put them in the repo-root `.secrets` file.
+
+| Secret / config source | Runtime variable inside Functions | Used for |
+|---|---|---|
+| `HASURA_GRAPHQL_ADMIN_SECRET` | `NHOST_ADMIN_SECRET` | Admin Hasura calls, admin route header checks |
+| `HASURA_GRAPHQL_JWT_SECRET` | `NHOST_JWT_SECRET` | HS256 JWT verification |
+| `HASURA_GRAPHQL_ENDPOINT` | `HASURA_GRAPHQL_ENDPOINT` | Optional explicit GraphQL URL override |
+| Nhost platform | `NHOST_GRAPHQL_URL` | Preferred GraphQL endpoint |
+| Nhost platform | `NHOST_SUBDOMAIN`, `NHOST_REGION` | Runtime metadata and GraphQL URL fallback |
+| project secrets | `S3_*`, `IMAGE_*`, etc. | Upload and image processing |
+
+Important details:
+
+- `.secrets` belongs at the repo root, not inside `functions/`.
+- Nhost Functions does not rely on dotenv files inside `functions/`.
+- `NHOST_JWT_SECRET` is a JSON payload such as `{"key":"...","type":"HS256"}`, not a raw secret string.
+- If you update a secret in cloud, redeploy the functions so cold-start env resolution picks it up.
+
+---
+
+## 5. Request bodies and methods
+
+- **JSON:** Send `Content-Type: application/json` for handlers that read `req.body`.
+- **Query string:** Most read handlers use URL search params and are naturally `GET`.
+- **Multipart:** `upload/image` and `upload/batch` expect `multipart/form-data`, not JSON.
+
+Nhost forwards the original HTTP method to Express. A few handlers intentionally branch on `req.method`.
+
+---
+
+## 6. Client implementation guide
+
+### 6.1 Plain `fetch`
+
+```typescript
+const FUNCTIONS_BASE = process.env.NEXT_PUBLIC_NHOST_FUNCTIONS_URL!.replace(/\/$/, '')
+
+type Envelope<T> = { ok: true; data: T } | { ok: false; error: string; details?: unknown }
+
+export async function tastyplatesFetch<T>(
+  path: string,
+  init: RequestInit & { accessToken?: string | null } = {},
+): Promise<Envelope<T>> {
+  const { accessToken, headers: h, ...rest } = init
+  const headers = new Headers(h)
+
+  if (!headers.has('Content-Type') && rest.body && typeof rest.body === 'string') {
+    headers.set('Content-Type', 'application/json')
+  }
+
+  if (accessToken) {
+    headers.set('Authorization', `Bearer ${accessToken}`)
+  }
+
+  const res = await fetch(`${FUNCTIONS_BASE}/${path.replace(/^\//, '')}`, {
+    ...rest,
+    headers,
+  })
+
+  return res.json() as Promise<Envelope<T>>
+}
+```
+
+Assume `FUNCTIONS_BASE` already includes the version segment if your environment variable was copied that way from Nhost.
+
+### 6.2 Nhost JavaScript client
+
+```typescript
+import { nhost } from '@/lib/nhost'
+
+const accessToken = nhost.auth.getAccessToken()
+const res = await fetch(
+  `${process.env.NEXT_PUBLIC_NHOST_FUNCTIONS_URL}/restaurant-reviews/get-draft-reviews`,
+  {
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+  },
+)
+const json = await res.json()
+```
+
+### 6.3 Multipart upload
+
+```typescript
+const form = new FormData()
+form.append('file', fileBlob, 'photo.jpg')
+
+const res = await fetch(`${base}/upload/image`, {
+  method: 'POST',
+  headers: { Authorization: `Bearer ${accessToken}` },
+  body: form,
+})
+```
+
+Do not set `Content-Type` manually for multipart uploads; the browser will set the boundary.
+
+### 6.4 CORS
+
+Browser requests from a different origin than the functions host require CORS to allow your frontend origin. Server-side requests from Next.js or Node are not subject to browser CORS restrictions.
+
+---
+
+## 7. Special handler behavior
+
+| Route | Notes |
+|---|---|
+| `restaurant-reviews/toggle-like` | `GET` is a public check using query params; `POST` requires Bearer and toggles for the JWT user. |
+| `restaurant-users/toggle-favorite` | `GET` and `POST` both require Bearer; accepts `restaurant_uuid` and/or `restaurant_slug`. |
+| `restaurant-users/toggle-checkin` | `GET` and `POST` both require Bearer; same lookup pattern as toggle-favorite. |
+| `restaurant-reviews/delete-review` | Uses query param `id` plus Bearer; ownership enforced server-side. |
+| `restaurant-users/delete-restaurant-user` | Supports `hard=true` for hard delete; Bearer required. |
+| `restaurant-reviews/get-review-by-id` | Returns approved reviews publicly; non-approved reviews are only visible to the author via Bearer. |
+| `restaurant-reviews/get-user-reviews` | Public approved reviews by default; `status=draft` or `status=pending` is owner-only. |
+| `restaurant-users/get-reviews` | Same privacy rules as `restaurant-reviews/get-user-reviews`, keyed by `user_id`. |
+| `restaurant-users/get-wishlist` | Bearer required; `user_id` must match the JWT user. |
+| `restaurant-users/get-checkins` | Bearer required; `user_id` must match the JWT user. |
+| `restaurant-reviews/get-following-feed` | Bearer required; `user_id` must match the JWT user. |
+| `restaurants-v2/test-connection` | Returns `403` when `NODE_ENV === 'production'`. |
+| `monitoring/graphql-stats` | Returns `403` in production. |
+| `restaurant-users/get-restaurant-user-by-firebase-uuid` | Always `410`; migrate callers to UUID or username routes. |
+| `echo` | Auth smoke test only; remove or lock down before heavy production use. |
+
+---
+
+## 8. Endpoint catalog
+
+Below, `Path` is the segment appended after the functions version segment.
+
+Legend for `Auth`: `None`, `Bearer`, `Optional Bearer`, `Admin header`
+
+### 8.1 Core
+
+| Path | Typical method | Auth | Description |
+|---|---|---|---|
+| `health` | GET | None | Liveness: service name, Node version, uptime |
+| `echo` | GET | Bearer | Returns JWT user id and role; debugging only |
+
+### 8.2 Featured and reference data
+
+| Path | Typical method | Auth | Description |
+|---|---|---|---|
+| `featured-restaurants` | GET | None | Active featured restaurants |
+| `categories/get-categories` | GET | None | List categories; supports filters and pagination |
+| `categories/get-category-by-id` | GET | None | Query param `id` |
+| `cuisines/get-cuisines` | GET | None | List cuisines |
+| `cuisines/get-cuisine-by-id` | GET | None | Query param `id` |
+| `palates/get-palates` | GET | None | List palates |
+| `palates/get-palate-by-id` | GET | None | Query param `id` |
+| `price-ranges/get-price-ranges` | GET | None | List price ranges |
+| `price-ranges/get-price-range-by-id` | GET | None | Query param `id` |
+| `locations/get-locations` | GET | None | Location hierarchy / list |
+
+### 8.3 Restaurants (`restaurants-v2/`)
+
+| Path | Typical method | Auth | Description |
+|---|---|---|---|
+| `restaurants-v2/get-restaurants` | GET | None | List and filter restaurants |
+| `restaurants-v2/get-restaurant-by-id` | GET | None | Query `id` and/or `slug` |
+| `restaurants-v2/get-rating-summary` | GET | None | Rating summary for one restaurant |
+| `restaurants-v2/get-authentic-stats` | GET | None | Authentic stats map |
+| `restaurants-v2/get-preference-stats` | GET | None | Palate preference stats |
+| `restaurants-v2/match-restaurant` | POST | None | Body: `placeId` and/or `name` plus `address` |
+| `restaurants-v2/test-connection` | GET | None | Dev-only Hasura connectivity check |
+| `restaurants-v2/create-restaurant` | POST | Bearer | Creates a restaurant from validated JSON body |
+
+### 8.4 Reviews — reads (`restaurant-reviews/`)
+
+| Path | Typical method | Auth | Description |
+|---|---|---|---|
+| `restaurant-reviews/get-all-reviews` | GET | None | Global feed / pagination |
+| `restaurant-reviews/get-review-by-id` | GET | Optional Bearer | Approved reviews are public; non-approved are owner-only |
+| `restaurant-reviews/get-reviews-by-restaurant` | GET | None | Reviews by restaurant |
+| `restaurant-reviews/get-user-reviews` | GET | Optional Bearer | Approved reviews public; private statuses require owner Bearer |
+| `restaurant-reviews/get-following-feed` | GET | Bearer | Feed for the authenticated user’s follows |
+| `restaurant-reviews/get-replies` | GET | None | Thread replies for a review |
+| `restaurant-reviews/get-draft-reviews` | GET | Bearer | Current user’s drafts |
+
+### 8.5 Reviews — writes (`restaurant-reviews/`)
+
+| Path | Typical method | Auth | Description |
+|---|---|---|---|
+| `restaurant-reviews/create-review` | POST | Bearer | Create review with validated JSON body |
+| `restaurant-reviews/update-review` | POST | Bearer | Update review by `id` |
+| `restaurant-reviews/delete-review` | GET / DELETE | Bearer | Delete review by query `id` |
+| `restaurant-reviews/create-comment` | POST | Bearer | Create comment on a review |
+| `restaurant-reviews/toggle-like` | GET / POST | GET: None, POST: Bearer | Public check and authenticated toggle |
+
+### 8.6 Users and social (`restaurant-users/`)
+
+| Path | Typical method | Auth | Description |
+|---|---|---|---|
+| `restaurant-users/create-restaurant-user` | POST | None | Creates a profile row; consider hardening if abuse becomes a concern |
+| `restaurant-users/update-restaurant-user` | POST | Bearer | Update current user profile |
+| `restaurant-users/delete-restaurant-user` | POST | Bearer | Delete current user; `hard=true` optional |
+| `restaurant-users/follow` | POST | Bearer | Follow another user |
+| `restaurant-users/unfollow` | POST | Bearer | Unfollow another user |
+| `restaurant-users/check-follow-status` | POST | Bearer | Compare target user against JWT follower |
+| `restaurant-users/toggle-favorite` | GET / POST | Bearer | Read or toggle favorite state |
+| `restaurant-users/toggle-checkin` | GET / POST | Bearer | Read or toggle check-in state |
+| `restaurant-users/suggested` | GET | Optional Bearer | Suggestions; current user excluded if Bearer is present |
+| `restaurant-users/get-restaurant-users` | GET | None | List and search users |
+| `restaurant-users/get-restaurant-user-by-id` | GET | None | Fetch one user by UUID |
+| `restaurant-users/get-restaurant-user-by-username` | GET | None | Fetch one user by username |
+| `restaurant-users/get-restaurant-user-by-firebase-uuid` | GET | None | Deprecated stub |
+| `restaurant-users/check-username` | GET | None | Username availability |
+| `restaurant-users/get-followers-list` | GET | None | Followers list |
+| `restaurant-users/get-following-list` | GET | None | Following list |
+| `restaurant-users/get-followers-count` | GET | None | Followers count |
+| `restaurant-users/get-following-count` | GET | None | Following count |
+| `restaurant-users/get-wishlist` | GET | Bearer | Wishlist for the authenticated user only |
+| `restaurant-users/get-checkins` | GET | Bearer | Check-ins for the authenticated user only |
+| `restaurant-users/get-reviews` | GET | Optional Bearer | Approved reviews public; private statuses require owner Bearer |
+
+### 8.7 Uploads and images
+
+| Path | Typical method | Auth | Description |
+|---|---|---|---|
+| `upload/image` | POST | Bearer | Multipart image upload to S3 |
+| `upload/batch` | POST | Bearer | Multipart batch upload |
+| `images/download-google-photo` | POST | None | Download Google photo URL and return data URL |
+
+### 8.8 Articles
+
+| Path | Typical method | Auth | Description |
+|---|---|---|---|
+| `articles/get-articles` | GET | None | List with filters and pagination |
+| `articles/get-article-by-slug` | GET | None | Query `slug` |
+| `articles/get-article-by-id` | GET | None | Query `id` |
+
+### 8.9 Admin and monitoring
+
+| Path | Typical method | Auth | Description |
+|---|---|---|---|
+| `admin/backfill-rating-summary` | POST | Admin header | Rebuild rating summaries |
+| `monitoring/graphql-stats` | GET | None | Monitoring stub; `403` in production |
+
+---
+
+## 9. Testing with `curl`
+
+Replace `BASE` with your real functions URL ending in the version segment, usually `/v1`.
+
+```bash
+curl -sS "$BASE/health" | jq .
+
+curl -sS "$BASE/categories/get-categories?limit=5" | jq .
+
+curl -sS -X POST "$BASE/restaurants-v2/match-restaurant" \
+  -H "Content-Type: application/json" \
+  -d '{"name":"Some Place","address":"123 Main"}' | jq .
+
+curl -sS "$BASE/restaurant-reviews/get-draft-reviews" \
+  -H "Authorization: Bearer $ACCESS_TOKEN" | jq .
+```
+
+For the admin route:
+
+```bash
+curl -sS -X POST "$BASE/admin/backfill-rating-summary" \
+  -H "x-admin-secret: $HASURA_GRAPHQL_ADMIN_SECRET" | jq .
+```
+
+---
+
+## 10. Operational checklist
+
+1. **Secrets:** Dashboard or local `.secrets` contains `HASURA_GRAPHQL_ADMIN_SECRET` and `HASURA_GRAPHQL_JWT_SECRET`.
+2. **Functions URL:** `NEXT_PUBLIC_NHOST_FUNCTIONS_URL` matches the dashboard URL and version concatenation rules from section 1.
+3. **Redeploy after secret changes:** Cold-start env resolution should pick up the latest values.
+4. **Lock down `echo`:** It is useful for smoke testing but should not stay broadly exposed forever.
+5. **Public-entry routes:** Revisit rate limiting or edge protections for routes that may be abused.
+6. **`create-restaurant-user`:** If this remains public, consider restricting it to your signup pipeline over time.
+
+---
+
+## 11. Related docs
+
+| Document | Purpose |
+|---|---|
+| [AI_rules.md](./AI_rules.md) | Non-negotiable implementation rules for functions |
+| [decouple-plan.md](./decouple-plan.md) | Migration plan from Next.js `/api/v1` |
+
+When in doubt about the exact contract for a route, open the matching handler under `functions/`.
