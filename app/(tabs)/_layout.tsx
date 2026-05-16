@@ -41,12 +41,6 @@ const TABS: TabConfig[] = [
     icon: 'add-circle-outline',
     iconFocused: 'add-circle',
   },
-  {
-    name: 'profile',
-    title: 'Profile',
-    icon: 'person-outline',
-    iconFocused: 'person',
-  },
 ]
 
 export default function TabsLayout() {
@@ -87,6 +81,11 @@ export default function TabsLayout() {
           }}
         />
       ))}
+      {/**
+       * Profile stack lives under tabs (own + public `profile/[userId]`) but has no tab button —
+       * the header avatar opens the signed-in user (`/(tabs)/profile`).
+       */}
+      <Tabs.Screen name="profile" options={{ href: null }} />
       </Tabs>
     </SearchCuisinesSheetProvider>
   )

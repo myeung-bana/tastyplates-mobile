@@ -10,7 +10,7 @@ import { readStringMeta } from '@/lib/profileMetaUtils'
 import { formatMemberSince, initialsFromName, parseProfilePalates } from '@/lib/profileFormatting'
 import { useNhostSession } from '@/hooks/useNhostSession'
 import { useOwnProfileStats } from '@/hooks/useOwnProfileStats'
-import { fetchRestaurantUserById, type RestaurantUserRow } from '@/services/restaurantUserService'
+import { fetchRestaurantUserById, normalizeLegacyProfileAvatar, type RestaurantUserRow } from '@/services/restaurantUserService'
 import {
   SCREEN_EDIT_PROFILE,
   SCREEN_FOLLOWING,
@@ -97,8 +97,7 @@ export function ProfileSignedInView() {
 
   const avatarUrl =
     profile?.avatarUrl?.trim() ||
-    ru?.avatarUrl?.trim() ||
-    (ru?.profile_image?.trim()?.startsWith('http') ? ru.profile_image.trim() : null)
+    normalizeLegacyProfileAvatar(ru?.avatarUrl, ru?.profile_image)
 
   const memberSinceLabel = ru?.created_at ? formatMemberSince(ru.created_at) : ''
 

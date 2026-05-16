@@ -21,7 +21,15 @@ import {
   TEXT_MUTED,
   RATING_STAR,
 } from '@/constants/brand'
-import { SCREEN_EDIT_PROFILE, SCREEN_PUBLIC_PROFILE_FOLLOWERS, SCREEN_PUBLIC_PROFILE_FOLLOWING } from '@/constants/screens'
+import {
+  ProfileOtherUserReviewsPreview,
+  type ProfileOtherUserReviewsPreviewProps,
+} from '@/components/profile/ProfileOtherUserReviewsPreview'
+import {
+  SCREEN_EDIT_PROFILE,
+  SCREEN_PUBLIC_PROFILE_FOLLOWERS,
+  SCREEN_PUBLIC_PROFILE_FOLLOWING,
+} from '@/constants/screens'
 import { capitalizePhrase } from '@/lib/profileFormatting'
 
 const AVATAR_SIZE = 96
@@ -47,7 +55,7 @@ export interface UnifiedProfileFollowButtonModel {
 
 export interface UnifiedProfileViewProps {
   isOwnProfile: boolean
-  /** For nested profile routes (`/profile/[userId]/…`) — always `restaurant_users.id`. */
+  /** For nested profile routes (`/(tabs)/profile/[userId]/…`) — Nhost user id (`RestaurantUserRow.id`, UUID). */
   routeUserId: string
   headlineHandle: string
   avatarUrl: string | null
@@ -64,6 +72,8 @@ export interface UnifiedProfileViewProps {
   onPressAvatarOwn?: () => void
   followButton?: UnifiedProfileFollowButtonModel | null
   showFollowPlaceholder?: boolean
+  /** When set on another user’s profile, replaces the placeholder with a 2-review preview + CTA (`design_system.md` §5). */
+  otherUserReviews?: ProfileOtherUserReviewsPreviewProps | null
   belowActions?: ReactNode
 }
 
@@ -87,6 +97,7 @@ export function UnifiedProfileView({
   onPressAvatarOwn,
   followButton,
   showFollowPlaceholder = false,
+  otherUserReviews = null,
   belowActions,
 }: UnifiedProfileViewProps) {
   const router = useRouter()
@@ -278,17 +289,24 @@ export function UnifiedProfileView({
         className="mt-10 border-t px-2 pb-6 pt-8"
         style={{ borderTopWidth: 1, borderTopColor: STATS_BORDER }}
       >
-        <View className="mb-2 flex-row items-center gap-2">
-          <Text className="text-base font-semibold" style={{ color: TEXT_HEADING }}>
+        <View className="mb-3 flex-row items-center gap-2">
+          <Text
+            className="text-xl font-semibold"
+            style={{ color: TEXT_HEADING, letterSpacing: -0.3 }}
+          >
             Reviews
           </Text>
           <Text style={{ fontSize: 13, color: RATING_STAR }}>★</Text>
         </View>
-        <Text className="text-sm leading-relaxed" style={{ color: TEXT_MUTED }}>
-          {isOwnProfile
-            ? 'Published reviews will appear in this grid. Open My reviews below to jump to TastyStudio.'
-            : 'Reviews from this account will appear here soon.'}
-        </Text>
+        {!isOwnProfile && otherUserReviews ? (
+          <ProfileOtherUserReviewsPreview {...otherUserReviews} />
+        ) : (
+          <Text className="text-sm leading-relaxed" style={{ color: TEXT_MUTED }}>
+            {isOwnProfile
+              ? 'Published reviews will appear in this grid. Open My reviews below to jump to TastyStudio.'
+              : 'Reviews from this account will appear here soon.'}
+          </Text>
+        )}
       </View>
 
       {belowActions}

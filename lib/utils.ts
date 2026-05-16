@@ -17,11 +17,11 @@ export function formatLikeCount(count: number): string {
 }
 
 /**
- * Public profile segment is `restaurant_users.id` (UUID).
- * e.g. "/profile/550e8400-e29b-..."
+ * Public profile under the tab navigator (UUID or username slug after `/profile/`).
+ * e.g. "/(tabs)/profile/550e8400-e29b-..." or "/(tabs)/profile/janedoe"
  */
-export function generateProfileUrl(restaurantUserId: string): string {
-  return `/profile/${encodeURIComponent(restaurantUserId)}`
+export function generateProfileUrl(userIdOrUsername: string): string {
+  return `/(tabs)/profile/${encodeURIComponent(userIdOrUsername.replace(/^@/, ''))}`
 }
 
 /**

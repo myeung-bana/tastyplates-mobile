@@ -18,6 +18,7 @@ import {
 } from '@/constants/screens'
 import { useAuth } from '@/hooks/useAuth'
 import { useLatestTrendingReviews } from '@/hooks/useLatestTrendingReviews'
+import type { TrendingReviewRow } from '@/services/homeReviewsService'
 import { isRestaurantUserRouteId } from '@/services/restaurantUserService'
 import { pushLoginScreen } from '@/lib/authRoutes'
 
@@ -55,18 +56,28 @@ export function HomeReviewsSection({ refreshNonce = 0 }: HomeReviewsSectionProps
     })
   }
 
-  const onOpenAuthor = (authorUserId: string | null | undefined) => {
+  const onOpenAuthor = (review: TrendingReviewRow) => {
     void Haptics.selectionAsync()
     if (!isAuthenticated) {
       pushLoginScreen(router, { resume: '/(tabs)' })
       return
     }
-    const id = authorUserId?.trim()
-    if (id && isRestaurantUserRouteId(id))
+    // Prefer slug + `restaurant-users/get-restaurant-user-by-username`; else UUID + `get-restaurant-user-by-id`.
+    const usernameSlug = review.AuthorProfile?.username?.trim().replace(/^@/, '')
+    if (usernameSlug) {
+      router.push({
+        pathname: SCREEN_PUBLIC_PROFILE,
+        params: { userId: usernameSlug },
+      })
+      return
+    }
+    const id = review.author_id?.trim()
+    if (id && isRestaurantUserRouteId(id)) {
       router.push({
         pathname: SCREEN_PUBLIC_PROFILE,
         params: { userId: id },
       })
+    }
   }
 
   return (
@@ -178,14 +189,14 @@ export function HomeReviewsSection({ refreshNonce = 0 }: HomeReviewsSectionProps
                       width={columnWidth}
                       review={left}
                       onPressCard={() => onOpenReview(left.id)}
-                      onPressAuthor={() => onOpenAuthor(left.author_id)}
+                      onPressAuthor={() => onOpenAuthor(left)}
                     />
                     {right ? (
                       <HomeReviewCard
                         width={columnWidth}
                         review={right}
                         onPressCard={() => onOpenReview(right.id)}
-                        onPressAuthor={() => onOpenAuthor(right.author_id)}
+                        onPressAuthor={() => onOpenAuthor(right)}
                       />
                     ) : (
                       <View style={{ width: columnWidth }} />

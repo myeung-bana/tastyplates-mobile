@@ -69,17 +69,19 @@ export const SCREEN_LISTING_DRAFT = '/listing/draft' as const
 
 // ─── User profile ─────────────────────────────────────────────────────────────
 
-export const SCREEN_OWN_PROFILE = '/profile' as const
-export const SCREEN_EDIT_PROFILE = '/profile/edit' as const
-export const SCREEN_PUBLIC_PROFILE = '/profile/[userId]' as const
+export const SCREEN_OWN_PROFILE = '/(tabs)/profile' as const
+export const SCREEN_EDIT_PROFILE = '/(tabs)/profile/edit' as const
+export const SCREEN_PUBLIC_PROFILE = '/(tabs)/profile/[userId]' as const
 export const SCREEN_PUBLIC_PROFILE_FOLLOWERS =
-  '/profile/[userId]/followers' as const
+  '/(tabs)/profile/[userId]/followers' as const
 export const SCREEN_PUBLIC_PROFILE_FOLLOWING =
-  '/profile/[userId]/following' as const
+  '/(tabs)/profile/[userId]/following' as const
+export const SCREEN_PUBLIC_PROFILE_REVIEWS =
+  '/(tabs)/profile/[userId]/reviews' as const
 
-/** Build the public profile path for `restaurant_users.id` (UUID). */
-export function publicProfilePath(restaurantUserId: string): string {
-  return `/profile/${encodeURIComponent(restaurantUserId)}`
+/** Build public profile path (UUID **or** username slug — see `RestaurantUserRow` + Nhost handlers). */
+export function publicProfilePath(userIdOrUsername: string): string {
+  return `/(tabs)/profile/${encodeURIComponent(userIdOrUsername.replace(/^@/, ''))}`
 }
 
 // ─── Hashtag feed ─────────────────────────────────────────────────────────────
