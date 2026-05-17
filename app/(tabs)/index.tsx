@@ -31,8 +31,8 @@ export default function HomeScreen() {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={BRAND_PRIMARY} />}
       >
         <HomeHero />
-        <HomeFeaturedRestaurants key={`home-featured-${feedKey}`} />
         <HomeQuickFinds />
+        <HomeFeaturedRestaurants key={`home-featured-${feedKey}`} />
         <HomeReviewsSection refreshNonce={feedKey} />
         <HomeArticlesSection key={`home-articles-${feedKey}`} />
       </ScrollView>

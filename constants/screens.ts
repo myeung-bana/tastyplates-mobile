@@ -41,6 +41,15 @@ export function cuisineBrowsePath(slug: string): string {
 
 export const SCREEN_REVIEW_VIEWER = '/reviews/viewer' as const
 
+// ─── Articles (editorial) ────────────────────────────────────────────────────
+
+export const SCREEN_ARTICLE_DETAIL = '/articles/[slug]' as const
+
+/** In-app article detail; `segment` is slug **or** numeric id string. */
+export function articleDetailPath(segment: string): string {
+  return `/articles/${encodeURIComponent(segment.replace(/^\/+/, ''))}`
+}
+
 // ─── TastyStudio ─────────────────────────────────────────────────────────────
 
 export const SCREEN_STUDIO_ADD_REVIEW = '/studio/add-review' as const

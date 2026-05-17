@@ -6,13 +6,13 @@
     "description": "TastyPlates — restaurant discovery, reviews, and food stories from people whose taste you trust.",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icons/Favicon_Orange_Square.png",
+    "icon": "./assets/AppIcons/appstore.png",
     "scheme": "tastyplates",
     "userInterfaceStyle": "automatic",
     "primaryColor": "#ff7c0a",
     "runtimeVersion": "1.0.0",
     "splash": {
-      "image": "./assets/icons/Favicon_Orange_Square.png",
+      "image": "./assets/AppIcons/appstore.png",
       "resizeMode": "contain",
       "backgroundColor": "#ff7c0a"
     },
@@ -27,8 +27,9 @@
     },
     "android": {
       "package": "com.toyama.rodrigo.exporoutertemplate",
+      "icon": "./assets/AppIcons/playstore.png",
       "adaptiveIcon": {
-        "foregroundImage": "./assets/icons/Favicon_Orange_Square.png",
+        "foregroundImage": "./assets/AppIcons/playstore.png",
         "backgroundColor": "#ff7c0a"
       }
     },
@@ -41,7 +42,7 @@
     "web": {
       "bundler": "metro",
       "output": "static",
-      "favicon": "./assets/icons/Favicon_Orange_Square.png",
+      "favicon": "./assets/AppIcons/appstore.png",
       "name": "TastyPlates",
       "shortName": "TastyPlates",
       "description": "TastyPlates — restaurant discovery, reviews, and food stories from people whose taste you trust.",

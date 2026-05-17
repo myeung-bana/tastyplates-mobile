@@ -1,13 +1,22 @@
 import { useEffect, useState, useCallback } from 'react'
 import { View, Text, Pressable, Image, ActivityIndicator, Linking } from 'react-native'
+import * as Haptics from 'expo-haptics'
+import { router } from 'expo-router'
 import { fetchArticles, type ArticleApi } from '@/lib/homeContentApi'
-import { getWebOrigin } from '@/lib/webAssets'
-import { BRAND_PRIMARY } from '@/constants/brand'
+import { getMarketingWebOrigin } from '@/lib/webAssets'
+import { SCREEN_ARTICLE_DETAIL } from '@/constants/screens'
+import {
+  BORDER_SUBTLE,
+  BRAND_PRIMARY,
+  TEXT_HEADING,
+  TEXT_MUTED,
+} from '@/constants/brand'
 
 const DEFAULT_LOCATION_SLUG = process.env.EXPO_PUBLIC_DEFAULT_LOCATION_SLUG ?? 'tokyo'
 
 /**
- * Article cards (location-scoped), same REST contract as web when `EXPO_PUBLIC_WEB_API_URL` is set.
+ * Article cards — web API when set, else Nhost `articles/get-articles`
+ * (`recommend-articles.md`). Styling: `design_system.md` §2.3–2.4, §5.3 Card.
  */
 export function HomeArticlesSection() {
   const [articles, setArticles] = useState<ArticleApi[]>([])
@@ -26,27 +35,33 @@ export function HomeArticlesSection() {
 
   if (!loading && articles.length === 0) return null
 
-  const origin = getWebOrigin()
+  const origin = getMarketingWebOrigin()
 
-  const openArticle = (a: ArticleApi) => {
-    if (!origin) return
-    const path = a.slug?.trim()
-      ? `/articles/${encodeURIComponent(a.slug.trim())}`
-      : `/article/${encodeURIComponent(String(a.id))}`
-    void Linking.openURL(`${origin}${path}`)
+  const navigateToArticle = (a: ArticleApi) => {
+    const segment = a.slug?.trim() || String(a.id)
+    router.push({
+      pathname: SCREEN_ARTICLE_DETAIL,
+      params: { slug: segment },
+    })
   }
 
   const openAll = () => {
     if (!origin) return
+    void Haptics.selectionAsync()
     void Linking.openURL(`${origin}/articles`)
   }
 
   return (
-    <View className="mt-2 w-full bg-gray-50 py-6">
-      <View className="mb-4 flex-row items-center justify-between px-4">
-        <Text className="text-lg font-semibold text-gray-900">Articles</Text>
+    <View className="mt-4 w-full bg-white pb-8 pt-2">
+      <View
+        className="mb-3 flex-row items-center justify-between px-4 pb-3"
+        style={{ borderBottomWidth: 1, borderBottomColor: BORDER_SUBTLE }}
+      >
+        <Text className="text-lg font-normal" style={{ color: TEXT_HEADING }}>
+          Articles
+        </Text>
         {origin ? (
-          <Pressable onPress={openAll} hitSlop={8}>
+          <Pressable onPress={openAll} hitSlop={8} accessibilityRole="button">
             <Text className="text-sm font-semibold" style={{ color: BRAND_PRIMARY }}>
               See all
             </Text>
@@ -55,7 +70,7 @@ export function HomeArticlesSection() {
       </View>
 
       {loading ? (
-        <View className="py-12">
+        <View className="items-center py-12">
           <ActivityIndicator color={BRAND_PRIMARY} />
         </View>
       ) : (
@@ -63,11 +78,16 @@ export function HomeArticlesSection() {
           {articles.map((article) => (
             <Pressable
               key={String(article.id)}
-              onPress={() => openArticle(article)}
-              disabled={!origin}
-              className="overflow-hidden rounded-2xl bg-white active:opacity-90"
+              onPress={() => {
+                void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
+                navigateToArticle(article)
+              }}
+              accessibilityRole="button"
+              accessibilityLabel={article.title}
+              className="overflow-hidden rounded-2xl border bg-white active:opacity-90"
+              style={{ borderColor: BORDER_SUBTLE }}
             >
-              <View className="aspect-video w-full overflow-hidden bg-gray-200">
+              <View className="aspect-video w-full overflow-hidden bg-gray-100">
                 <Image
                   source={{
                     uri:
@@ -78,19 +98,28 @@ export function HomeArticlesSection() {
                   resizeMode="cover"
                 />
                 {article.category ? (
-                  <View className="absolute bottom-2 left-2 rounded-full bg-white/90 px-2 py-0.5">
-                    <Text className="text-[10px] font-semibold capitalize" style={{ color: BRAND_PRIMARY }}>
+                  <View className="absolute bottom-2 left-2 rounded-full bg-white/95 px-2.5 py-1">
+                    <Text
+                      className="text-[10px] font-semibold uppercase tracking-wide"
+                      style={{ color: BRAND_PRIMARY }}
+                    >
                       {article.category}
                     </Text>
                   </View>
                 ) : null}
               </View>
               <View className="p-3">
-                <Text className="text-base font-semibold leading-snug text-gray-800" numberOfLines={2}>
+                <Text
+                  className="text-base font-semibold leading-snug"
+                  style={{ color: TEXT_HEADING }}
+                  numberOfLines={2}
+                >
                   {article.title}
                 </Text>
-                <Text className="mt-1 text-xs text-gray-400">
-                  {article.reading_time_minutes != null ? `${article.reading_time_minutes} min read` : ''}
+                <Text className="mt-1 text-xs" style={{ color: TEXT_MUTED }}>
+                  {article.reading_time_minutes != null
+                    ? `${article.reading_time_minutes} min read`
+                    : ''}
                 </Text>
               </View>
             </Pressable>

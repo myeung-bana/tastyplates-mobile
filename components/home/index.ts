@@ -1,4 +1,5 @@
 export { HomeHero } from './HomeHero'
+export { RecommendedRestaurantsCarousel } from './RecommendedRestaurantsCarousel'
 export { HomeFeaturedRestaurants } from './HomeFeaturedRestaurants'
 export { HomeQuickFinds } from './HomeQuickFinds'
 export { HomeReviewsSection } from './HomeReviewsSection'
