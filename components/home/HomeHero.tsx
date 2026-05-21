@@ -2,7 +2,7 @@ import { useState, useCallback } from 'react'
 import { View, Text, TextInput, Pressable, Keyboard } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { router } from 'expo-router'
-import { BRAND_PRIMARY } from '@/constants/brand'
+import { BRAND_PRIMARY, mergeTextInputBodyTypography } from '@/constants/brand'
 import { labelForPalateKey } from '@/lib/palateLabels'
 import { SCREEN_RESTAURANTS } from '@/constants/screens'
 import { useSearchCuisinesSheet } from '@/contexts/SearchCuisinesSheetContext'
@@ -73,6 +73,7 @@ export function HomeHero() {
             ) : (
               <TextInput
                 className="min-h-[48px] flex-1 px-2 py-2 text-base text-gray-900"
+                style={mergeTextInputBodyTypography()}
                 placeholder="Search restaurants…"
                 placeholderTextColor="#9ca3af"
                 value={keyword}

@@ -1,5 +1,5 @@
-import { ScrollView, RefreshControl } from 'react-native'
-import { SafeAreaView } from 'react-native-safe-area-context'
+import { View, ScrollView, RefreshControl } from 'react-native'
+
 import { useCallback, useState } from 'react'
 import {
   HomeHero,
@@ -23,7 +23,7 @@ export default function HomeScreen() {
   }, [])
 
   return (
-    <SafeAreaView className="flex-1 bg-white" edges={['top']}>
+    <View className="flex-1 bg-white">
       <AppTopNav />
       <ScrollView
         className="flex-1"
@@ -36,6 +36,6 @@ export default function HomeScreen() {
         <HomeReviewsSection refreshNonce={feedKey} />
         <HomeArticlesSection key={`home-articles-${feedKey}`} />
       </ScrollView>
-    </SafeAreaView>
+    </View>
   )
 }

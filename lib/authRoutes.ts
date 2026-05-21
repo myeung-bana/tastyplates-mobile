@@ -13,6 +13,41 @@ export function coerceResumeHref(path: string | undefined): TypedResumeHref | un
   return path as TypedResumeHref
 }
 
+/**
+ * Build `resume=` for login when forcing auth from `(tabs)`. Skips anonymous home-equivalent URLs.
+ */
+export function pathnameWithQueryResume(
+  pathname: string | null | undefined,
+  params?: Record<string, string | string[] | undefined>,
+): string | undefined {
+  const normalized = pathname?.trim() ?? ''
+  if (
+    normalized === '' ||
+    normalized === '/' ||
+    normalized === '/(tabs)' ||
+    /^\/\(tabs\)\/?$/.test(normalized)
+  ) {
+    return undefined
+  }
+
+  const sp = new URLSearchParams()
+  if (params) {
+    for (const [key, raw] of Object.entries(params)) {
+      if (raw == null) continue
+      if (typeof key !== 'string' || key.startsWith('_')) continue
+      const v = Array.isArray(raw) ? raw[0] : raw
+      if (v === undefined || v === '') continue
+      try {
+        sp.append(key, String(v))
+      } catch {
+        // ignore malformed values
+      }
+    }
+  }
+  const qs = sp.toString()
+  return qs.length === 0 ? normalized : `${normalized}?${qs}`
+}
+
 export function serializeAuthResume(
   href?: Parameters<Router['replace']>[0],
 ): string | undefined {

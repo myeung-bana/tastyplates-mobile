@@ -1,5 +1,4 @@
-import { useEffect, useMemo } from 'react'
-import { Slot } from 'expo-router'
+import { useMemo } from 'react'
 import { SplashScreen } from 'expo-router'
 import { useFonts } from 'expo-font'
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
@@ -10,6 +9,10 @@ import { NhostProvider } from '@nhost/react'
 import { ApolloProvider } from '@apollo/client'
 import { createApolloClient } from '@nhost/apollo'
 
+import { SplashAuthGate } from '@/components/layout/SplashAuthGate'
+import { LocationHierarchyPickerHost } from '@/components/navigation/LocationHierarchyPickerHost'
+import { LocationProvider } from '@/contexts/LocationContext'
+import { SearchCuisinesSheetProvider } from '@/contexts/SearchCuisinesSheetContext'
 import { nhost } from '@/lib/nhost'
 import '../global.css'
 
@@ -20,12 +23,7 @@ export default function RootLayout() {
 
   const apolloClient = useMemo(() => createApolloClient({ nhost }), [])
 
-  useEffect(() => {
-    if (fontsLoaded || fontError) {
-      SplashScreen.hideAsync()
-    }
-  }, [fontsLoaded, fontError])
-
+  /** Wait for fonts; session + splash hide handled inside {@link SplashAuthGate} under `NhostProvider`. */
   if (!fontsLoaded && !fontError) {
     return null
   }
@@ -34,11 +32,16 @@ export default function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <NhostProvider nhost={nhost}>
         <ApolloProvider client={apolloClient}>
-          <GluestackUIProvider config={config}>
-            <BottomSheetModalProvider>
-              <Slot />
-            </BottomSheetModalProvider>
-          </GluestackUIProvider>
+          <LocationProvider>
+            <GluestackUIProvider config={config}>
+              <BottomSheetModalProvider>
+                <SearchCuisinesSheetProvider>
+                  <SplashAuthGate />
+                </SearchCuisinesSheetProvider>
+                <LocationHierarchyPickerHost />
+              </BottomSheetModalProvider>
+            </GluestackUIProvider>
+          </LocationProvider>
         </ApolloProvider>
       </NhostProvider>
     </GestureHandlerRootView>

@@ -1,3 +1,19 @@
+/** All HTTP image URLs from review `images` JSON (strings or `{ url }`), capped at `max`. */
+export function reviewImageUris(images: unknown, max = 8): string[] {
+  const out: string[] = []
+  if (images == null || !Array.isArray(images)) return out
+  for (const item of images) {
+    if (out.length >= max) break
+    if (typeof item === 'string' && item.trim().startsWith('http')) {
+      out.push(item.trim())
+    } else if (item && typeof item === 'object' && 'url' in item) {
+      const u = (item as { url?: unknown }).url
+      if (typeof u === 'string' && u.trim().startsWith('http')) out.push(u.trim())
+    }
+  }
+  return out
+}
+
 /** First image URL from review `images` JSON (strings or `{ url }`). */
 export function firstReviewImageUri(images: unknown, fallback: string): string {
   if (images == null) return fallback

@@ -16,6 +16,7 @@ import { useAuthenticated, useChangePassword } from '@nhost/react'
 import { z } from 'zod'
 
 import { AuthScreenHeader } from '@/components/auth/AuthScreenHeader'
+import { mergeTextInputBodyTypography } from '@/constants/brand'
 import { SCREEN_HOME, SCREEN_LOGIN } from '@/constants/screens'
 import { toast } from '@/utils/toast'
 
@@ -89,6 +90,7 @@ export default function ResetPasswordScreen() {
                     placeholderTextColor="#9ca3af"
                     secureTextEntry
                     value={value}
+                    style={mergeTextInputBodyTypography()}
                     className="mb-1 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-base text-gray-900"
                   />
                 )}
@@ -113,6 +115,7 @@ export default function ResetPasswordScreen() {
                     placeholderTextColor="#9ca3af"
                     secureTextEntry
                     value={value}
+                    style={mergeTextInputBodyTypography()}
                     className="mb-1 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-base text-gray-900"
                   />
                 )}

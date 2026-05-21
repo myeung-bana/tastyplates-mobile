@@ -10,6 +10,8 @@ export interface RestaurantUserRow {
   profile_image?: string | { url?: string | null } | null
   about_me?: string | null
   palates?: unknown
+  /** From `user_profiles.onboarding_complete` via Nhost legacy mapper. */
+  onboarding_complete?: boolean
   created_at: string
   /** Present on username endpoint only; may be null. */
   avatarUrl?: string | null

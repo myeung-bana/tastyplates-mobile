@@ -16,6 +16,8 @@ const DEFAULT_COVER =
   'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=800&q=80'
 
 function displayName(review: TrendingReviewRow): string {
+  const dn = review.AuthorProfile?.user?.displayName?.trim()
+  if (dn) return dn
   const u = review.AuthorProfile?.username?.trim()
   if (u) return u.startsWith('@') ? u : `@${u}`
   const email = review.AuthorProfile?.user?.email?.trim()

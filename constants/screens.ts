@@ -1,8 +1,10 @@
 /**
- * All screen route path constants.
+ * All screen route constants.
  *
- * Every router.push() / router.replace() call in the app must import from here.
- * Never hardcode path strings inline in components.
+ * Files can live under `app/(tabs)/…` so the bottom tab navigator stays mounted, but **`Href`s
+ * typically omit `(tabs)`** — use `/studio/...`, `/restaurants/...`, etc. Expo resolves them to tabbed routes.
+ *
+ * Visible tab targets (`/(tabs)`, `/(tabs)/restaurants`) keep the `(tabs)` prefix where the typed router expects it.
  */
 
 // ─── Tabs (bottom navigator) ──────────────────────────────────────────────────
@@ -10,15 +12,18 @@
 export const SCREEN_HOME = '/(tabs)' as const
 export const SCREEN_RESTAURANTS = '/(tabs)/restaurants' as const
 export const SCREEN_FOLLOWING = '/(tabs)/following' as const
-export const SCREEN_STUDIO = '/(tabs)/studio' as const
+/** `/studio` index redirects to {@link SCREEN_STUDIO_ADD_REVIEW}; tab shortcuts use modal quick actions (+). */
+export const SCREEN_STUDIO_ENTRY = '/studio' as const
 export const SCREEN_PROFILE = '/(tabs)/profile' as const
 
 // ─── Authentication ───────────────────────────────────────────────────────────
 
 export const SCREEN_LOGIN = '/login' as const
+/** First-launch marketing carousel before login (skipped when `resume` is set on the tab gate). */
+export const SCREEN_GET_STARTED = '/get-started' as const
 export const SCREEN_REGISTER = '/register' as const
 export const SCREEN_USER_VERIFICATION = '/user-verification' as const
-export const SCREEN_ONBOARDING = '/onboarding' as const
+export const SCREEN_ONBOARDING = '/onboarding/step1' as const
 export const SCREEN_FORGOT_PASSWORD = '/forgot-password' as const
 export const SCREEN_RESET_PASSWORD = '/reset-password' as const
 
@@ -57,6 +62,7 @@ export const SCREEN_STUDIO_ADD_REVIEW_WRITE = '/studio/add-review/[slug]' as con
 export const SCREEN_STUDIO_ADD_REVIEW_CREATE = '/studio/add-review/create' as const
 export const SCREEN_STUDIO_ADD_REVIEW_SUCCESS = '/studio/add-review/success' as const
 export const SCREEN_STUDIO_REVIEW_LISTING = '/studio/review-listing' as const
+export const SCREEN_STUDIO_MY_LISTS = '/studio/my-lists' as const
 export const SCREEN_STUDIO_EDIT_REVIEW = '/studio/edit-review/[id]' as const
 
 /** Build the write-review path for a given restaurant slug. */
@@ -116,3 +122,11 @@ export const SCREEN_PRIVACY_POLICY = '/privacy-policy' as const
 export const SCREEN_COOKIE_POLICY = '/cookie-policy' as const
 export const SCREEN_TERMS_OF_SERVICE = '/terms-of-service' as const
 export const SCREEN_CONTENT_GUIDELINES = '/content-guidelines' as const
+
+// ─── Google Place (defer full in-app viewer — see tasty-studio-maps-v1.1.md) ─
+
+export const SCREEN_PLACES_GOOGLE_DETAIL = '/places/google/[place_id]' as const
+
+export function googlePlaceDetailPath(placeId: string): string {
+  return `/places/google/${encodeURIComponent(placeId)}`
+}

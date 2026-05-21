@@ -3,21 +3,15 @@ import type { User } from '@nhost/nhost-js'
 
 import {
   SCREEN_HOME,
-  SCREEN_ONBOARDING,
   SCREEN_USER_VERIFICATION,
 } from '@/constants/screens'
 
 import type { TypedResumeHref } from '@/lib/authRoutes'
 
-function isOnboardingComplete(user: User | null): boolean {
-  if (!user?.metadata || typeof user.metadata !== 'object') return false
-  const m = user.metadata as Record<string, unknown>
-  return Boolean(m.onboardingCompleted)
-}
-
 /**
  * After sign-in / sign-up, send the user to the correct screen.
- * Uses Nhost `needsEmailVerification` and optional `metadata.onboardingCompleted`.
+ * Uses Nhost `needsEmailVerification`. Onboarding completion is enforced by {@link OnboardingGate}
+ * from `user_profiles.onboarding_complete`.
  */
 export function navigateAfterAuth(
   router: Router,
@@ -25,7 +19,7 @@ export function navigateAfterAuth(
     needsEmailVerification: boolean
     user: User | null
   },
-  /** Deep link resume when auth is fully complete (skipped for verification / onboarding redirects). */
+  /** Deep link resume when auth is fully complete (skipped for verification redirects). */
   resumeHref?: TypedResumeHref,
 ): void {
   const { needsEmailVerification, user } = options
@@ -37,11 +31,6 @@ export function navigateAfterAuth(
 
   if (user && !user.emailVerified) {
     router.replace(SCREEN_USER_VERIFICATION)
-    return
-  }
-
-  if (user && !isOnboardingComplete(user)) {
-    router.replace(SCREEN_ONBOARDING)
     return
   }
 

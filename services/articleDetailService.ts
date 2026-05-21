@@ -124,21 +124,41 @@ export function mapArticleAssociationsToFeatured(
   return out
 }
 
-interface ArticleEnvelope {
+export interface ArticleDetailPayload {
   article: ArticleDetail
+  /** Present from `articles/get-article-by-*` — linked-restaurant batch merge status (`articlev2.md`). */
+  articleMeta?: {
+    restaurantEnrichment: 'skipped' | 'ok' | 'partial' | 'failed'
+  }
 }
 
 export async function fetchArticleBySlug(slug: string): Promise<ArticleDetail> {
   const q = new URLSearchParams({ slug: slug.trim() })
-  const envelope = await tastyplatesFetch<ArticleEnvelope>(
+  const envelope = await tastyplatesFetch<ArticleDetailPayload>(
     `articles/get-article-by-slug?${q.toString()}`,
   )
   return unwrapEnvelope(envelope).article
 }
 
 export async function fetchArticleByPkId(id: number): Promise<ArticleDetail> {
-  const envelope = await tastyplatesFetch<ArticleEnvelope>(
+  const envelope = await tastyplatesFetch<ArticleDetailPayload>(
     `articles/get-article-by-id?id=${encodeURIComponent(String(id))}`,
   )
   return unwrapEnvelope(envelope).article
+}
+
+/** Same as `fetchArticleBySlug` but exposes `articleMeta.restaurantEnrichment` for UI telemetry. */
+export async function fetchArticleBySlugWithMeta(slug: string): Promise<ArticleDetailPayload> {
+  const q = new URLSearchParams({ slug: slug.trim() })
+  const envelope = await tastyplatesFetch<ArticleDetailPayload>(
+    `articles/get-article-by-slug?${q.toString()}`,
+  )
+  return unwrapEnvelope(envelope)
+}
+
+export async function fetchArticleByPkIdWithMeta(id: number): Promise<ArticleDetailPayload> {
+  const envelope = await tastyplatesFetch<ArticleDetailPayload>(
+    `articles/get-article-by-id?id=${encodeURIComponent(String(id))}`,
+  )
+  return unwrapEnvelope(envelope)
 }

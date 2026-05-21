@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
 import { ActivityIndicator, Text, View } from 'react-native'
-import { SafeAreaView } from 'react-native-safe-area-context'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 
 import { AppTopNav } from '@/components/layout/AppTopNav'
@@ -131,29 +130,29 @@ export default function PublicProfileIndexScreen() {
 
   if (!slug) {
     return (
-      <SafeAreaView className="flex-1 bg-white" edges={['top']}>
+      <View className="flex-1 bg-white">
         <AppTopNav />
         <View className="flex-1 items-center justify-center px-6">
           <Text style={{ color: TEXT_MUTED }}>Invalid profile link.</Text>
         </View>
-      </SafeAreaView>
+      </View>
     )
   }
 
   if (loading || (!ru && !error)) {
     return (
-      <SafeAreaView className="flex-1 bg-white" edges={['top']}>
+      <View className="flex-1 bg-white">
         <AppTopNav />
         <View className="flex-1 items-center justify-center bg-white py-20">
           <ActivityIndicator color={BRAND_PRIMARY} size="large" />
         </View>
-      </SafeAreaView>
+      </View>
     )
   }
 
   if (error || !ru) {
     return (
-      <SafeAreaView className="flex-1 bg-white" edges={['top']}>
+      <View className="flex-1 bg-white">
         <AppTopNav />
         <View className="flex-1 items-center justify-center px-6">
           <Text className="text-center text-lg" style={{ color: TEXT_HEADING }}>
@@ -163,7 +162,7 @@ export default function PublicProfileIndexScreen() {
             {error ?? ''}
           </Text>
         </View>
-      </SafeAreaView>
+      </View>
     )
   }
 
@@ -194,7 +193,7 @@ export default function PublicProfileIndexScreen() {
       : null
 
   return (
-    <SafeAreaView className="flex-1 bg-white" edges={['top']}>
+    <View className="flex-1 bg-white">
       <AppTopNav />
       <UnifiedProfileView
         isOwnProfile={isOwnProfile}
@@ -240,6 +239,6 @@ export default function PublicProfileIndexScreen() {
         }
         belowActions={null}
       />
-    </SafeAreaView>
+    </View>
   )
 }

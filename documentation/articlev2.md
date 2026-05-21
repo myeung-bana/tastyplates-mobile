@@ -48,6 +48,15 @@ The article detail route renders **`ArticleRelatedRestaurantsSection`** (`compon
 
 *Terminology: this is the **associated restaurants** block. A future “related articles” rail would need new backend relations.*
 
+### API contract (Nhost Functions)
+
+Successful **`articles/get-article-by-slug`** and **`articles/get-article-by-id`** return:
+
+- **`data.article`** — full row; **`article_restaurant_associations`** entries include **`restaurant`** after batch merge when enrichment succeeds (fields: `id`, `title`, `slug`, `featured_image_url`, `listing_street`, `address`, `average_rating`, `ratings_count`, **`content`**).
+- **`data.articleMeta.restaurantEnrichment`** — `skipped` \| `ok` \| `partial` \| `failed` (see `tastyplates-nhost/documentation/api-guide.md` §8.8).
+
+**Slug handler:** detail query first; on GraphQL **error** (not empty row), retries **simple** query without associations. **ILIKE** slug variants run only for slugs without `_` or `%` (wildcards). **By id:** only **`status: published`** and **`deleted_at` null** — aligns public mobile/web with slug behaviour.
+
 ---
 
 ## 2. Web Architecture — The Full Data Pipeline

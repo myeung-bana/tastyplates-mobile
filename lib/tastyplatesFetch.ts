@@ -43,8 +43,32 @@ export async function tastyplatesFetch<T>(
 
   try {
     const res = await fetch(url, { ...rest, headers })
-    const json = (await res.json()) as Envelope<T>
-    return json
+    const text = await res.text()
+
+    if (!res.ok) {
+      let detail = res.statusText
+      try {
+        const parsed = JSON.parse(text) as { error?: string; ok?: boolean }
+        if (typeof parsed?.error === 'string' && parsed.error.length > 0) {
+          detail = parsed.error
+        } else if (text.trim().length > 0) {
+          detail = text.trim().slice(0, 280)
+        }
+      } catch {
+        if (text.trim().length > 0) detail = text.trim().slice(0, 280)
+      }
+      return { ok: false, error: `HTTP ${res.status}: ${detail}` }
+    }
+
+    try {
+      return JSON.parse(text) as Envelope<T>
+    } catch {
+      return {
+        ok: false,
+        error: 'Invalid JSON response from server',
+        details: text.slice(0, 200),
+      }
+    }
   } catch (e) {
     const message = e instanceof Error ? e.message : 'Network request failed'
     return { ok: false, error: message }

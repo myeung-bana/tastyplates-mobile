@@ -15,6 +15,7 @@ import { z } from 'zod'
 
 import {
   BRAND_PRIMARY,
+  mergeTextInputBodyTypography,
   TEXT_BODY,
   TEXT_HEADING,
   TEXT_MUTED,
@@ -107,11 +108,11 @@ export function RegisterEmailForm({
             keyboardType="email-address"
             onBlur={onBlur}
             onChangeText={onChange}
-            placeholder="you@example.com"
+            placeholder="Email Address"
             placeholderTextColor="#9ca3af"
             value={value}
             className="mb-1 rounded-[10px] border border-[#797979] bg-white px-4 py-3 text-base text-gray-900"
-            style={{ fontSize: 16 }}
+            style={mergeTextInputBodyTypography()}
           />
         )}
       />
@@ -138,7 +139,7 @@ export function RegisterEmailForm({
             secureTextEntry
             value={value}
             className="mb-1 rounded-[10px] border border-[#797979] bg-white px-4 py-3 text-base text-gray-900"
-            style={{ fontSize: 16 }}
+            style={mergeTextInputBodyTypography()}
           />
         )}
       />
@@ -165,7 +166,7 @@ export function RegisterEmailForm({
             secureTextEntry
             value={value}
             className="mb-1 rounded-[10px] border border-[#797979] bg-white px-4 py-3 text-base text-gray-900"
-            style={{ fontSize: 16 }}
+            style={mergeTextInputBodyTypography()}
           />
         )}
       />

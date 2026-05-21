@@ -9,12 +9,17 @@ import { SCREEN_HOME } from '@/constants/screens'
 type AuthScreenHeaderProps = {
   /** Optional title on the left (e.g. "Log in"). */
   title?: string
+  /**
+   * When false, omit the home shortcut (`/login` when app is gated has no anonymous home).
+   * @default true
+   */
+  showHomeButton?: boolean
 }
 
 /**
- * Auth stack header: optional title on the left, home / close control on the right.
+ * Auth stack header: optional title on the left, optional home shortcut on the right.
  */
-export function AuthScreenHeader({ title }: AuthScreenHeaderProps) {
+export function AuthScreenHeader({ title, showHomeButton = true }: AuthScreenHeaderProps) {
   const router = useRouter()
 
   const goHome = () => {
@@ -22,7 +27,11 @@ export function AuthScreenHeader({ title }: AuthScreenHeaderProps) {
   }
 
   return (
-    <View className="flex-row items-center justify-between border-b border-gray-100 bg-[#FCFCFC] px-4 pb-3 pt-2">
+    <View
+      className={`flex-row items-center border-b border-gray-100 bg-[#FCFCFC] px-4 pb-3 pt-2 ${
+        showHomeButton ? 'justify-between' : ''
+      }`}
+    >
       {title ? (
         <Text
           className="text-lg font-semibold"
@@ -34,15 +43,17 @@ export function AuthScreenHeader({ title }: AuthScreenHeaderProps) {
       ) : (
         <View className="flex-1" />
       )}
-      <Pressable
-        accessibilityLabel="Back to home"
-        accessibilityRole="button"
-        hitSlop={12}
-        onPress={goHome}
-        className="rounded-lg p-2 active:opacity-70"
-      >
-        <Ionicons name="home-outline" size={26} color={BRAND_PRIMARY} />
-      </Pressable>
+      {showHomeButton ? (
+        <Pressable
+          accessibilityLabel="Back to home"
+          accessibilityRole="button"
+          hitSlop={12}
+          onPress={goHome}
+          className="rounded-lg p-2 active:opacity-70"
+        >
+          <Ionicons name="home-outline" size={26} color={BRAND_PRIMARY} />
+        </Pressable>
+      ) : null}
     </View>
   )
 }

@@ -5,7 +5,7 @@ export interface TrendingReviewAuthor {
   user_id?: string
   username?: string | null
   palates?: unknown
-  user?: { avatarUrl?: string | null; email?: string | null } | null
+  user?: { avatarUrl?: string | null; email?: string | null; displayName?: string | null } | null
 }
 
 /** Row from `restaurant-reviews/get-all-reviews`. */

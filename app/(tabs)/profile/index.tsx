@@ -1,8 +1,6 @@
 import { Pressable, Text, View } from 'react-native'
 import * as Haptics from 'expo-haptics'
 import { useRouter } from 'expo-router'
-import { SafeAreaView } from 'react-native-safe-area-context'
-
 import { ProfileSignedInView } from '@/components/profile/ProfileSignedInView'
 import { useAuth } from '@/hooks/useAuth'
 import { AppTopNav } from '@/components/layout/AppTopNav'
@@ -16,7 +14,7 @@ export default function ProfileScreen() {
 
   if (!loading && !isAuthenticated) {
     return (
-      <SafeAreaView className="flex-1 bg-white" edges={['top']}>
+      <View className="flex-1 bg-white">
         <AppTopNav />
         <View className="flex-1 items-center justify-center px-8">
           <Text className="text-center text-xl font-normal" style={{ color: TEXT_HEADING }}>
@@ -39,23 +37,23 @@ export default function ProfileScreen() {
             <Text className="font-normal text-base text-white">Sign in</Text>
           </Pressable>
         </View>
-      </SafeAreaView>
+      </View>
     )
   }
 
   if (isAuthenticated) {
     return (
-      <SafeAreaView className="flex-1 bg-white" edges={['top']}>
+      <View className="flex-1 bg-white">
         <AppTopNav />
         <ProfileSignedInView />
-      </SafeAreaView>
+      </View>
     )
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-white" edges={['top']}>
+    <View className="flex-1 bg-white">
       <AppTopNav />
       <View className="flex-1" />
-    </SafeAreaView>
+    </View>
   )
 }

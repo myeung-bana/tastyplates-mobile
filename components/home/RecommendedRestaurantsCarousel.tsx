@@ -110,12 +110,14 @@ export function RecommendedRestaurantsCarousel({
                 subtitle={subtitle}
                 rating={r.average_rating}
                 reviewCount={r.ratings_count ?? undefined}
-                onPress={() =>
+                onPress={() => {
+                  const s = r.slug?.trim()
+                  if (!s) return
                   router.push({
                     pathname: SCREEN_RESTAURANT_DETAIL,
-                    params: { slug: r.slug },
+                    params: { slug: s },
                   })
-                }
+                }}
               />
             )
           })}
@@ -139,12 +141,14 @@ export function RecommendedRestaurantsCarousel({
                 rating={r.average_rating}
                 reviewCount={r.ratings_count ?? undefined}
                 containerStyle={{ width: CARD_W, height: CARD_H }}
-                onPress={() =>
+                onPress={() => {
+                  const s = r.slug?.trim()
+                  if (!s) return
                   router.push({
                     pathname: SCREEN_RESTAURANT_DETAIL,
-                    params: { slug: r.slug },
+                    params: { slug: s },
                   })
-                }
+                }}
               />
             )
           })}

@@ -29,6 +29,7 @@
     "@nhost/apollo": "^9.0.1",
     "@nhost/nhost-js": "^3.3.1",
     "@nhost/react": "^3.11.2",
+    "@react-native-async-storage/async-storage": "^2.2.0",
     "@react-native-community/netinfo": "11.4.1",
     "@react-navigation/native": "^7.0.14",
     "@shopify/flash-list": "2.0.2",

@@ -15,7 +15,7 @@ import type { User } from '@nhost/nhost-js'
 import { useSignInEmailPassword } from '@nhost/react'
 import { z } from 'zod'
 
-import { BRAND_PRIMARY, TEXT_BODY, TEXT_HEADING, TEXT_MUTED } from '@/constants/brand'
+import { BRAND_PRIMARY, mergeTextInputBodyTypography, TEXT_BODY, TEXT_HEADING, TEXT_MUTED } from '@/constants/brand'
 import { SCREEN_FORGOT_PASSWORD } from '@/constants/screens'
 import { loginScreenHref } from '@/lib/authRoutes'
 import { toast } from '@/utils/toast'
@@ -104,11 +104,11 @@ export function LoginForm({
               keyboardType="email-address"
               onBlur={onBlur}
               onChangeText={onChange}
-              placeholder="you@example.com"
+              placeholder="Email Address"
               placeholderTextColor="#797979"
               value={value}
               className={inputClass}
-              style={{ fontSize: 16 }}
+              style={mergeTextInputBodyTypography()}
             />
           )}
         />
@@ -135,7 +135,7 @@ export function LoginForm({
               secureTextEntry
               value={value}
               className={inputClass}
-              style={{ fontSize: 16 }}
+              style={mergeTextInputBodyTypography()}
             />
           )}
         />
