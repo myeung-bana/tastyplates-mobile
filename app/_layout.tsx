@@ -1,5 +1,6 @@
 import { useMemo } from 'react'
 import { SplashScreen } from 'expo-router'
+import * as WebBrowser from 'expo-web-browser'
 import { useFonts } from 'expo-font'
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
 import { BottomSheetModalProvider } from '@gorhom/bottom-sheet'
@@ -15,6 +16,8 @@ import { LocationProvider } from '@/contexts/LocationContext'
 import { SearchCuisinesSheetProvider } from '@/contexts/SearchCuisinesSheetContext'
 import { nhost } from '@/lib/nhost'
 import '../global.css'
+
+WebBrowser.maybeCompleteAuthSession()
 
 SplashScreen.preventAutoHideAsync()
 

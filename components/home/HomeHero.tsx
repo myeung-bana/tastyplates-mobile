@@ -10,7 +10,7 @@ import { useSearchCuisinesSheet } from '@/contexts/SearchCuisinesSheetContext'
 type SearchMode = 'cuisine' | 'keyword'
 
 /**
- * Hero: headline, tagline, cuisine vs keyword search, shared Search cuisines sheet → Restaurants tab with params.
+ * Hero: subtitle, cuisine vs keyword search, shared Search cuisines sheet → Restaurants tab with params.
  */
 export function HomeHero() {
   const { openSearchCuisines } = useSearchCuisinesSheet()
@@ -44,16 +44,13 @@ export function HomeHero() {
     searchMode === 'cuisine' ? labelForPalateKey(palateKey) : 'Search by keyword…'
 
   return (
-    <View className="overflow-hidden rounded-b-3xl bg-[#1a1d2e]">
-      <View className="px-4 pb-8 pt-4">
-        <Text className="text-center text-2xl font-semibold leading-tight text-white" style={{ letterSpacing: -0.3 }}>
-          Discover the meal that fits your taste
-        </Text>
-        <Text className="mt-2 text-center text-sm leading-snug text-white/80">
+    <View className="overflow-hidden bg-white">
+      <View className="px-4 pb-6 pt-0">
+        <Text className="text-center text-sm leading-snug text-gray-600">
           Dine like a Brazilian in Tokyo — or Korean in New York?
         </Text>
 
-        <View className="mt-6 rounded-2xl bg-white/95 p-1 shadow-sm">
+        <View className="mt-4 rounded-2xl border border-[#f3f4f6] bg-white p-1 shadow-sm shadow-black/5">
           <View className="flex-row items-center rounded-xl bg-gray-50 px-2">
             {searchMode === 'cuisine' ? (
               <Pressable
@@ -101,9 +98,6 @@ export function HomeHero() {
               <Ionicons name="search" size={20} color="#fff" />
             </Pressable>
           </View>
-          <Text className="px-3 py-2 text-center text-[11px] text-gray-500">
-            {searchMode === 'cuisine' ? 'Tap palate to choose a cuisine, then search.' : 'Keyword finds listings by text.'}
-          </Text>
         </View>
       </View>
     </View>

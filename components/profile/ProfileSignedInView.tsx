@@ -1,5 +1,8 @@
 import { useCallback, useEffect, useState } from 'react'
+import { ActivityIndicator, Alert, Pressable, Text, View } from 'react-native'
+import * as Haptics from 'expo-haptics'
 import { useRouter } from 'expo-router'
+import { useSignOut } from '@nhost/react'
 
 import {
   ProfileMenuCard,
@@ -21,6 +24,8 @@ import {
 /** Session profile + merged `restaurant_users` row (username, `about_me`, palates JSON). */
 export function ProfileSignedInView() {
   const router = useRouter()
+  const { signOut } = useSignOut()
+  const [signingOut, setSigningOut] = useState(false)
   const { authUser, profile, loading: sessionLoading } = useNhostSession()
   const userId = authUser?.id
   const statsApi = useOwnProfileStats(userId)
@@ -109,30 +114,73 @@ export function ProfileSignedInView() {
       statsApi.following === null &&
       statsApi.reviews === null)
 
+  const confirmLogOut = useCallback(() => {
+    void Haptics.selectionAsync()
+    Alert.alert(
+      'Log out?',
+      'You will need to sign in again to access your profile and saved data.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Log out',
+          style: 'destructive',
+          onPress: () => {
+            void (async () => {
+              setSigningOut(true)
+              try {
+                await signOut()
+              } finally {
+                setSigningOut(false)
+              }
+            })()
+          },
+        },
+      ],
+    )
+  }, [signOut])
+
   const belowMenu = (
-    <ProfileMenuCard>
-      <ProfileMenuRow
-        icon="settings-outline"
-        title="Settings"
-        subtitle="Account and app preferences"
-        topBorder={false}
-        onPress={() => router.push(SCREEN_SETTINGS)}
-      />
-      <ProfileMenuRow
-        icon="list-outline"
-        title="My reviews"
-        subtitle="Published and drafts in TastyStudio"
-        topBorder
-        onPress={() => router.push(SCREEN_STUDIO_REVIEW_LISTING)}
-      />
-      <ProfileMenuRow
-        icon="people-outline"
-        title="Following feed"
-        subtitle="Reviews from people you follow"
-        topBorder
-        onPress={() => router.push(SCREEN_FOLLOWING)}
-      />
-    </ProfileMenuCard>
+    <View>
+      <ProfileMenuCard>
+        <ProfileMenuRow
+          icon="settings-outline"
+          title="Settings"
+          subtitle="Account and app preferences"
+          topBorder={false}
+          onPress={() => router.push(SCREEN_SETTINGS)}
+        />
+        <ProfileMenuRow
+          icon="list-outline"
+          title="My reviews"
+          subtitle="Published and drafts in TastyStudio"
+          topBorder
+          onPress={() => router.push(SCREEN_STUDIO_REVIEW_LISTING)}
+        />
+        <ProfileMenuRow
+          icon="people-outline"
+          title="Following feed"
+          subtitle="Reviews from people you follow"
+          topBorder
+          onPress={() => router.push(SCREEN_FOLLOWING)}
+        />
+      </ProfileMenuCard>
+
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Log out"
+        accessibilityHint="Signs you out of your account"
+        disabled={signingOut}
+        onPress={confirmLogOut}
+        className="mt-4 items-center justify-center rounded-xl border border-gray-200 bg-white py-3.5 active:bg-gray-50"
+        style={signingOut ? { opacity: 0.6 } : undefined}
+      >
+        {signingOut ? (
+          <ActivityIndicator color="#dc2626" />
+        ) : (
+          <Text className="text-base font-medium text-red-600">Log out</Text>
+        )}
+      </Pressable>
+    </View>
   )
 
   if (!userId) return null

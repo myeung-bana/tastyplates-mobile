@@ -33,7 +33,29 @@ export function LocationHierarchyPickerHost(): JSX.Element | null {
 
   useEffect(() => {
     if (locationPickerSignal < 1) return
-    sheetRef.current?.present()
+
+    let cancelled = false
+    let timeoutId: ReturnType<typeof setTimeout> | undefined
+
+    const presentSheet = (): void => {
+      if (cancelled) return
+      const modal = sheetRef.current
+      if (modal) {
+        modal.present()
+        return
+      }
+      // Ref can be null on first mount tick; retry once after the current frame.
+      timeoutId = setTimeout(() => {
+        if (!cancelled) sheetRef.current?.present()
+      }, 0)
+    }
+
+    const frameId = requestAnimationFrame(presentSheet)
+    return () => {
+      cancelled = true
+      cancelAnimationFrame(frameId)
+      if (timeoutId !== undefined) clearTimeout(timeoutId)
+    }
   }, [locationPickerSignal])
 
   const countries = hierarchy?.hierarchy.countries ?? []

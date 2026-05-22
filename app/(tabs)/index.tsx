@@ -2,6 +2,7 @@ import { View, ScrollView, RefreshControl } from 'react-native'
 
 import { useCallback, useState } from 'react'
 import {
+  HomeBrandMark,
   HomeHero,
   HomeFeaturedRestaurants,
   HomeQuickFinds,
@@ -30,6 +31,7 @@ export default function HomeScreen() {
         keyboardShouldPersistTaps="handled"
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={BRAND_PRIMARY} />}
       >
+        <HomeBrandMark />
         <HomeHero />
         <HomeQuickFinds />
         <HomeFeaturedRestaurants key={`home-featured-${feedKey}`} />

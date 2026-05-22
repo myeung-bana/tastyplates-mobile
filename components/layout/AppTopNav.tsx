@@ -6,13 +6,12 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { GlobalLocationPill } from '@/components/navigation/GlobalLocationPill'
 import { TEXT_HEADING, TEXT_MUTED } from '@/constants/brand'
-import { SCREEN_HOME, SCREEN_PROFILE } from '@/constants/screens'
+import { SCREEN_PROFILE } from '@/constants/screens'
 import { useSearchCuisinesSheet } from '@/contexts/SearchCuisinesSheetContext'
 import { useNhostSession } from '@/hooks/useNhostSession'
 import { initialsFromName } from '@/lib/profileFormatting'
 
 const AVATAR_SIZE = 32
-const SIDE_SLOT = 88
 
 function ProfileShortcut(): JSX.Element {
   const router = useRouter()
@@ -65,57 +64,27 @@ function ProfileShortcut(): JSX.Element {
   )
 }
 
-/** Small brand mark taps home tab (see tasty-palate-review header). */
-function HomeLogo(): JSX.Element {
-  const router = useRouter()
-
-  const source = require('@/assets/AppIcons/appstore.png')
-
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel="Home"
-      hitSlop={8}
-      onPress={() => {
-        void Haptics.selectionAsync()
-        router.push(SCREEN_HOME)
-      }}
-      className="active:opacity-80"
-    >
-      <Image
-        accessibilityIgnoresInvertColors
-        source={source}
-        style={{ width: 24, height: 24 }}
-        resizeMode="contain"
-      />
-    </Pressable>
-  )
-}
-
 const APP_TOP_NAV_INNER_PAD = 12
 
-/** Top safe area + bordered bar: logo • location pill • search + profile. */
+/** Region pill (left); cuisine search + profile (right). */
 export function AppTopNav(): JSX.Element {
   const insets = useSafeAreaInsets()
   const { openSearchCuisines } = useSearchCuisinesSheet()
 
   return (
     <View
-      className="flex-row items-center justify-between border-b border-gray-100 bg-white px-3 pb-3"
-      style={{ paddingTop: insets.top + APP_TOP_NAV_INNER_PAD }}
+      className="flex-row items-center justify-between gap-3 border-b border-gray-100 bg-white pb-3"
+      style={{
+        paddingTop: insets.top + APP_TOP_NAV_INNER_PAD,
+        paddingLeft: insets.left,
+        paddingRight: insets.right + 12,
+      }}
     >
-      <View style={{ width: SIDE_SLOT }} className="items-start justify-center">
-        <HomeLogo />
+      <View pointerEvents="box-none" className="min-w-0 flex-1 items-start justify-center pr-2">
+        <GlobalLocationPill maxWidth={220} />
       </View>
 
-      <View pointerEvents="box-none" className="min-w-0 flex-1 items-center px-1">
-        <GlobalLocationPill maxWidth={180} />
-      </View>
-
-      <View
-        style={{ width: SIDE_SLOT }}
-        className="flex-row items-center justify-end gap-3"
-      >
+      <View className="flex-shrink-0 flex-row items-center gap-3">
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Search cuisines"
