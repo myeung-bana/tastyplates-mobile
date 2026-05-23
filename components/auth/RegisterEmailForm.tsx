@@ -49,6 +49,10 @@ export type RegisterSuccessPayload = {
 export type RegisterEmailFormProps = {
   /** Pass through from `/login` so “Log in” returns to same resume path. */
   resume?: string
+  /** When false, parent shows intro copy in the hero sheet header. */
+  showIntro?: boolean
+  /** When true, hide footer log-in link (parent uses segment control). */
+  embedded?: boolean
   onRegisterSuccess: (payload: RegisterSuccessPayload) => void | Promise<void>
 }
 
@@ -57,6 +61,8 @@ export type RegisterEmailFormProps = {
  */
 export function RegisterEmailForm({
   resume,
+  showIntro = true,
+  embedded = false,
   onRegisterSuccess,
 }: RegisterEmailFormProps) {
   const { signUpEmailPassword, isLoading } = useSignUpEmailPassword()
@@ -90,9 +96,11 @@ export function RegisterEmailForm({
 
   return (
     <View>
-      <Text className="mb-6 text-center text-base leading-relaxed" style={{ color: TEXT_MUTED }}>
-        Create a free account to save favourites, write reviews, and follow other food lovers.
-      </Text>
+      {showIntro ? (
+        <Text className="mb-6 text-center text-base leading-relaxed" style={{ color: TEXT_MUTED }}>
+          Create a free account to save favourites, write reviews, and follow other food lovers.
+        </Text>
+      ) : null}
 
       <Text className="mb-1 text-sm font-medium" style={{ color: TEXT_HEADING }}>
         Email
@@ -219,18 +227,20 @@ export function RegisterEmailForm({
         )}
       </Pressable>
 
-      <View className="flex-row flex-wrap justify-center gap-1 pb-6">
-        <Text className="text-center text-sm" style={{ color: TEXT_MUTED }}>
-          Already have an account?
-        </Text>
-        <Link href={loginScreenHref({ resume })} asChild>
-          <Pressable>
-            <Text className="text-sm font-semibold" style={{ color: BRAND_PRIMARY }}>
-              Log in
-            </Text>
-          </Pressable>
-        </Link>
-      </View>
+      {!embedded ? (
+        <View className="flex-row flex-wrap justify-center gap-1 pb-6">
+          <Text className="text-center text-sm" style={{ color: TEXT_MUTED }}>
+            Already have an account?
+          </Text>
+          <Link href={loginScreenHref({ resume })} asChild>
+            <Pressable>
+              <Text className="text-sm font-semibold" style={{ color: BRAND_PRIMARY }}>
+                Log in
+              </Text>
+            </Pressable>
+          </Link>
+        </View>
+      ) : null}
     </View>
   )
 }

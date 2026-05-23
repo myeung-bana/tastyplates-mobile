@@ -11,6 +11,7 @@ import {
 import RenderHTML from 'react-native-render-html'
 import { useLocalSearchParams } from 'expo-router'
 
+import { ArticleCategoryTag } from '@/components/articles/ArticleCategoryTag'
 import { ArticleRelatedRestaurantsSection } from '@/components/articles/ArticleRelatedRestaurantsSection'
 import { ReviewDetailTopNav } from '@/components/review/ReviewDetailTopNav'
 import {
@@ -224,14 +225,7 @@ export default function ArticleDetailScreen() {
           </View>
 
           <View className="border-b px-5 py-5" style={{ borderBottomColor: BORDER_SUBTLE }}>
-            {article.category ? (
-              <Text
-                className="mb-2 self-start rounded-full px-3 py-1 text-[10px] font-semibold uppercase tracking-wide"
-                style={{ color: BRAND_PRIMARY, backgroundColor: '#fef7f0' }}
-              >
-                {article.category}
-              </Text>
-            ) : null}
+            <ArticleCategoryTag category={article.category} className="mb-2 self-start" />
             <Text
               className="text-2xl font-semibold leading-tight"
               style={{ color: TEXT_HEADING }}

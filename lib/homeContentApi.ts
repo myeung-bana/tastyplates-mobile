@@ -100,8 +100,9 @@ function mapNhostFeaturedRows(rows: NhostFeaturedRow[]): FeaturedRestaurantApi[]
     }))
 }
 
-async function fetchFeaturedRestaurantsNhost(): Promise<FeaturedRestaurantApi[]> {
-  const envelope = await tastyplatesFetch<NhostFeaturedRow[]>('featured-restaurants')
+async function fetchFeaturedRestaurantsNhost(locationSlug?: string): Promise<FeaturedRestaurantApi[]> {
+  const q = locationSlug?.trim() ? `?location_slug=${encodeURIComponent(locationSlug.trim())}` : ''
+  const envelope = await tastyplatesFetch<NhostFeaturedRow[]>(`featured-restaurants${q}`)
   if (!envelope.ok) return []
   try {
     const rows = unwrapEnvelope(envelope)
@@ -168,11 +169,15 @@ function displayAddress(
   return null
 }
 
-export async function fetchFeaturedRestaurants(): Promise<FeaturedRestaurantApi[]> {
+export async function fetchFeaturedRestaurants(locationSlug?: string): Promise<FeaturedRestaurantApi[]> {
   const base = getWebApiBase()
   if (base) {
     try {
-      const res = await fetch(`${base}/api/v1/featured-restaurants`, {
+      const params = new URLSearchParams()
+      if (locationSlug?.trim()) params.set('location_slug', locationSlug.trim())
+      const query = params.toString()
+      const url = `${base}/api/v1/featured-restaurants${query ? `?${query}` : ''}`
+      const res = await fetch(url, {
         headers: { Accept: 'application/json' },
       })
       if (res.ok) {
@@ -185,7 +190,7 @@ export async function fetchFeaturedRestaurants(): Promise<FeaturedRestaurantApi[
       /* fall through to Nhost */
     }
   }
-  return fetchFeaturedRestaurantsNhost()
+  return fetchFeaturedRestaurantsNhost(locationSlug)
 }
 
 export async function fetchArticles(locationSlug: string, limit = 8): Promise<ArticleApi[]> {

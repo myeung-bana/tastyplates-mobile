@@ -1,23 +1,19 @@
-import { useEffect, useMemo } from 'react'
-import { KeyboardAvoidingView, Platform, ScrollView, Text, View } from 'react-native'
-import { useLocalSearchParams, useRouter } from 'expo-router'
-import { SafeAreaView } from 'react-native-safe-area-context'
+import { useCallback, useEffect, useMemo } from 'react'
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 
-import { AuthScreenHeader } from '@/components/auth/AuthScreenHeader'
+import { AuthHeroLayout } from '@/components/auth/AuthHeroLayout'
+import { AuthSegmentControl, type AuthSegment } from '@/components/auth/AuthSegmentControl'
 import { LoginForm } from '@/components/auth/LoginForm'
 import { RegisterEmailForm } from '@/components/auth/RegisterEmailForm'
-import { TEXT_HEADING } from '@/constants/brand'
 import { useAuth } from '@/hooks/useAuth'
 import { useSession } from '@/hooks/useSession'
 import { navigateAfterAuth } from '@/lib/authNavigation'
-import { coerceResumeHref } from '@/lib/authRoutes'
+import { coerceResumeHref, loginScreenHref } from '@/lib/authRoutes'
 
 function firstParam(value: string | string[] | undefined): string | undefined {
   if (value == null) return undefined
   return Array.isArray(value) ? value[0] : value
 }
-
-type AuthSegment = 'signin' | 'signup'
 
 export default function LoginScreen() {
   const router = useRouter()
@@ -37,51 +33,67 @@ export default function LoginScreen() {
     navigateAfterAuth(router, { needsEmailVerification: false, user }, resumeForNav)
   }, [isReady, authLoading, isAuthenticated, user, router, resumeForNav])
 
+  const setSegment = useCallback(
+    (next: AuthSegment) => {
+      if (next === segment) return
+      router.replace(
+        loginScreenHref({
+          mode: next === 'signup' ? 'signup' : undefined,
+          resume,
+        }),
+      )
+    },
+    [router, segment, resume],
+  )
+
+  const title = segment === 'signin' ? 'Welcome back' : 'Create an account'
+  const subtitle =
+    segment === 'signin'
+      ? 'Sign in with your Tastyplates email and password.'
+      : 'Create a free account to save favourites, write reviews, and follow other food lovers.'
+
   return (
-    <SafeAreaView className="flex-1 bg-[#FCFCFC]" edges={['top', 'left', 'right']}>
-      <AuthScreenHeader title="Account" showHomeButton={false} />
-
-      <Text className="pb-2 pt-6 text-center text-2xl font-normal" style={{ color: TEXT_HEADING }}>
-        {segment === 'signin' ? 'Welcome back' : 'Create an account'}
-      </Text>
-
-      {segment === 'signin' ? (
-        <LoginForm
-          resume={resume}
-          showIntro={false}
-          onSignInSuccess={async (payload) => {
-            await navigateAfterAuth(
-              router,
-              {
-                needsEmailVerification: payload.needsEmailVerification,
-                user: payload.user,
-              },
-              resumeForNav,
-            )
-          }}
-        />
-      ) : (
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          className="flex-1"
-        >
-          <ScrollView keyboardShouldPersistTaps="handled" contentContainerClassName="grow px-4 pb-8">
-            <RegisterEmailForm
-              resume={resume}
-              onRegisterSuccess={async (payload) => {
-                await navigateAfterAuth(
-                  router,
-                  {
-                    needsEmailVerification: payload.needsEmailVerification,
-                    user: payload.user,
-                  },
-                  resumeForNav,
-                )
-              }}
-            />
-          </ScrollView>
-        </KeyboardAvoidingView>
-      )}
-    </SafeAreaView>
+    <>
+      <Stack.Screen options={{ headerShown: false }} />
+      <AuthHeroLayout
+        title={title}
+        subtitle={subtitle}
+        headerSlot={<AuthSegmentControl value={segment} onChange={setSegment} />}
+      >
+        {segment === 'signin' ? (
+          <LoginForm
+            resume={resume}
+            showIntro={false}
+            embedded
+            onSignInSuccess={async (payload) => {
+              await navigateAfterAuth(
+                router,
+                {
+                  needsEmailVerification: payload.needsEmailVerification,
+                  user: payload.user,
+                },
+                resumeForNav,
+              )
+            }}
+          />
+        ) : (
+          <RegisterEmailForm
+            resume={resume}
+            showIntro={false}
+            embedded
+            onRegisterSuccess={async (payload) => {
+              await navigateAfterAuth(
+                router,
+                {
+                  needsEmailVerification: payload.needsEmailVerification,
+                  user: payload.user,
+                },
+                resumeForNav,
+              )
+            }}
+          />
+        )}
+      </AuthHeroLayout>
+    </>
   )
 }

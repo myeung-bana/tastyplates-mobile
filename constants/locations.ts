@@ -26,8 +26,9 @@ export interface SavedLocationPreference {
   countryShortLabel?: string | null
 }
 
+/** Default city slug when none stored — must exist in Nhost `locations/get-locations`. */
 export const DEFAULT_LOCATION_FALLBACK_SLUG =
-  process.env.EXPO_PUBLIC_DEFAULT_LOCATION_SLUG?.trim()?.toLowerCase() || 'tokyo'
+  process.env.EXPO_PUBLIC_DEFAULT_LOCATION_SLUG?.trim()?.toLowerCase() || 'toronto'
 
 /** Curated presets — bias only; autocomplete still returns global-ish results closer to coords. */
 export const STUDIO_LOCATION_PRESETS: readonly SavedLocationPreference[] = [
@@ -98,9 +99,17 @@ function readOptionalString(raw: Record<string, unknown>, key: string): string |
   return undefined
 }
 
+/** Read persisted city key from Secure Store JSON (no preset merge). */
+export function readStoredLocationKey(raw: unknown): string | null {
+  if (raw === null || typeof raw !== 'object') return null
+  const keyRaw = (raw as Record<string, unknown>).key
+  if (typeof keyRaw !== 'string' || !keyRaw.trim()) return null
+  return keyRaw.trim().toLowerCase()
+}
+
 /**
  * Hydrate {@link SavedLocationPreference} from Secure Store JSON.
- * Supports curated {@link STUDIO_LOCATION_PRESETS} and dynamic rows from `locations/get-locations`.
+ * Supports curated {@link STUDIO_LOCATION_PRESETS} (studio/onboarding only) and CMS keys.
  */
 export function parseStoredLocationPreference(raw: unknown): SavedLocationPreference | null {
   if (raw === null || typeof raw !== 'object') return null

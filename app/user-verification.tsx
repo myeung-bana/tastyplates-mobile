@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react'
-import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native'
-import { SafeAreaView } from 'react-native-safe-area-context'
+import { ActivityIndicator, Pressable, Text } from 'react-native'
 import * as Linking from 'expo-linking'
-import { useRouter } from 'expo-router'
+import { Stack, useRouter } from 'expo-router'
 import { useNhostClient, useSendVerificationEmail, useUserEmail } from '@nhost/react'
 
-import { AuthScreenHeader } from '@/components/auth/AuthScreenHeader'
+import { AuthHeroLayout } from '@/components/auth/AuthHeroLayout'
+import { BRAND_PRIMARY } from '@/constants/brand'
 import { SCREEN_HOME } from '@/constants/screens'
 import { useAuth } from '@/hooks/useAuth'
 import { useSession } from '@/hooks/useSession'
@@ -62,20 +62,18 @@ export default function UserVerificationScreen() {
   const busy = sending || refreshing
 
   return (
-    <SafeAreaView className="flex-1 bg-white" edges={['top', 'left', 'right']}>
-      <AuthScreenHeader title="Verify email" />
-      <ScrollView contentContainerClassName="grow px-4 pb-8 pt-4">
-        <Text className="mb-4 text-base leading-6 text-gray-700">
-          We sent a verification link to{' '}
-          <Text className="font-semibold text-gray-900">{email ?? 'your email'}</Text>. Open the link
-          on this device, then tap &quot;I&apos;ve verified&quot; below.
-        </Text>
-
+    <>
+      <Stack.Screen options={{ headerShown: false }} />
+      <AuthHeroLayout
+        title="Verify your email"
+        subtitle={`We sent a verification link to ${email ?? 'your email'}. Open the link on this device, then tap "I've verified" below.`}
+      >
         <Pressable
           accessibilityRole="button"
           disabled={busy}
           onPress={onRefreshedSession}
-          className="mb-4 items-center rounded-xl bg-[#ff7c0a] py-4 active:opacity-90 disabled:opacity-50"
+          className="mb-4 items-center rounded-full py-4 active:opacity-90 disabled:opacity-50"
+          style={{ backgroundColor: BRAND_PRIMARY }}
         >
           {refreshing ? (
             <ActivityIndicator color="#fff" />
@@ -88,19 +86,21 @@ export default function UserVerificationScreen() {
           accessibilityRole="button"
           disabled={busy}
           onPress={onResend}
-          className="mb-8 items-center rounded-xl border border-gray-200 py-4 active:bg-gray-50 disabled:opacity-50"
+          className="mb-8 items-center rounded-full border border-gray-200 py-4 active:bg-gray-50 disabled:opacity-50"
         >
           {sending ? (
-            <ActivityIndicator color="#ff7c0a" />
+            <ActivityIndicator color={BRAND_PRIMARY} />
           ) : (
-            <Text className="text-base font-semibold text-[#ff7c0a]">Resend email</Text>
+            <Text className="text-base font-semibold" style={{ color: BRAND_PRIMARY }}>
+              Resend email
+            </Text>
           )}
         </Pressable>
 
         <Pressable onPress={() => router.replace(SCREEN_HOME)} className="self-center py-2">
           <Text className="text-sm text-gray-500">Browse without verifying</Text>
         </Pressable>
-      </ScrollView>
-    </SafeAreaView>
+      </AuthHeroLayout>
+    </>
   )
 }

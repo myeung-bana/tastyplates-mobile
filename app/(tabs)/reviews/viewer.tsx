@@ -12,14 +12,8 @@ import { Ionicons } from '@expo/vector-icons'
 import { router, useLocalSearchParams } from 'expo-router'
 
 import { ReviewDetailTopNav } from '@/components/review/ReviewDetailTopNav'
-import {
-  BORDER_SUBTLE,
-  BRAND_PRIMARY,
-  RATING_STAR,
-  TEXT_BODY,
-  TEXT_HEADING,
-  TEXT_MUTED,
-} from '@/constants/brand'
+import { RatingDisplay } from '@/components/ui/RatingDisplay'
+import { BORDER_SUBTLE, BRAND_PRIMARY, TEXT_BODY, TEXT_HEADING, TEXT_MUTED } from '@/constants/brand'
 import {
   SCREEN_HASHTAG_FEED,
   SCREEN_RESTAURANT_DETAIL,
@@ -153,12 +147,6 @@ export default function ReviewViewerScreen() {
   const body = review ? capitalizeWords(stripHtml(review.content ?? '').trim()) : ''
   const hashtags = review ? reviewHashtagLabels(review.hashtags, 12) : []
   const palates = review ? parseProfilePalates(review.palates) : []
-  const ratingLabel =
-    review?.rating != null &&
-    !Number.isNaN(review.rating) &&
-    (review.rating as number) > 0
-      ? Number(review.rating).toFixed(1)
-      : null
   const when = formatRelativeTime(review?.published_at ?? review?.created_at ?? new Date())
 
   const authorAvatarUrl = author
@@ -270,16 +258,7 @@ export default function ReviewViewerScreen() {
                 </Pressable>
               </View>
 
-              {ratingLabel ? (
-                <View className="flex-row items-center gap-1 rounded-full bg-amber-50 px-3 py-1.5">
-                  <Text style={{ color: RATING_STAR }} className="text-base">
-                    ★
-                  </Text>
-                  <Text className="text-base font-semibold" style={{ color: TEXT_HEADING }}>
-                    {ratingLabel}
-                  </Text>
-                </View>
-              ) : null}
+              <RatingDisplay size="md" value={review?.rating} />
             </View>
 
             {restaurantBrief?.title ? (

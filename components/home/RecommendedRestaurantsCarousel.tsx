@@ -35,6 +35,10 @@ export interface RecommendedRestaurantsCarouselProps {
   className?: string
   /** When set, skips `fetchFeaturedRestaurants` (e.g. article `article_restaurant_associations`). */
   staticItems?: FeaturedRestaurantApi[]
+  /** Filter featured restaurants to the selected city/country location key. */
+  locationKey?: string
+  /** When true, title/subheading render in a parent {@link HomeSectionCard}. */
+  hideSectionHeader?: boolean
 }
 
 /**
@@ -48,14 +52,16 @@ export function RecommendedRestaurantsCarousel({
   layout = 'carousel',
   className,
   staticItems,
+  locationKey,
+  hideSectionHeader = false,
 }: RecommendedRestaurantsCarouselProps) {
   const useRemote = staticItems === undefined
   const [items, setItems] = useState<FeaturedRestaurantApi[]>(() => (useRemote ? [] : staticItems))
   const [loading, setLoading] = useState(() => useRemote)
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (locKey?: string) => {
     setLoading(true)
-    const data = await fetchFeaturedRestaurants()
+    const data = await fetchFeaturedRestaurants(locKey)
     setItems(data)
     setLoading(false)
   }, [])
@@ -66,31 +72,33 @@ export function RecommendedRestaurantsCarousel({
       setLoading(false)
       return
     }
-    void load()
-  }, [load, staticItems])
+    void load(locationKey)
+  }, [load, staticItems, locationKey])
 
   if (!loading && items.length === 0) return null
 
   return (
     <View
-      className={`w-full bg-white px-0 pt-2 ${className ?? ''}`}
+      className={`w-full ${hideSectionHeader ? '' : 'bg-white px-0 pt-2'} ${className ?? ''}`}
       style={
-        withTopDivider
+        withTopDivider && !hideSectionHeader
           ? { borderTopWidth: 1, borderTopColor: BORDER_SUBTLE, marginTop: 8, paddingTop: 20 }
           : undefined
       }
     >
-      <View
-        className="items-center px-4 pb-3"
-        style={{ borderBottomWidth: 1, borderBottomColor: BORDER_SUBTLE }}
-      >
-        <Text className="mb-1 text-lg font-normal" style={{ color: TEXT_HEADING }}>
-          {heading}
-        </Text>
-        <Text className="text-center text-xs leading-relaxed" style={{ color: TEXT_MUTED }}>
-          {subheading}
-        </Text>
-      </View>
+      {!hideSectionHeader ? (
+        <View
+          className="items-center px-4 pb-3"
+          style={{ borderBottomWidth: 1, borderBottomColor: BORDER_SUBTLE }}
+        >
+          <Text className="mb-1 text-lg font-normal" style={{ color: TEXT_HEADING }}>
+            {heading}
+          </Text>
+          <Text className="text-center text-xs leading-relaxed" style={{ color: TEXT_MUTED }}>
+            {subheading}
+          </Text>
+        </View>
+      ) : null}
 
       {loading ? (
         <View className="items-center justify-center py-12" style={{ minHeight: 160 }}>
@@ -126,7 +134,12 @@ export function RecommendedRestaurantsCarousel({
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 16, gap: 12, paddingBottom: 8 }}
+          contentContainerStyle={{
+            paddingHorizontal: hideSectionHeader ? 0 : 16,
+            paddingTop: hideSectionHeader ? 0 : 16,
+            gap: 12,
+            paddingBottom: 8,
+          }}
         >
           {items.map((row) => {
             const r = row.restaurant

@@ -8,7 +8,7 @@ import {
   type PropsWithChildren,
   type ElementRef,
 } from 'react'
-import { View, Text, Pressable } from 'react-native'
+import { View, Text, Pressable, StyleSheet } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import {
   BottomSheetBackdrop,
@@ -76,7 +76,7 @@ export function SearchCuisinesSheetProvider({ children }: PropsWithChildren) {
     sheetRef.current?.dismiss()
   }, [])
 
-  const handleDone = useCallback(() => {
+  const handleSearch = useCallback(() => {
     const apply = onApplyRef.current
     const key = draftKeyRef.current
     if (apply) {
@@ -119,6 +119,8 @@ export function SearchCuisinesSheetProvider({ children }: PropsWithChildren) {
 
   const value = useMemo(() => ({ openSearchCuisines }), [openSearchCuisines])
 
+  const footerBottomPad = Math.max(insets.bottom, 14)
+
   return (
     <SearchCuisinesSheetContext.Provider value={value}>
       {children}
@@ -133,7 +135,7 @@ export function SearchCuisinesSheetProvider({ children }: PropsWithChildren) {
         backdropComponent={renderBackdrop}
         handleIndicatorStyle={{ backgroundColor: '#d1d5db', width: 40 }}
       >
-        <BottomSheetView style={{ flex: 1, backgroundColor: '#ffffff' }}>
+        <BottomSheetView style={styles.sheetRoot}>
           <View className="flex-row items-center justify-between border-b border-gray-100 px-4 pb-3 pt-1">
             <Text className="text-lg font-semibold text-gray-900">Search cuisines</Text>
             <Pressable
@@ -147,32 +149,35 @@ export function SearchCuisinesSheetProvider({ children }: PropsWithChildren) {
             </Pressable>
           </View>
 
-          <View style={{ flex: 1, minHeight: 0 }}>
+          <View style={styles.body}>
             <PalatePickerPanel
               selectedKey={draftKey}
               onSelectCuisine={handleSelectCuisine}
               onSelectRegion={handleSelectRegion}
               onClear={handleClear}
             />
-          </View>
 
-          <View
-            className="border-t border-gray-100 bg-white px-4 pt-3"
-            style={{ paddingBottom: Math.max(insets.bottom, 14) }}
-          >
-            <View className="flex-row gap-3">
+            <View
+              style={[styles.floatingFooter, { paddingBottom: footerBottomPad }]}
+              pointerEvents="box-none"
+            >
               <Pressable
-                onPress={handleClear}
-                className="flex-1 items-center rounded-2xl border border-gray-200 py-3.5 active:bg-gray-50"
-              >
-                <Text className="font-semibold text-gray-700">Reset</Text>
-              </Pressable>
-              <Pressable
-                onPress={handleDone}
-                className="flex-1 items-center rounded-2xl py-3.5 active:opacity-90"
+                accessibilityRole="button"
+                accessibilityLabel="Search with selected cuisine"
+                onPress={handleSearch}
+                className="flex-row items-center justify-center gap-2 rounded-2xl py-3.5 active:opacity-90"
                 style={{ backgroundColor: BRAND_PRIMARY }}
               >
-                <Text className="font-semibold text-white">Done</Text>
+                <Ionicons name="search" size={20} color="#fff" />
+                <Text className="text-base font-semibold text-white">Search</Text>
+              </Pressable>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Reset selection"
+                onPress={handleClear}
+                className="mt-2 items-center py-2 active:opacity-70"
+              >
+                <Text className="text-sm font-medium text-gray-600">Reset</Text>
               </Pressable>
             </View>
           </View>
@@ -181,3 +186,31 @@ export function SearchCuisinesSheetProvider({ children }: PropsWithChildren) {
     </SearchCuisinesSheetContext.Provider>
   )
 }
+
+const styles = StyleSheet.create({
+  sheetRoot: {
+    flex: 1,
+    backgroundColor: '#ffffff',
+  },
+  body: {
+    flex: 1,
+    minHeight: 0,
+    position: 'relative',
+  },
+  floatingFooter: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: '#ffffff',
+    borderTopWidth: 1,
+    borderTopColor: '#f3f4f6',
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 12,
+  },
+})

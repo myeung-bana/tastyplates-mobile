@@ -11,7 +11,7 @@ import { ApolloProvider } from '@apollo/client'
 import { createApolloClient } from '@nhost/apollo'
 
 import { SplashAuthGate } from '@/components/layout/SplashAuthGate'
-import { LocationHierarchyPickerHost } from '@/components/navigation/LocationHierarchyPickerHost'
+import { SystemChrome } from '@/components/layout/SystemChrome'
 import { LocationProvider } from '@/contexts/LocationContext'
 import { SearchCuisinesSheetProvider } from '@/contexts/SearchCuisinesSheetContext'
 import { nhost } from '@/lib/nhost'
@@ -33,18 +33,18 @@ export default function RootLayout() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
+      <SystemChrome />
       <NhostProvider nhost={nhost}>
         <ApolloProvider client={apolloClient}>
-          <LocationProvider>
-            <GluestackUIProvider config={config}>
-              <BottomSheetModalProvider>
+          <GluestackUIProvider config={config}>
+            <BottomSheetModalProvider>
+              <LocationProvider>
                 <SearchCuisinesSheetProvider>
                   <SplashAuthGate />
                 </SearchCuisinesSheetProvider>
-                <LocationHierarchyPickerHost />
-              </BottomSheetModalProvider>
-            </GluestackUIProvider>
-          </LocationProvider>
+              </LocationProvider>
+            </BottomSheetModalProvider>
+          </GluestackUIProvider>
         </ApolloProvider>
       </NhostProvider>
     </GestureHandlerRootView>

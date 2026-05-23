@@ -1,13 +1,8 @@
 import { Image, Pressable, Text, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 
-import {
-  BORDER_SUBTLE,
-  RATING_STAR,
-  TEXT_BODY,
-  TEXT_HEADING,
-  TEXT_MUTED,
-} from '@/constants/brand'
+import { RatingDisplay } from '@/components/ui/RatingDisplay'
+import { BORDER_SUBTLE, TEXT_BODY, TEXT_HEADING, TEXT_MUTED } from '@/constants/brand'
 import { stripHtml } from '@/lib/restaurantDetailUtils'
 import { firstReviewImageUri, reviewHashtagLabels } from '@/lib/reviewDisplayUtils'
 import type { TrendingReviewRow } from '@/services/homeReviewsService'
@@ -51,12 +46,8 @@ export function HomeReviewCard({
   const cover = firstReviewImageUri(review.images, DEFAULT_COVER)
   const title = capitalizeWords(stripHtml(review.title ?? '').trim())
   const bodyRaw = capitalizeWords(stripHtml(review.content ?? '').trim())
-  const rating = review.rating
   const tags = reviewHashtagLabels(review.hashtags, 3)
   const name = displayName(review)
-
-  const ratingLabel =
-    rating != null && !Number.isNaN(rating) && rating > 0 ? Number(rating).toFixed(1) : null
 
   return (
     <View style={{ width }} className="mb-1">
@@ -103,16 +94,7 @@ export function HomeReviewCard({
               {name}
             </Text>
           </Pressable>
-          {ratingLabel ? (
-            <View className="ml-auto flex-row items-center gap-0.5">
-              <Text style={{ color: RATING_STAR }} className="text-[11px]">
-                ★
-              </Text>
-              <Text className="text-[12px] font-medium" style={{ color: TEXT_HEADING }}>
-                {ratingLabel}
-              </Text>
-            </View>
-          ) : null}
+          <RatingDisplay size="xs" value={review.rating} className="ml-auto" />
         </View>
 
         {title ? (

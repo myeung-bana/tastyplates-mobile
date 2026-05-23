@@ -3,7 +3,7 @@
  * Uses `react-native-reanimated` — ensure `babel.config.js` includes the Reanimated plugin.
  */
 import type { JSX } from 'react'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   BackHandler,
   Dimensions,
@@ -35,6 +35,7 @@ import {
   SCREEN_STUDIO_REVIEW_LISTING,
 } from '@/constants/screens'
 import { BRAND_PRIMARY, TEXT_HEADING, TEXT_MUTED } from '@/constants/brand'
+import { getStudioSheetBottomPadding, getTabBarStyle } from '@/constants/tabBar'
 import { studioQuickMenuToggleRef } from '@/contexts/StudioQuickMenuContext'
 import { useStudioQuickMenu } from '@/contexts/StudioQuickMenuContext'
 
@@ -55,6 +56,11 @@ const ORB_SIZE = Math.round(TAB_BAR_ICON_SIZE * 2)
 export function StudioTabBarWithQuickActions(props: BottomTabBarProps): JSX.Element {
   const router = useRouter()
   const { anchorRect } = useStudioQuickMenu()
+  const { insets } = props
+
+  const tabBarStyle = useMemo(() => getTabBarStyle(insets), [insets])
+
+  const sheetBottomPadding = useMemo(() => getStudioSheetBottomPadding(insets), [insets])
   const [modalVisible, setModalVisible] = useState(false)
   const modalVisibleRef = useRef(false)
   useEffect(() => {
@@ -193,7 +199,7 @@ export function StudioTabBarWithQuickActions(props: BottomTabBarProps): JSX.Elem
 
   return (
     <View style={styles.tabBarWrap}>
-      <BottomTabBar {...props} />
+      <BottomTabBar {...props} style={tabBarStyle} />
 
       <Modal
         transparent
@@ -208,7 +214,7 @@ export function StudioTabBarWithQuickActions(props: BottomTabBarProps): JSX.Elem
           </Pressable>
 
           <Animated.View
-            style={[styles.sheet, sheetStyle]}
+            style={[styles.sheet, { paddingBottom: sheetBottomPadding }, sheetStyle]}
             accessibilityViewIsModal
             importantForAccessibility="yes"
           >
@@ -309,7 +315,6 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 18,
     paddingHorizontal: 16,
     paddingTop: 12,
-    paddingBottom: Platform.select({ ios: 28, default: 24 }),
     elevation: 8,
     shadowColor: '#000',
     shadowOpacity: 0.12,

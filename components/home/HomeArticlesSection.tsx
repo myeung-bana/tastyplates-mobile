@@ -5,33 +5,30 @@ import { router } from 'expo-router'
 import { fetchArticles, type ArticleApi } from '@/lib/homeContentApi'
 import { getMarketingWebOrigin } from '@/lib/webAssets'
 import { SCREEN_ARTICLE_DETAIL } from '@/constants/screens'
-import {
-  BORDER_SUBTLE,
-  BRAND_PRIMARY,
-  TEXT_HEADING,
-  TEXT_MUTED,
-} from '@/constants/brand'
-
-const DEFAULT_LOCATION_SLUG = process.env.EXPO_PUBLIC_DEFAULT_LOCATION_SLUG ?? 'tokyo'
+import { ArticleCategoryTag } from '@/components/articles/ArticleCategoryTag'
+import { BORDER_SUBTLE, BRAND_PRIMARY, TEXT_HEADING, TEXT_MUTED } from '@/constants/brand'
+import { HomeSectionCard } from '@/components/home/HomeSectionCard'
+import { useLocation } from '@/contexts/LocationContext'
 
 /**
  * Article cards — web API when set, else Nhost `articles/get-articles`
  * (`recommend-articles.md`). Styling: `design_system.md` §2.3–2.4, §5.3 Card.
  */
 export function HomeArticlesSection() {
+  const { location } = useLocation()
   const [articles, setArticles] = useState<ArticleApi[]>([])
   const [loading, setLoading] = useState(true)
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (locationKey: string) => {
     setLoading(true)
-    const data = await fetchArticles(DEFAULT_LOCATION_SLUG, 8)
+    const data = await fetchArticles(locationKey, 8)
     setArticles(data)
     setLoading(false)
   }, [])
 
   useEffect(() => {
-    void load()
-  }, [load])
+    void load(location.key)
+  }, [load, location.key])
 
   if (!loading && articles.length === 0) return null
 
@@ -52,29 +49,25 @@ export function HomeArticlesSection() {
   }
 
   return (
-    <View className="mt-4 w-full bg-white pb-8 pt-2">
-      <View
-        className="mb-3 flex-row items-center justify-between px-4 pb-3"
-        style={{ borderBottomWidth: 1, borderBottomColor: BORDER_SUBTLE }}
-      >
-        <Text className="text-lg font-normal" style={{ color: TEXT_HEADING }}>
-          Articles
-        </Text>
-        {origin ? (
+    <HomeSectionCard
+      title="Articles"
+      headerRight={
+        origin ? (
           <Pressable onPress={openAll} hitSlop={8} accessibilityRole="button">
             <Text className="text-sm font-semibold" style={{ color: BRAND_PRIMARY }}>
               See all
             </Text>
           </Pressable>
-        ) : null}
-      </View>
-
+        ) : null
+      }
+      className="pb-8"
+    >
       {loading ? (
         <View className="items-center py-12">
           <ActivityIndicator color={BRAND_PRIMARY} />
         </View>
       ) : (
-        <View className="gap-4 px-4">
+        <View className="gap-4">
           {articles.map((article) => (
             <Pressable
               key={String(article.id)}
@@ -97,16 +90,11 @@ export function HomeArticlesSection() {
                   className="h-full w-full"
                   resizeMode="cover"
                 />
-                {article.category ? (
-                  <View className="absolute bottom-2 left-2 rounded-full bg-white/95 px-2.5 py-1">
-                    <Text
-                      className="text-[10px] font-semibold uppercase tracking-wide"
-                      style={{ color: BRAND_PRIMARY }}
-                    >
-                      {article.category}
-                    </Text>
-                  </View>
-                ) : null}
+                <ArticleCategoryTag
+                  category={article.category}
+                  variant="overlay"
+                  className="absolute bottom-2 left-2"
+                />
               </View>
               <View className="p-3">
                 <Text
@@ -126,6 +114,6 @@ export function HomeArticlesSection() {
           ))}
         </View>
       )}
-    </View>
+    </HomeSectionCard>
   )
 }

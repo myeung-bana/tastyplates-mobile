@@ -45,6 +45,11 @@ export type LoginFormProps = {
   resume?: string
   /** When false, omit the subtitle under the headings (parent shows context). */
   showIntro?: boolean
+  /**
+   * When true, render fields only (parent provides scroll + keyboard avoidance).
+   * Hides footer sign-up link when parent uses segment control.
+   */
+  embedded?: boolean
   /** Called after a successful `signInEmailPassword`. */
   onSignInSuccess: (payload: SignInSuccessPayload) => void | Promise<void>
 }
@@ -52,6 +57,7 @@ export type LoginFormProps = {
 export function LoginForm({
   resume,
   showIntro = true,
+  embedded = false,
   onSignInSuccess,
 }: LoginFormProps) {
   const nhost = useNhostClient()
@@ -132,15 +138,8 @@ export function LoginForm({
     }
   }
 
-  return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      className="flex-1"
-    >
-      <ScrollView
-        keyboardShouldPersistTaps="handled"
-        contentContainerClassName="grow px-4 pb-8 pt-1"
-      >
+  const fields = (
+    <>
         {showIntro ? (
           <Text className="mb-8 text-base leading-relaxed" style={{ color: TEXT_BODY }}>
             Sign in with your Tastyplates email and password.
@@ -252,18 +251,37 @@ export function LoginForm({
           )}
         </Pressable>
 
-        <View className="flex-row flex-wrap justify-center gap-1 pb-6">
-          <Text className="text-center text-sm" style={{ color: TEXT_MUTED }}>
-            {"Don't have an account?"}
-          </Text>
-          <Link href={loginScreenHref({ mode: 'signup', resume })} asChild>
-            <Pressable>
-              <Text className="text-sm font-semibold" style={{ color: BRAND_PRIMARY }}>
-                Sign up
-              </Text>
-            </Pressable>
-          </Link>
-        </View>
+        {!embedded ? (
+          <View className="flex-row flex-wrap justify-center gap-1 pb-6">
+            <Text className="text-center text-sm" style={{ color: TEXT_MUTED }}>
+              {"Don't have an account?"}
+            </Text>
+            <Link href={loginScreenHref({ mode: 'signup', resume })} asChild>
+              <Pressable>
+                <Text className="text-sm font-semibold" style={{ color: BRAND_PRIMARY }}>
+                  Sign up
+                </Text>
+              </Pressable>
+            </Link>
+          </View>
+        ) : null}
+    </>
+  )
+
+  if (embedded) {
+    return <View>{fields}</View>
+  }
+
+  return (
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      className="flex-1"
+    >
+      <ScrollView
+        keyboardShouldPersistTaps="handled"
+        contentContainerClassName="grow px-4 pb-8 pt-1"
+      >
+        {fields}
       </ScrollView>
     </KeyboardAvoidingView>
   )

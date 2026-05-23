@@ -12,7 +12,6 @@ import { loginScreenHref, pathnameWithQueryResume } from '@/lib/authRoutes'
 
 const BRAND_PRIMARY = '#ff7c0a'
 const TAB_INACTIVE = '#9ca3af'
-const TAB_BG = '#ffffff'
 
 type IoniconName = React.ComponentProps<typeof Ionicons>['name']
 
@@ -86,15 +85,6 @@ export default function TabsLayout(): JSX.Element | null {
       screenOptions={{
         tabBarActiveTintColor: BRAND_PRIMARY,
         tabBarInactiveTintColor: TAB_INACTIVE,
-        tabBarStyle: {
-          backgroundColor: TAB_BG,
-          borderTopWidth: 1,
-          borderTopColor: '#f3f4f6',
-          paddingTop: 6,
-          paddingBottom: 10,
-          height: 70,
-          paddingHorizontal: 4,
-        },
         tabBarLabelStyle: {
           fontSize: 11,
           fontWeight: '500',

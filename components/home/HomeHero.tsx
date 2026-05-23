@@ -1,25 +1,21 @@
 import { useState, useCallback } from 'react'
-import { View, Text, TextInput, Pressable, Keyboard } from 'react-native'
-import { Ionicons } from '@expo/vector-icons'
+import { View, Text } from 'react-native'
 import { router } from 'expo-router'
-import { BRAND_PRIMARY, mergeTextInputBodyTypography } from '@/constants/brand'
-import { labelForPalateKey } from '@/lib/palateLabels'
+
+import { PalateSearchBar, type PalateSearchMode } from '@/components/search/PalateSearchBar'
 import { SCREEN_RESTAURANTS } from '@/constants/screens'
 import { useSearchCuisinesSheet } from '@/contexts/SearchCuisinesSheetContext'
 
-type SearchMode = 'cuisine' | 'keyword'
-
 /**
- * Hero: subtitle, cuisine vs keyword search, shared Search cuisines sheet → Restaurants tab with params.
+ * Hero: subtitle + shared {@link PalateSearchBar} → Restaurants tab with query params.
  */
 export function HomeHero() {
   const { openSearchCuisines } = useSearchCuisinesSheet()
-  const [searchMode, setSearchMode] = useState<SearchMode>('cuisine')
+  const [searchMode, setSearchMode] = useState<PalateSearchMode>('cuisine')
   const [keyword, setKeyword] = useState('')
   const [palateKey, setPalateKey] = useState<string | null>(null)
 
   const goDiscover = useCallback(() => {
-    Keyboard.dismiss()
     if (searchMode === 'keyword') {
       if (!keyword.trim()) return
       router.push({
@@ -34,14 +30,11 @@ export function HomeHero() {
     router.push({ pathname: SCREEN_RESTAURANTS, params })
   }, [keyword, palateKey, searchMode])
 
-  const toggleMode = () => {
-    setSearchMode((m) => (m === 'cuisine' ? 'keyword' : 'cuisine'))
+  const onModeChange = (next: PalateSearchMode) => {
+    setSearchMode(next)
     setKeyword('')
     setPalateKey(null)
   }
-
-  const cuisinePlaceholder =
-    searchMode === 'cuisine' ? labelForPalateKey(palateKey) : 'Search by keyword…'
 
   return (
     <View className="overflow-hidden bg-white">
@@ -50,54 +43,21 @@ export function HomeHero() {
           Dine like a Brazilian in Tokyo — or Korean in New York?
         </Text>
 
-        <View className="mt-4 rounded-2xl border border-[#f3f4f6] bg-white p-1 shadow-sm shadow-black/5">
-          <View className="flex-row items-center rounded-xl bg-gray-50 px-2">
-            {searchMode === 'cuisine' ? (
-              <Pressable
-                className="min-h-[48px] flex-1 justify-center px-2"
-                onPress={() =>
-                  openSearchCuisines({
-                    initialPalateKey: palateKey,
-                    onApply: (key) => setPalateKey(key),
-                  })
-                }
-              >
-                <Text className="text-xs font-medium text-gray-500">Palate</Text>
-                <Text className="text-base font-medium text-gray-900" numberOfLines={1}>
-                  {cuisinePlaceholder}
-                </Text>
-              </Pressable>
-            ) : (
-              <TextInput
-                className="min-h-[48px] flex-1 px-2 py-2 text-base text-gray-900"
-                style={mergeTextInputBodyTypography()}
-                placeholder="Search restaurants…"
-                placeholderTextColor="#9ca3af"
-                value={keyword}
-                onChangeText={setKeyword}
-                returnKeyType="search"
-                onSubmitEditing={goDiscover}
-              />
-            )}
-            <Pressable
-              accessibilityLabel="Toggle search mode"
-              onPress={toggleMode}
-              className="h-10 w-10 items-center justify-center rounded-full active:bg-gray-200"
-            >
-              <Ionicons name="options-outline" size={22} color="#4b5563" />
-            </Pressable>
-            <Pressable
-              accessibilityLabel="Search"
-              onPress={goDiscover}
-              disabled={searchMode === 'keyword' && !keyword.trim()}
-              className="ml-1 h-10 w-10 items-center justify-center rounded-full active:opacity-80"
-              style={{
-                backgroundColor: searchMode === 'keyword' && !keyword.trim() ? '#d1d5db' : BRAND_PRIMARY,
-              }}
-            >
-              <Ionicons name="search" size={20} color="#fff" />
-            </Pressable>
-          </View>
+        <View className="mt-4">
+          <PalateSearchBar
+            mode={searchMode}
+            onModeChange={onModeChange}
+            palateKey={palateKey}
+            onOpenPalatePicker={() =>
+              openSearchCuisines({
+                initialPalateKey: palateKey,
+                onApply: (key) => setPalateKey(key),
+              })
+            }
+            keyword={keyword}
+            onKeywordChange={setKeyword}
+            onSubmit={goDiscover}
+          />
         </View>
       </View>
     </View>

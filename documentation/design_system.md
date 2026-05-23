@@ -954,3 +954,99 @@ No skip link (`<a href="#main">Skip to content</a>`) was found in `layout.tsx`.
 - **Photo-forward.** Review cards are dominated by tall portrait images (`min-h: 233px`) with minimal text below. The visual experience is the product.
 
 - **Confident restraint.** No gradients, no decorative illustrations, no complex shadows. The visual vocabulary is clean: white surfaces, a warm gray for text, `#ff7c0a` for everything that matters. This is not a minimal product — it's a focused one.
+
+---
+
+## 11. Mobile app patterns (React Native)
+
+> **Runtime tokens:** [`constants/brand.ts`](../constants/brand.ts) — `BRAND_PRIMARY`, `TEXT_HEADING`, `TEXT_BODY`, `TEXT_MUTED`, `BORDER_SUBTLE`, `RATING_STAR`.  
+> **Feature spec:** [`documentation/functions/palate-search-v1.md`](functions/palate-search-v1.md).
+
+### 11.1 `PalateSearchBar`
+
+| Property | Value |
+|----------|--------|
+| Container | `rounded-2xl`, border `#f3f4f6`, white bg, optional `shadow-sm` |
+| Inner track | `rounded-xl`, `bg-gray-50`, min height **48px** |
+| Search button | 40×40 circle, `#ff7c0a` (disabled `#d1d5db`) |
+| Modes | **cuisine** (tappable palate field) / **keyword** (`TextInput`) |
+
+### 11.2 `PalateFilterChip`
+
+| Property | Value |
+|----------|--------|
+| Shape | `rounded-full` |
+| Surface | `bg-orange-50/90`, border `border-orange-100` |
+| Dismiss | `close-circle` icon, brand orange |
+
+### 11.3 `RestaurantBrowseCard`
+
+| Variant | Image | Meta |
+|---------|-------|------|
+| `list` | `h-44` cover, full width | Title `text-base`, subtitle `text-sm`, star row |
+| `carousel` | flex ratio 3:2 | Compact `text-xs` labels |
+
+Optional **Search score** line when browsing with `?palate=`: `Japanese ★ 4.3` in `TEXT_MUTED`.
+
+### 11.4 `RestaurantRatingMetric` (detail row)
+
+| Property | Value |
+|----------|--------|
+| Column min-width | **132px** |
+| Score | `text-2xl font-bold` |
+| Review count badge | 20px circle, `#ff7c0a` bg, white 10px text |
+| Divider | 1px `#CACACA` |
+| Locked state | `lock-closed-outline`, 24px, `#9ca3af` |
+
+### 11.5 Palate context banner
+
+When `?palate=` is active on restaurant detail:
+
+- `rounded-xl`, `border-orange-100`, `bg-orange-50/90`
+- Copy: “Showing scores for **{label}**” (`text-xs`)
+
+### 11.6 `RatingDisplay` (canonical inline rating)
+
+**Component:** [`components/ui/RatingDisplay.tsx`](../components/ui/RatingDisplay.tsx)  
+**Helpers:** [`lib/ratingDisplayUtils.ts`](../lib/ratingDisplayUtils.ts) — `formatRatingValue`, `hasDisplayableRating`  
+**Token:** `RATING_STAR_INK` (`#171717`) for the star character; score text uses `TEXT_HEADING`.
+
+| Size | Star | Score | Use |
+|------|------|-------|-----|
+| `xs` | 11px | 12px medium | Home review grid, following feed, detail review previews |
+| `sm` | 12px | 12px medium | Restaurant browse carousel + list |
+| `md` | 14px | 16px semibold | Review detail viewer header |
+
+**Restaurant cards:** `★ 4.2 (12)` via `<RatingDisplay size="sm" value={rating} reviewCount={12} />` — short count in parentheses, no “reviews” word.
+
+**Search score line (palate filter):** `<RatingDisplay size="sm" value={searchScore} label="Japanese" />` → `Japanese ★ 4.3`.
+
+**When to use:** Review cards, restaurant tiles, feed headers, review viewer.
+
+**When not to use:** [`RestaurantRatingMetricsRow`](../components/restaurant/RestaurantRatingMetricsRow.tsx) (large aggregate metrics with orange count badges). Do not use amber `RATING_STAR` or orange filled pills for new inline ratings.
+
+```tsx
+import { RatingDisplay } from '@/components/ui/RatingDisplay'
+
+<RatingDisplay size="xs" value={review.rating} className="ml-auto" />
+<RatingDisplay size="sm" value={4.2} reviewCount={12} />
+```
+
+### 11.7 `ArticleCategoryTag` (canonical category pill)
+
+**Component:** [`components/articles/ArticleCategoryTag.tsx`](../components/articles/ArticleCategoryTag.tsx)  
+**Tokens:** `BRAND_PRIMARY` (label), `ARTICLE_CATEGORY_BG` (`#fef7f0`, inline variant only).
+
+Shared typography: `10px`, semibold, uppercase, `tracking-wide`. Container: `rounded-full`, `px-2.5`, `py-1`.
+
+| Variant | Background | Use |
+|---------|------------|-----|
+| `overlay` | `bg-white/95` | Category on article card hero (home Articles section) |
+| `inline` | `ARTICLE_CATEGORY_BG` | Article detail header above title |
+
+```tsx
+import { ArticleCategoryTag } from '@/components/articles/ArticleCategoryTag'
+
+<ArticleCategoryTag category={article.category} variant="overlay" className="absolute bottom-2 left-2" />
+<ArticleCategoryTag category={article.category} className="mb-2 self-start" />
+```

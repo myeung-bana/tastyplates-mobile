@@ -1,12 +1,14 @@
 import { View, Text, Pressable, Image, useWindowDimensions } from 'react-native'
 import { router } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
+import { HomeSectionCard } from '@/components/home/HomeSectionCard'
 import { QUICK_FINDS } from '@/constants/quickFinds'
 import { getCuisineIconSource } from '@/lib/cuisineIconAssets'
 import { SCREEN_RESTAURANTS } from '@/constants/screens'
 import { BRAND_PRIMARY } from '@/constants/brand'
 
-const COLS = 4
+/** 10 cuisines → 5 per row × 2 rows */
+const COLS = 5
 /** Outer `px-4` (32) + card horizontal `p-3` (24) */
 const HORIZONTAL_GUTTER = 16 * 2 + 12 * 2
 const COLUMN_GAP = 8
@@ -23,13 +25,11 @@ export function HomeQuickFinds() {
   const cellWidth = Math.floor((innerWidth - COLUMN_GAP * (COLS - 1)) / COLS)
 
   return (
-    <View className="mt-6 w-full px-4">
-      <View className="rounded-2xl bg-white p-3 shadow-sm shadow-black/5">
-        <Text className="text-base font-semibold text-gray-900">Quick finds</Text>
-        <View
-          className="mt-3 flex-row flex-wrap"
-          style={{ columnGap: COLUMN_GAP, rowGap: ROW_GAP }}
-        >
+    <HomeSectionCard title="Quick finds" shadowed={false}>
+      <View
+        className="flex-row flex-wrap"
+        style={{ columnGap: COLUMN_GAP, rowGap: ROW_GAP }}
+      >
           {QUICK_FINDS.map((item) => {
             const localSource = getCuisineIconSource(item.iconFile)
             return (
@@ -46,19 +46,11 @@ export function HomeQuickFinds() {
                 style={{ width: cellWidth }}
                 className="items-center active:opacity-80"
               >
-                <View
-                  className="overflow-hidden rounded-md bg-gray-50"
-                  style={{
-                    width: ICON_SIZE,
-                    height: ICON_SIZE,
-                    borderWidth: 1,
-                    borderColor: '#f3f4f6',
-                  }}
-                >
+                <View style={{ width: ICON_SIZE, height: ICON_SIZE }}>
                   {localSource ? (
                     <Image source={localSource} className="h-full w-full" resizeMode="contain" />
                   ) : (
-                    <View className="h-full w-full items-center justify-center" style={{ backgroundColor: `${BRAND_PRIMARY}18` }}>
+                    <View className="h-full w-full items-center justify-center">
                       <Ionicons name="fast-food-outline" size={14} color={BRAND_PRIMARY} />
                     </View>
                   )}
@@ -73,8 +65,7 @@ export function HomeQuickFinds() {
               </Pressable>
             )
           })}
-        </View>
       </View>
-    </View>
+    </HomeSectionCard>
   )
 }

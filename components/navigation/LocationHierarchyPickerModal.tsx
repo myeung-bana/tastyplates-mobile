@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useMemo, useState, type RefObject } from 'react'
 import { Image, Pressable, Text, TextInput, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import {
@@ -15,48 +15,32 @@ import {
   TEXT_HEADING,
   TEXT_MUTED,
 } from '@/constants/brand'
-import { useLocation } from '@/contexts/LocationContext'
-import { cityNodeToSavedLocation, type LocationCityNode } from '@/services/onboardingService'
+import type { SavedLocationPreference } from '@/constants/locations'
+import {
+  cityNodeToSavedLocation,
+  type GetLocationsData,
+  type LocationCityNode,
+} from '@/services/onboardingService'
 
-/** Gorhom-backed city picker; mount under {@link BottomSheetModalProvider}. */
-export function LocationHierarchyPickerHost(): JSX.Element | null {
-  const sheetRef = useRef<BottomSheetModal>(null)
-  const {
-    hierarchy,
-    hierarchyLoading,
-    hierarchyError,
-    locationPickerSignal,
-    location: selectedPref,
-    setLocationPreference,
-  } = useLocation()
+type Props = {
+  sheetRef: RefObject<BottomSheetModal | null>
+  hierarchy: GetLocationsData | null
+  hierarchyLoading: boolean
+  hierarchyError: string | null
+  selectedLocation: SavedLocationPreference
+  setLocationPreference: (pref: SavedLocationPreference) => void
+}
+
+/** Gorhom city picker sheet — rendered by {@link LocationProvider} (same pattern as cuisine search). */
+export function LocationHierarchyPickerModal({
+  sheetRef,
+  hierarchy,
+  hierarchyLoading,
+  hierarchyError,
+  selectedLocation,
+  setLocationPreference,
+}: Props): JSX.Element {
   const [search, setSearch] = useState('')
-
-  useEffect(() => {
-    if (locationPickerSignal < 1) return
-
-    let cancelled = false
-    let timeoutId: ReturnType<typeof setTimeout> | undefined
-
-    const presentSheet = (): void => {
-      if (cancelled) return
-      const modal = sheetRef.current
-      if (modal) {
-        modal.present()
-        return
-      }
-      // Ref can be null on first mount tick; retry once after the current frame.
-      timeoutId = setTimeout(() => {
-        if (!cancelled) sheetRef.current?.present()
-      }, 0)
-    }
-
-    const frameId = requestAnimationFrame(presentSheet)
-    return () => {
-      cancelled = true
-      cancelAnimationFrame(frameId)
-      if (timeoutId !== undefined) clearTimeout(timeoutId)
-    }
-  }, [locationPickerSignal])
 
   const countries = hierarchy?.hierarchy.countries ?? []
 
@@ -88,7 +72,7 @@ export function LocationHierarchyPickerHost(): JSX.Element | null {
       setSearch('')
       sheetRef.current?.dismiss()
     },
-    [hierarchy?.hierarchy.countries, setLocationPreference],
+    [hierarchy?.hierarchy.countries, setLocationPreference, sheetRef],
   )
 
   const onDismissSheet = useCallback(() => {
@@ -96,7 +80,7 @@ export function LocationHierarchyPickerHost(): JSX.Element | null {
     setSearch('')
   }, [])
 
-  const selectedKeyNorm = selectedPref.key.trim().toLowerCase()
+  const selectedKeyNorm = selectedLocation.key.trim().toLowerCase()
 
   return (
     <BottomSheetModal

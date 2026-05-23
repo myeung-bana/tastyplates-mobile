@@ -1,12 +1,8 @@
 import { Pressable, View, Text, Image, type StyleProp, type ViewStyle } from 'react-native'
 
-import {
-  BORDER_SUBTLE,
-  RATING_STAR,
-  TEXT_BODY,
-  TEXT_HEADING,
-  TEXT_MUTED,
-} from '@/constants/brand'
+import { RatingDisplay } from '@/components/ui/RatingDisplay'
+import { BORDER_SUBTLE, TEXT_BODY, TEXT_HEADING } from '@/constants/brand'
+import { hasDisplayableRating } from '@/lib/ratingDisplayUtils'
 
 const DEFAULT_IMAGE = 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400&q=80'
 
@@ -16,6 +12,9 @@ export interface RestaurantBrowseCardProps {
   subtitle?: string | null
   rating?: number | null
   reviewCount?: number | null
+  /** Palate-filtered Search score (preference avg). */
+  searchScore?: number | null
+  searchScoreLabel?: string
   onPress: () => void
   /** `carousel`: fixed tile (pass `containerStyle` with width/height). `list`: full-width row. */
   variant?: 'carousel' | 'list'
@@ -24,7 +23,7 @@ export interface RestaurantBrowseCardProps {
 
 /**
  * Shared restaurant tile (featured carousel + browse list).
- * Visual baseline: design_system §5.3 Card, §2.4 palette, §6.2 imagery (rounded cover).
+ * Visual baseline: design_system §5.3 Card, §11.6 RatingDisplay.
  */
 export function RestaurantBrowseCard({
   title,
@@ -32,6 +31,8 @@ export function RestaurantBrowseCard({
   subtitle,
   rating,
   reviewCount,
+  searchScore,
+  searchScoreLabel,
   onPress,
   variant = 'list',
   containerStyle,
@@ -40,7 +41,8 @@ export function RestaurantBrowseCard({
   const isList = variant === 'list'
   const defaultListStyle: ViewStyle = isList ? { width: '100%' } : {}
 
-  const showRating = rating != null || (reviewCount != null && reviewCount > 0)
+  const showRating =
+    hasDisplayableRating(rating) || hasDisplayableRating(searchScore)
 
   return (
     <Pressable
@@ -91,31 +93,16 @@ export function RestaurantBrowseCard({
           </Text>
         ) : null}
         {showRating ? (
-          <View className={isList ? 'mt-2 flex-row flex-wrap items-center gap-x-2' : 'mt-1 flex-row flex-wrap items-center gap-x-1.5'}>
-            {rating != null ? (
-              <View className="flex-row items-center gap-0.5">
-                <Text
-                  className={isList ? 'text-xs' : 'text-[10px]'}
-                  style={{ color: RATING_STAR }}
-                  importantForAccessibility="no"
-                >
-                  ★
-                </Text>
-                <Text
-                  className={isList ? 'text-xs' : 'text-[11px]'}
-                  style={{ color: TEXT_BODY }}
-                >
-                  {Number(rating).toFixed(1)}
-                </Text>
-              </View>
-            ) : null}
-            {reviewCount != null && reviewCount > 0 ? (
-              <Text
-                className={isList ? 'text-xs' : 'text-[10px]'}
-                style={{ color: TEXT_MUTED }}
-              >
-                ({reviewCount} {reviewCount === 1 ? 'review' : 'reviews'})
-              </Text>
+          <View
+            className={
+              isList
+                ? 'mt-2 flex-row flex-wrap items-center gap-x-2 gap-y-1'
+                : 'mt-1 flex-row flex-wrap items-center gap-x-1.5 gap-y-1'
+            }
+          >
+            <RatingDisplay size="sm" value={rating} reviewCount={reviewCount ?? undefined} />
+            {hasDisplayableRating(searchScore) ? (
+              <RatingDisplay size="sm" value={searchScore} label={searchScoreLabel} />
             ) : null}
           </View>
         ) : null}

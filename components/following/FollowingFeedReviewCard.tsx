@@ -2,7 +2,8 @@ import type { JSX } from 'react'
 import { Image, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 
-import { BRAND_PRIMARY, BORDER_SUBTLE, TEXT_BODY, TEXT_HEADING, TEXT_MUTED } from '@/constants/brand'
+import { RatingDisplay } from '@/components/ui/RatingDisplay'
+import { BORDER_SUBTLE, TEXT_BODY, TEXT_HEADING, TEXT_MUTED } from '@/constants/brand'
 import { parseProfilePalates } from '@/lib/profileFormatting'
 import { stripHtml } from '@/lib/restaurantDetailUtils'
 import { reviewImageUris } from '@/lib/reviewDisplayUtils'
@@ -54,12 +55,6 @@ export function FollowingFeedReviewCard({
   const author = headlineAuthorName(review)
   const authorLine = authorSubtitleLine(review, author)
   const place = restaurantDisplayName(review)
-  const ratingNum =
-    review.rating != null &&
-    !Number.isNaN(Number(review.rating)) &&
-    Number(review.rating) > 0
-      ? Number(review.rating)
-      : null
   const timeLabel = formatRelativeTime(review.created_at)
   const thumbs = reviewImageUris(review.images, 8)
   const excerpt = stripHtml(review.content ?? '')
@@ -96,14 +91,7 @@ export function FollowingFeedReviewCard({
             <Text style={styles.timeLabel}>{timeLabel}</Text>
           </View>
         </Pressable>
-        {ratingNum != null ? (
-          <View
-            style={styles.ratingBadge}
-            accessibilityLabel={`Rating ${ratingNum.toFixed(1)} out of 5`}
-          >
-            <Text style={styles.ratingBadgeText}>{ratingNum.toFixed(1)}</Text>
-          </View>
-        ) : null}
+        <RatingDisplay size="xs" value={review.rating} />
       </View>
 
       <Pressable
@@ -227,17 +215,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: TEXT_MUTED,
     marginTop: 2,
-  },
-  ratingBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 20,
-    backgroundColor: BRAND_PRIMARY,
-  },
-  ratingBadgeText: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#ffffff',
   },
   bodyPress: {
     marginTop: 12,

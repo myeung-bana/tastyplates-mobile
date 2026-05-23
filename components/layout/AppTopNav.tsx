@@ -66,33 +66,35 @@ function ProfileShortcut(): JSX.Element {
 
 const APP_TOP_NAV_INNER_PAD = 12
 
-/** Region pill (left); cuisine search + profile (right). */
+/** Location pill (left) | cuisine search + profile (right). */
 export function AppTopNav(): JSX.Element {
   const insets = useSafeAreaInsets()
   const { openSearchCuisines } = useSearchCuisinesSheet()
 
   return (
     <View
-      className="flex-row items-center justify-between gap-3 border-b border-gray-100 bg-white pb-3"
+      className="flex-row items-center justify-between border-b border-gray-100 bg-white pb-3"
       style={{
         paddingTop: insets.top + APP_TOP_NAV_INNER_PAD,
-        paddingLeft: insets.left,
+        paddingLeft: insets.left + 12,
         paddingRight: insets.right + 12,
+        gap: 8,
       }}
     >
       <View pointerEvents="box-none" className="min-w-0 flex-1 items-start justify-center pr-2">
-        <GlobalLocationPill maxWidth={220} />
+        <GlobalLocationPill maxWidth={260} />
       </View>
 
-      <View className="flex-shrink-0 flex-row items-center gap-3">
+      {/* Right: cuisine search + profile */}
+      <View className="flex-shrink-0 flex-row items-center gap-2">
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Search cuisines"
           hitSlop={12}
           onPress={() => openSearchCuisines()}
-          className="h-10 w-10 items-center justify-center rounded-full active:bg-gray-100"
+          className="h-9 w-9 items-center justify-center rounded-full active:bg-gray-100"
         >
-          <Ionicons name="search-outline" size={23} color="#374151" />
+          <Ionicons name="search-outline" size={21} color="#374151" />
         </Pressable>
         <ProfileShortcut />
       </View>

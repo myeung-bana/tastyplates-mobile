@@ -1,6 +1,9 @@
 import AsyncStorage from '@react-native-async-storage/async-storage'
 
-import type { SavedLocationPreference } from '@/constants/locations'
+import {
+  DEFAULT_LOCATION_FALLBACK_SLUG,
+  type SavedLocationPreference,
+} from '@/constants/locations'
 import { tastyplatesFetch, unwrapEnvelope } from '@/lib/tastyplatesFetch'
 import type { RestaurantUserRow } from '@/services/restaurantUserService'
 
@@ -171,6 +174,55 @@ export function findCityInHierarchy(
     }
   }
   return undefined
+}
+
+/** First active city in CMS order (countries → cities). */
+export function getFirstCityInHierarchy(
+  data: GetLocationsData | null | undefined,
+): LocationCityNode | undefined {
+  if (!data?.hierarchy?.countries?.length) return undefined
+  for (const country of data.hierarchy.countries) {
+    if (country.cities.length > 0) return country.cities[0]
+  }
+  return undefined
+}
+
+export function savedLocationFromHierarchyKey(
+  data: GetLocationsData,
+  cityKey: string,
+): SavedLocationPreference | null {
+  const city = findCityInHierarchy(data, cityKey)
+  if (!city) return null
+  const country = data.hierarchy.countries.find((row) => row.key === city.parentKey)
+  return cityNodeToSavedLocation(city, country)
+}
+
+/**
+ * Resolve pill/feed location strictly from `get-locations` hierarchy.
+ * Tries stored key, then env fallback slug, then first CMS city.
+ */
+export function resolveActiveLocationFromHierarchy(
+  data: GetLocationsData,
+  preferredKey?: string | null,
+  fallbackSlug: string = DEFAULT_LOCATION_FALLBACK_SLUG,
+): SavedLocationPreference {
+  const candidates = [
+    preferredKey?.trim().toLowerCase(),
+    fallbackSlug.trim().toLowerCase(),
+  ].filter((k): k is string => Boolean(k?.length))
+
+  for (const key of candidates) {
+    const hit = savedLocationFromHierarchyKey(data, key)
+    if (hit) return hit
+  }
+
+  const first = getFirstCityInHierarchy(data)
+  if (first) {
+    const country = data.hierarchy.countries.find((row) => row.key === first.parentKey)
+    return cityNodeToSavedLocation(first, country)
+  }
+
+  return { key: 'unknown', label: 'Unknown' }
 }
 
 /** Merge CMS hierarchy metadata onto a persisted preference when the slug matches an active city. */

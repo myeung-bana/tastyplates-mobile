@@ -1,30 +1,32 @@
-import type { ReactNode } from 'react'
+import type { ReactNode, ElementRef } from 'react'
 import {
   createContext,
   useCallback,
   useContext,
   useEffect,
   useMemo,
-  useReducer,
+  useRef,
   useState,
 } from 'react'
+import type { BottomSheetModal } from '@gorhom/bottom-sheet'
 import * as SecureStore from 'expo-secure-store'
 
+import { LocationHierarchyPickerModal } from '@/components/navigation/LocationHierarchyPickerModal'
 import type { SavedLocationPreference } from '@/constants/locations'
+import { readStoredLocationKey } from '@/constants/locations'
 import {
-  DEFAULT_LOCATION_FALLBACK_SLUG,
-  getPresetLocationByKey,
-  parseStoredLocationPreference,
-} from '@/constants/locations'
-import {
-  cityNodeToSavedLocation,
-  enrichSavedLocationFromHierarchy,
   fetchLocationHierarchy,
-  findCityInHierarchy,
+  resolveActiveLocationFromHierarchy,
+  savedLocationFromHierarchyKey,
   type GetLocationsData,
 } from '@/services/onboardingService'
 
 const STORAGE_KEY = 'tastyplates_mobile_location_prefs_v1'
+
+const LOCATION_PLACEHOLDER: SavedLocationPreference = {
+  key: '',
+  label: '…',
+}
 
 function serializePreference(pref: SavedLocationPreference): string {
   const obj: Record<string, unknown> = {
@@ -47,47 +49,25 @@ export type LocationContextValue = {
   hierarchyError: string | null
   reloadHierarchy: () => void
   setLocationByKey: (key: string) => void
-  /** Set preference (preset or CMS city row). Merges hierarchy metadata when CMS data is loaded. */
+  /** Set preference from a CMS city row (merged with hierarchy when loaded). */
   setLocationPreference: (pref: SavedLocationPreference) => void
   ready: boolean
-  /** Bumps whenever UI should present the hierarchy picker ({@link LocationHierarchyPickerHost}). */
-  locationPickerSignal: number
   openLocationPicker: () => void
   closeLocationPicker: () => void
 }
 
 const LocationContext = createContext<LocationContextValue | null>(null)
 
-function resolveInitialLocation(prefKey: string | null): SavedLocationPreference {
-  if (prefKey?.length) {
-    const preset = getPresetLocationByKey(prefKey)
-    if (preset) return preset
-  }
-  const fromEnv =
-    DEFAULT_LOCATION_FALLBACK_SLUG.length > 0
-      ? getPresetLocationByKey(DEFAULT_LOCATION_FALLBACK_SLUG)
-      : undefined
-  return (
-    fromEnv ?? {
-      key: 'tokyo',
-      label: 'Tokyo',
-      coordinates: { latitude: 35.6764, longitude: 139.65 },
-      flag: 'https://flagcdn.com/jp.svg',
-      parentCountryKey: 'japan',
-      countryShortLabel: 'JP',
-    }
-  )
-}
-
 export function LocationProvider({ children }: { children: ReactNode }): JSX.Element {
   const [ready, setReady] = useState(false)
-  const [location, setLocation] = useState<SavedLocationPreference>(() =>
-    resolveInitialLocation(null),
-  )
+  const [storeHydrated, setStoreHydrated] = useState(false)
+  const [storedKey, setStoredKey] = useState<string | null>(null)
+  const [location, setLocation] = useState<SavedLocationPreference>(LOCATION_PLACEHOLDER)
   const [hierarchy, setHierarchy] = useState<GetLocationsData | null>(null)
   const [hierarchyLoading, setHierarchyLoading] = useState(false)
   const [hierarchyError, setHierarchyError] = useState<string | null>(null)
-  const [locationPickerSignal, bumpPickerSignal] = useReducer((x: number) => x + 1, 0)
+  const sheetRef = useRef<ElementRef<typeof BottomSheetModal>>(null)
+  const initialSyncDoneRef = useRef(false)
 
   const reloadHierarchy = useCallback(() => {
     void (async () => {
@@ -116,24 +96,13 @@ export function LocationProvider({ children }: { children: ReactNode }): JSX.Ele
         if (!cancelled && stored) {
           try {
             const parsed = JSON.parse(stored) as unknown
-            const resolved = parseStoredLocationPreference(parsed)
-            if (resolved) {
-              setLocation(resolved)
-            } else {
-              const key =
-                typeof parsed === 'object' &&
-                parsed &&
-                'key' in parsed ?
-                  String((parsed as { key?: unknown }).key ?? '')
-                : ''
-              setLocation(resolveInitialLocation(key || null))
-            }
+            setStoredKey(readStoredLocationKey(parsed))
           } catch {
-            setLocation(resolveInitialLocation(null))
+            setStoredKey(null)
           }
         }
       } finally {
-        if (!cancelled) setReady(true)
+        if (!cancelled) setStoreHydrated(true)
       }
     })()
     return () => {
@@ -141,25 +110,7 @@ export function LocationProvider({ children }: { children: ReactNode }): JSX.Ele
     }
   }, [])
 
-  /** Fill missing nav pill fields from hierarchy; avoid overwriting stored coordinates unnecessarily. */
-  useEffect(() => {
-    if (!ready || hierarchy == null) return
-    setLocation((prev) => {
-      const enriched = enrichSavedLocationFromHierarchy(prev, hierarchy)
-      const changed =
-        enriched.flag !== prev.flag ||
-        enriched.countryShortLabel !== prev.countryShortLabel ||
-        enriched.currency !== prev.currency ||
-        enriched.timezone !== prev.timezone ||
-        enriched.parentCountryKey !== prev.parentCountryKey ||
-        (!prev.coordinates && enriched.coordinates)
-      if (!changed) return prev
-      void SecureStore.setItemAsync(STORAGE_KEY, serializePreference(enriched))
-      return enriched
-    })
-  }, [hierarchy, ready])
-
-  const setLocationPreferenceBase = useCallback((pref: SavedLocationPreference) => {
+  const persistLocation = useCallback((pref: SavedLocationPreference) => {
     const normalized: SavedLocationPreference = {
       ...pref,
       key: pref.key.trim().toLowerCase(),
@@ -168,46 +119,63 @@ export function LocationProvider({ children }: { children: ReactNode }): JSX.Ele
     void SecureStore.setItemAsync(STORAGE_KEY, serializePreference(normalized))
   }, [])
 
+  /** Align pill + feeds with Nhost `get-locations` once store + hierarchy are available. */
+  useEffect(() => {
+    if (!storeHydrated || hierarchyLoading) return
+
+    if (!hierarchy) {
+      if (hierarchyError && !initialSyncDoneRef.current) {
+        initialSyncDoneRef.current = true
+        setReady(true)
+      }
+      return
+    }
+
+    if (!initialSyncDoneRef.current) {
+      persistLocation(resolveActiveLocationFromHierarchy(hierarchy, storedKey))
+      initialSyncDoneRef.current = true
+      setReady(true)
+      return
+    }
+
+    // Hierarchy refresh: keep selection if still in CMS; otherwise remap.
+    setLocation((prev) => {
+      if (prev.key && savedLocationFromHierarchyKey(hierarchy, prev.key)) return prev
+      const fixed = resolveActiveLocationFromHierarchy(hierarchy, prev.key)
+      void SecureStore.setItemAsync(STORAGE_KEY, serializePreference(fixed))
+      return fixed
+    })
+  }, [storeHydrated, hierarchy, hierarchyLoading, hierarchyError, storedKey, persistLocation])
+
   const setLocationPreference = useCallback(
     (pref: SavedLocationPreference) => {
-      const normalized: SavedLocationPreference = {
-        ...pref,
-        key: pref.key.trim().toLowerCase(),
+      if (hierarchy) {
+        const fromApi = savedLocationFromHierarchyKey(hierarchy, pref.key)
+        if (fromApi) {
+          persistLocation(fromApi)
+          return
+        }
       }
-      const merged =
-        hierarchy != null ?
-          enrichSavedLocationFromHierarchy(normalized, hierarchy)
-        : normalized
-      setLocationPreferenceBase(merged)
+      persistLocation(pref)
     },
-    [hierarchy, setLocationPreferenceBase],
+    [hierarchy, persistLocation],
   )
 
   const setLocationByKey = useCallback(
     (key: string) => {
-      const preset = getPresetLocationByKey(key)
-      if (preset) {
-        setLocationPreference(preset)
-        return
-      }
-      const k = key.trim().toLowerCase()
-      const city = hierarchy ? findCityInHierarchy(hierarchy, k) : undefined
-      if (city) {
-        const country = hierarchy!.hierarchy.countries.find((row) => row.key === city.parentKey)
-        setLocationPreference(cityNodeToSavedLocation(city, country))
-        return
-      }
-      setLocationPreference({ key: k, label: k })
+      if (!hierarchy) return
+      const fromApi = savedLocationFromHierarchyKey(hierarchy, key)
+      if (fromApi) persistLocation(fromApi)
     },
-    [hierarchy, setLocationPreference],
+    [hierarchy, persistLocation],
   )
 
   const openLocationPicker = useCallback(() => {
-    bumpPickerSignal()
+    sheetRef.current?.present()
   }, [])
 
   const closeLocationPicker = useCallback(() => {
-    /* Host dismisses Gorhom modal; callers may no-op unless we attach shared ref later. */
+    sheetRef.current?.dismiss()
   }, [])
 
   const value = useMemo(
@@ -220,7 +188,6 @@ export function LocationProvider({ children }: { children: ReactNode }): JSX.Ele
       setLocationByKey,
       setLocationPreference,
       ready,
-      locationPickerSignal,
       openLocationPicker,
       closeLocationPicker,
     }),
@@ -230,7 +197,6 @@ export function LocationProvider({ children }: { children: ReactNode }): JSX.Ele
       hierarchyError,
       hierarchyLoading,
       location,
-      locationPickerSignal,
       openLocationPicker,
       ready,
       reloadHierarchy,
@@ -239,7 +205,19 @@ export function LocationProvider({ children }: { children: ReactNode }): JSX.Ele
     ],
   )
 
-  return <LocationContext.Provider value={value}>{children}</LocationContext.Provider>
+  return (
+    <LocationContext.Provider value={value}>
+      {children}
+      <LocationHierarchyPickerModal
+        sheetRef={sheetRef}
+        hierarchy={hierarchy}
+        hierarchyLoading={hierarchyLoading}
+        hierarchyError={hierarchyError}
+        selectedLocation={location}
+        setLocationPreference={setLocationPreference}
+      />
+    </LocationContext.Provider>
+  )
 }
 
 export function useLocation(): LocationContextValue {

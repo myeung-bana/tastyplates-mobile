@@ -12,22 +12,13 @@ import * as Haptics from 'expo-haptics'
 import { Ionicons } from '@expo/vector-icons'
 import { usePathname, useRouter } from 'expo-router'
 
-import {
-  BORDER_SUBTLE,
-  BRAND_PRIMARY,
-  RATING_STAR,
-  TEXT_BODY,
-  TEXT_HEADING,
-  TEXT_MUTED,
-} from '@/constants/brand'
+import { RatingDisplay } from '@/components/ui/RatingDisplay'
+import { BORDER_SUBTLE, BRAND_PRIMARY, TEXT_BODY, TEXT_HEADING, TEXT_MUTED } from '@/constants/brand'
 import { SCREEN_REVIEW_VIEWER, SCREEN_STUDIO_ADD_REVIEW_WRITE } from '@/constants/screens'
 import {
-  buildRestaurantImageGallery,
   formatOpeningHoursSummary,
-  formatPriceRange,
   formatRestaurantAddress,
   mapsDirectionsUrl,
-  restaurantPalateAndCategoryLabels,
   stripHtml,
 } from '@/lib/restaurantDetailUtils'
 import { useAuth } from '@/hooks/useAuth'
@@ -44,7 +35,8 @@ import {
   toggleFavoriteBySlug,
 } from '@/services/restaurantEngagementService'
 
-import { RestaurantImageCarousel } from '@/components/restaurant/RestaurantImageCarousel'
+import { RestaurantDetailSummary } from '@/components/restaurant/RestaurantDetailSummary'
+import { RestaurantRatingMetricsRow } from '@/components/restaurant/RestaurantRatingMetricsRow'
 
 function formatRating(n: number | null | undefined): string {
   if (n == null || Number.isNaN(n) || n <= 0) return '—'
@@ -57,6 +49,9 @@ export interface RestaurantDetailViewProps {
   summary: RatingSummaryRow | null
   reviews: RestaurantReviewPreview[]
   reviewTotal: number
+  palateSlug?: string | null
+  searchAvg?: number | null
+  searchCount?: number
   refreshing?: boolean
   onRefresh?: () => void
 }
@@ -67,16 +62,16 @@ export function RestaurantDetailView({
   summary,
   reviews,
   reviewTotal,
+  palateSlug = null,
+  searchAvg = null,
+  searchCount = 0,
   refreshing = false,
   onRefresh,
 }: RestaurantDetailViewProps) {
   const router = useRouter()
   const pathname = usePathname()
   const { isAuthenticated } = useAuth()
-  const images = buildRestaurantImageGallery(restaurant)
-  const { primaryPalate, categories } = restaurantPalateAndCategoryLabels(restaurant)
   const address = formatRestaurantAddress(restaurant)
-  const price = formatPriceRange(restaurant.price_range_id)
   const about = stripHtml(restaurant.content)
   const hoursLine = formatOpeningHoursSummary(restaurant.opening_hours)
 
@@ -196,69 +191,13 @@ export function RestaurantDetailView({
         ) : undefined
       }
     >
-      <RestaurantImageCarousel images={images} title={restaurant.title} />
-
-      <View className="px-4 pb-2 pt-4">
-        <View className="mb-2 flex-row items-start justify-between gap-3">
-          <Text
-            className="min-w-0 flex-1 text-xl font-normal leading-snug"
-            style={{ color: TEXT_HEADING }}
-          >
-            {restaurant.title}
-          </Text>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Share restaurant"
-            hitSlop={10}
-            onPress={() => void onShare()}
-            className="mt-0.5 p-1 active:opacity-70"
-          >
-            <Ionicons name="share-outline" size={22} color={TEXT_MUTED} />
-          </Pressable>
-        </View>
-
-        <View className="mb-3 flex-row flex-wrap gap-2">
-          {primaryPalate ? (
-            <View className="rounded-full border-2 border-[#ff7c0a] bg-[#fef7f0] px-3 py-1.5">
-              <Text className="text-xs font-normal" style={{ color: BRAND_PRIMARY }}>
-                {primaryPalate}
-              </Text>
-            </View>
-          ) : null}
-          {categories.slice(0, 4).map((c) => (
-            <View key={c} className="rounded-full bg-[#f3f4f6] px-3 py-1.5">
-              <Text className="text-xs" style={{ color: TEXT_BODY }}>
-                {c}
-              </Text>
-            </View>
-          ))}
-          {price ? (
-            <View className="rounded-full bg-[#f3f4f6] px-3 py-1.5">
-              <Text className="text-xs" style={{ color: TEXT_BODY }}>
-                {price}
-              </Text>
-            </View>
-          ) : null}
-        </View>
-
-        <View className="mb-2 flex-row flex-wrap items-center gap-2">
-          <Text style={{ color: RATING_STAR }} className="text-base">
-            ★
-          </Text>
-          <Text className="text-base font-normal" style={{ color: TEXT_HEADING }}>
-            {formatRating(overallAvg)}
-          </Text>
-          <Text className="text-sm" style={{ color: TEXT_MUTED }}>
-            ({overallCount} {overallCount === 1 ? 'review' : 'reviews'})
-          </Text>
-        </View>
-
-        {address ? (
-          <Text className="text-sm leading-normal" style={{ color: TEXT_BODY }} numberOfLines={3}>
-            {address}
-          </Text>
-        ) : null}
-      </View>
+      <RestaurantDetailSummary
+        restaurant={restaurant}
+        overallAvg={overallAvg}
+        overallCount={overallCount}
+        palateSlug={palateSlug}
+        onShare={() => void onShare()}
+      />
 
       <View
         className="flex-row flex-wrap items-stretch gap-3 border-t px-4 py-4"
@@ -297,19 +236,16 @@ export function RestaurantDetailView({
         </Pressable>
       </View>
 
-      <View className="border-t px-0 py-4" style={{ borderTopColor: BORDER_SUBTLE }}>
-        <Text className="mb-3 px-4 text-base font-normal" style={{ color: TEXT_HEADING }}>
-          Ratings
-        </Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, gap: 12 }}>
-          <MetricCard
-            label="Overall"
-            value={formatRating(overallAvg)}
-            count={overallCount}
-          />
-          <MetricCard label="Authentic" value={formatRating(authAvg)} count={authCount} />
-        </ScrollView>
-      </View>
+      <RestaurantRatingMetricsRow
+        overallAvg={overallAvg}
+        overallCount={overallCount}
+        authenticAvg={authAvg}
+        authenticCount={authCount}
+        searchAvg={searchAvg}
+        searchCount={searchCount}
+        palateSlug={palateSlug}
+        isAuthenticated={isAuthenticated}
+      />
 
       <View className="border-t px-4 py-4" style={{ borderTopColor: BORDER_SUBTLE }}>
         <Text className="mb-3 text-base font-normal" style={{ color: TEXT_HEADING }}>
@@ -335,13 +271,8 @@ export function RestaurantDetailView({
                     <Text className="text-sm font-normal" style={{ color: TEXT_HEADING }} numberOfLines={2}>
                       {item.title?.trim() || 'Review'}
                     </Text>
-                    <View className="mt-1 flex-row items-center gap-1">
-                      <Text style={{ color: RATING_STAR }} className="text-xs">
-                        ★
-                      </Text>
-                      <Text className="text-xs" style={{ color: TEXT_BODY }}>
-                        {formatRating(item.rating)}
-                      </Text>
+                    <View className="mt-1">
+                      <RatingDisplay size="xs" value={item.rating} />
                     </View>
                     <Text className="mt-2 text-xs leading-snug" style={{ color: TEXT_BODY }} numberOfLines={4}>
                       {stripHtml(item.content ?? '').slice(0, 220)}
@@ -453,31 +384,5 @@ export function RestaurantDetailView({
 
       <View style={{ height: 32 }} />
     </ScrollView>
-  )
-}
-
-function MetricCard({ label, value, count }: { label: string; value: string; count: number }) {
-  return (
-    <View
-      className="w-28 shrink-0 items-center rounded-2xl border bg-white px-3 py-4"
-      style={{
-        borderColor: BORDER_SUBTLE,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.1,
-        shadowRadius: 3,
-        elevation: 2,
-      }}
-    >
-      <Text className="text-3xl font-normal" style={{ color: TEXT_HEADING }}>
-        {value}
-      </Text>
-      <Text className="mt-1 text-xs" style={{ color: TEXT_MUTED }}>
-        {label}
-      </Text>
-      <Text className="mt-0.5 text-[10px]" style={{ color: TEXT_MUTED }}>
-        {count} reviews
-      </Text>
-    </View>
   )
 }
