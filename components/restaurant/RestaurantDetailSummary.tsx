@@ -13,7 +13,7 @@ import {
   restaurantPalateAndCategoryLabels,
 } from '@/lib/restaurantDetailUtils'
 import type { RestaurantDetailRow } from '@/services/restaurantDetailService'
-import { formatRestaurantListSubtitle } from '@/services/restaurantsV2Service'
+import { formatRestaurantCardAddress } from '@/services/restaurantsV2Service'
 
 export type RestaurantDetailSummaryProps = {
   restaurant: RestaurantDetailRow
@@ -35,7 +35,7 @@ export function RestaurantDetailSummary({
 }: RestaurantDetailSummaryProps): JSX.Element {
   const images = buildRestaurantImageGallery(restaurant)
   const { primaryPalate, categories } = restaurantPalateAndCategoryLabels(restaurant)
-  const subtitle = formatRestaurantListSubtitle(restaurant.listing_street, restaurant.address)
+  const subtitle = formatRestaurantCardAddress(restaurant.listing_street, restaurant.address)
   const address = formatRestaurantAddress(restaurant)
   const price = formatPriceRange(restaurant.price_range_id)
   const palateActive = !isNoPalateFilter(palateSlug)

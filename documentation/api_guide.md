@@ -298,7 +298,7 @@ Legend for `Auth`: `None`, `Bearer`, `Optional Bearer`, `Admin header`
 | `restaurant-reviews/get-review-by-id` | GET | Optional Bearer | Approved reviews are public; non-approved are owner-only |
 | `restaurant-reviews/get-reviews-by-restaurant` | GET | None | Reviews by restaurant |
 | `restaurant-reviews/get-user-reviews` | GET | Optional Bearer | Approved reviews public; private statuses require owner Bearer |
-| `restaurant-reviews/get-following-feed` | GET | Bearer | Feed for the authenticated user’s follows |
+| `restaurant-reviews/get-following-feed` | GET | Bearer | Feed for the authenticated user’s follows; responses include enriched `AuthorProfile` + `restaurant` |
 | `restaurant-reviews/get-replies` | GET | None | Thread replies for a review |
 | `restaurant-reviews/get-draft-reviews` | GET | Bearer | Current user’s drafts |
 

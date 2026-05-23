@@ -981,12 +981,16 @@ No skip link (`<a href="#main">Skip to content</a>`) was found in `layout.tsx`.
 
 ### 11.3 `RestaurantBrowseCard`
 
-| Variant | Image | Meta |
-|---------|-------|------|
-| `list` | `h-44` cover, full width | Title `text-base`, subtitle `text-sm`, star row |
-| `carousel` | flex ratio 3:2 | Compact `text-xs` labels |
+| Variant | Image | Meta block |
+|---------|-------|------------|
+| `list` | `h-44` cover, full width | Row A: title + overall `RatingDisplay` (`sm`) top-right. Row B: `street, city` (`formatRestaurantCardAddress`). Row C: horizontal palate chips. Row D (optional): Search score when `?palate=` |
+| `carousel` | flex ratio 3:2 | Compact `text-xs` title + `RatingDisplay` `xs` right; 1-line address; max 2 palate chips + `+N` |
 
-Optional **Search score** line when browsing with `?palate=`: `Japanese ★ 4.3` in `TEXT_MUTED`.
+**Address:** `146 Front St W, Toronto` via [`formatRestaurantCardAddress`](../services/restaurantsV2Service.ts) — `listing_street` or `address.street_address` + `address.city`; skips duplicate city suffix.
+
+**Palate chips:** [`restaurantPalateDisplayLabels`](../lib/restaurantPalates.ts) — neutral `#f2f2f2` pills; active filter chip uses `#fef7f0` + `2px` `BRAND_PRIMARY` border.
+
+**Ratings:** Overall average top-right on list cards; palate-filtered Search score on its own line below chips (`Japanese ★ 4.3`, `RatingDisplay` with `label`).
 
 ### 11.4 `RestaurantRatingMetric` (detail row)
 

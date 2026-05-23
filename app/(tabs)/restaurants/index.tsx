@@ -14,9 +14,10 @@ import { RestaurantBrowseCard } from '@/components/restaurant/RestaurantBrowseCa
 import { PalateFilterChips } from '@/components/search/PalateFilterChips'
 import {
   getRestaurants,
-  formatRestaurantListSubtitle,
+  formatRestaurantCardAddress,
   type RestaurantListRow,
 } from '@/services/restaurantsV2Service'
+import { restaurantPalateDisplayLabels } from '@/lib/restaurantPalates'
 import { BRAND_PRIMARY, TEXT_HEADING } from '@/constants/brand'
 import { SCREEN_RESTAURANT_DETAIL } from '@/constants/screens'
 import { useLocation } from '@/contexts/LocationContext'
@@ -209,7 +210,9 @@ export default function RestaurantsScreen() {
                   variant="list"
                   title={item.title}
                   imageUrl={item.featured_image_url}
-                  subtitle={formatRestaurantListSubtitle(item.listing_street, item.address)}
+                  subtitle={formatRestaurantCardAddress(item.listing_street, item.address)}
+                  palateTags={restaurantPalateDisplayLabels(item.palates)}
+                  highlightPalateSlug={palate}
                   rating={overallRating}
                   reviewCount={item.ratings_count ?? undefined}
                   searchScore={searchRating}

@@ -14,7 +14,7 @@ import {
   fetchFeaturedRestaurants,
   type FeaturedRestaurantApi,
 } from '@/lib/homeContentApi'
-import { formatRestaurantListSubtitle } from '@/services/restaurantsV2Service'
+import { formatRestaurantCardAddress } from '@/services/restaurantsV2Service'
 
 const CARD_W = 148
 const CARD_H = Math.round((CARD_W * 4) / 3)
@@ -108,7 +108,7 @@ export function RecommendedRestaurantsCarousel({
         <View className="px-5 pt-4 pb-2" style={{ gap: 12 }}>
           {items.map((row) => {
             const r = row.restaurant
-            const subtitle = formatRestaurantListSubtitle(r.listing_street, r.address)
+            const subtitle = formatRestaurantCardAddress(r.listing_street, r.address)
             return (
               <RestaurantBrowseCard
                 key={row.id}
@@ -143,7 +143,7 @@ export function RecommendedRestaurantsCarousel({
         >
           {items.map((row) => {
             const r = row.restaurant
-            const subtitle = formatRestaurantListSubtitle(r.listing_street, r.address)
+            const subtitle = formatRestaurantCardAddress(r.listing_street, r.address)
             return (
               <RestaurantBrowseCard
                 key={row.id}

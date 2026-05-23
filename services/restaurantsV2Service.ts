@@ -75,14 +75,41 @@ export async function getRestaurants(params: GetRestaurantsParams = {}): Promise
   return unwrapEnvelope(envelope)
 }
 
-export function formatRestaurantListSubtitle(
+export type RestaurantAddressFields = RestaurantListRow['address']
+
+function streetEndsWithCity(street: string, city: string): boolean {
+  const s = street.toLowerCase()
+  const c = city.toLowerCase()
+  return s === c || s.endsWith(`, ${c}`)
+}
+
+/**
+ * Browse card address: `street, city` (e.g. `146 Front St W, Toronto`).
+ * @see documentation/design_system.md §11.3
+ */
+export function formatRestaurantCardAddress(
   listingStreet: string | null | undefined,
-  address: RestaurantListRow['address'],
+  address: RestaurantAddressFields,
 ): string | null {
-  if (listingStreet?.trim()) return listingStreet.trim()
-  if (address?.street_address?.trim()) return address.street_address.trim()
-  if (address?.city) {
-    return address.country_short ? `${address.city}, ${address.country_short}` : address.city
+  const city = address?.city?.trim()
+  const street =
+    listingStreet?.trim() || address?.street_address?.trim() || null
+
+  if (street && city) {
+    if (streetEndsWithCity(street, city)) return street
+    return `${street}, ${city}`
+  }
+  if (street) return street
+  if (city) {
+    return address?.country_short ? `${city}, ${address.country_short}` : city
   }
   return null
+}
+
+/** @deprecated Prefer `formatRestaurantCardAddress` for list/detail subtitle lines. */
+export function formatRestaurantListSubtitle(
+  listingStreet: string | null | undefined,
+  address: RestaurantAddressFields,
+): string | null {
+  return formatRestaurantCardAddress(listingStreet, address)
 }

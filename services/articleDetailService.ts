@@ -1,7 +1,7 @@
 import { tastyplatesFetch, unwrapEnvelope } from '@/lib/tastyplatesFetch'
 import { normalizeRestaurantAddressJson, type FeaturedRestaurantApi } from '@/lib/homeContentApi'
 import { stripHtml } from '@/lib/restaurantDetailUtils'
-import { formatRestaurantListSubtitle } from '@/services/restaurantsV2Service'
+import { formatRestaurantCardAddress } from '@/services/restaurantsV2Service'
 
 export interface ArticleAuthorProfile {
   displayName?: string | null
@@ -88,10 +88,10 @@ export function mapArticleAssociationsToSectionItems(
       slug: r.slug,
       imageUrl: r.featured_image_url ?? null,
       description: restaurantDescriptionPlain(r.content),
-      addressLine: formatRestaurantListSubtitle(
+      addressLine: formatRestaurantCardAddress(
         r.listing_street,
         normalizeRestaurantAddressJson(r.address) as Parameters<
-          typeof formatRestaurantListSubtitle
+          typeof formatRestaurantCardAddress
         >[1],
       ),
     })

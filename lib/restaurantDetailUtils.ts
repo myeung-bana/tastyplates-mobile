@@ -44,30 +44,16 @@ export function formatPriceRange(priceRangeId: number | null | undefined): strin
   return '$'.repeat(n)
 }
 
-interface NamedChip {
-  name: string
-}
-
-function extractNames(field: unknown): string[] {
-  if (!Array.isArray(field)) return []
-  const names: string[] = []
-  for (const el of field) {
-    if (el && typeof el === 'object' && 'name' in el) {
-      const n = (el as NamedChip).name
-      if (typeof n === 'string' && n.trim()) names.push(n.trim())
-    } else if (typeof el === 'string' && el.trim()) names.push(el.trim())
-  }
-  return names
-}
+import { extractRestaurantTagNames } from '@/lib/restaurantPalates'
 
 export function restaurantPalateAndCategoryLabels(r: RestaurantDetailRow): {
   primaryPalate: string | null
   categories: string[]
 } {
-  const palateNames = extractNames(r.palates)
-  const cuisineNames = extractNames(r.cuisines)
+  const palateNames = extractRestaurantTagNames(r.palates)
+  const cuisineNames = extractRestaurantTagNames(r.cuisines)
   const primary = palateNames[0] ?? cuisineNames[0] ?? null
-  const categories = extractNames(r.categories)
+  const categories = extractRestaurantTagNames(r.categories)
   return { primaryPalate: primary, categories }
 }
 
