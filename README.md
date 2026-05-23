@@ -64,13 +64,13 @@ cd expo-router-template
 Install dependencies:
 
 ```bash
-bun install
+npm ci
 ```
 
 Run the application:
 
 ```bash
-bun start
+npm start
 ```
 
 ## Demo Credentials
