@@ -59,9 +59,9 @@ export const LocationPickerSheet = forwardRef<LocationPickerSheetHandle, Props>(
       <BottomSheetModal
         ref={sheetRef}
         snapPoints={snapPoints}
-        index={-1}
         enablePanDownToClose
         backdropComponent={renderBackdrop}
+        handleIndicatorStyle={{ backgroundColor: '#d1d5db', width: 40 }}
       >
         <BottomSheetView style={{ flex: 1, paddingBottom: 24 }}>
           <Text className="mb-3 px-4 pt-2 text-lg font-semibold" style={{ color: TEXT_HEADING }}>

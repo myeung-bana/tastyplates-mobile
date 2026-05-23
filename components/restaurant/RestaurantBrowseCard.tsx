@@ -2,7 +2,7 @@ import { Pressable, View, Text, Image, type StyleProp, type ViewStyle } from 're
 
 import { RatingDisplay } from '@/components/ui/RatingDisplay'
 import { BORDER_SUBTLE, TEXT_BODY, TEXT_HEADING } from '@/constants/brand'
-import { hasDisplayableRating } from '@/lib/ratingDisplayUtils'
+import { coerceRatingNumber, hasDisplayableRating } from '@/lib/ratingDisplayUtils'
 
 const DEFAULT_IMAGE = 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400&q=80'
 
@@ -41,8 +41,10 @@ export function RestaurantBrowseCard({
   const isList = variant === 'list'
   const defaultListStyle: ViewStyle = isList ? { width: '100%' } : {}
 
+  const overallRating = coerceRatingNumber(rating)
+  const palateRating = coerceRatingNumber(searchScore)
   const showRating =
-    hasDisplayableRating(rating) || hasDisplayableRating(searchScore)
+    hasDisplayableRating(overallRating) || hasDisplayableRating(palateRating)
 
   return (
     <Pressable
@@ -100,9 +102,9 @@ export function RestaurantBrowseCard({
                 : 'mt-1 flex-row flex-wrap items-center gap-x-1.5 gap-y-1'
             }
           >
-            <RatingDisplay size="sm" value={rating} reviewCount={reviewCount ?? undefined} />
-            {hasDisplayableRating(searchScore) ? (
-              <RatingDisplay size="sm" value={searchScore} label={searchScoreLabel} />
+            <RatingDisplay size="sm" value={overallRating} reviewCount={reviewCount ?? undefined} />
+            {hasDisplayableRating(palateRating) ? (
+              <RatingDisplay size="sm" value={palateRating} label={searchScoreLabel} />
             ) : null}
           </View>
         ) : null}

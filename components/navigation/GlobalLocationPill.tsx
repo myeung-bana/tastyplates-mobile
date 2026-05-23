@@ -32,16 +32,6 @@ export function GlobalLocationPill({ maxWidth = 200 }: Props): JSX.Element {
         gap: 6,
       }}
     >
-      {location.flag?.startsWith('http') ? (
-        <Image
-          accessibilityIgnoresInvertColors
-          source={{ uri: location.flag }}
-          style={{ width: 18, height: 12, borderRadius: 2 }}
-          resizeMode="cover"
-        />
-      ) : (
-        <Ionicons name="location-outline" size={14} color="#ff7c0a" />
-      )}
       <Text
         numberOfLines={1}
         className="flex-shrink text-xs font-medium"

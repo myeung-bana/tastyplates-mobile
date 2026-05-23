@@ -85,12 +85,12 @@ export function LocationHierarchyPickerModal({
   return (
     <BottomSheetModal
       ref={sheetRef}
-      index={-1}
       snapPoints={snapPoints}
       enablePanDownToClose
       backdropComponent={renderBackdrop}
       onDismiss={onDismissSheet}
       keyboardBlurBehavior="restore"
+      handleIndicatorStyle={{ backgroundColor: '#d1d5db', width: 40 }}
     >
       <View className="flex-shrink-0 border-b px-4 pb-3 pt-2" style={{ borderBottomColor: BORDER_SUBTLE }}>
         <View className="mb-3 flex-row items-center justify-between">

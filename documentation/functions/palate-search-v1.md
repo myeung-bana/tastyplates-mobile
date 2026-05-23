@@ -77,7 +77,7 @@ List → detail navigation **must** forward `palate` when the user arrived from 
 | **Home hero** | `PalateSearchBar` → sheet (cuisine) or keyword field → `router.push` Restaurants with params |
 | **Top nav search icon** | `openSearchCuisines()` → sheet → tap floating **Search** → Restaurants with `palate` |
 | **Quick finds** | `router.push({ palate: slug })` (unchanged) |
-| **Restaurants tab** | Inline `PalateSearchBar` + `PalateFilterChips`; edits params in place |
+| **Restaurants tab** | `PalateFilterChips` only (active filters); new searches via home hero or top-nav sheet |
 
 ---
 

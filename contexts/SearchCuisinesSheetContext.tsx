@@ -12,10 +12,11 @@ import { View, Text, Pressable, StyleSheet } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import {
   BottomSheetBackdrop,
+  BottomSheetFooter,
   BottomSheetModal,
   BottomSheetView,
 } from '@gorhom/bottom-sheet'
-import type { BottomSheetBackdropProps } from '@gorhom/bottom-sheet'
+import type { BottomSheetBackdropProps, BottomSheetFooterProps } from '@gorhom/bottom-sheet'
 import { useRouter } from 'expo-router'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
@@ -25,7 +26,7 @@ import { SCREEN_RESTAURANTS } from '@/constants/screens'
 
 export interface OpenSearchCuisinesOptions {
   initialPalateKey?: string | null
-  /** Hero flow: apply selection locally instead of navigating to Restaurants. */
+  /** Optional: sync selection to caller UI (e.g. home hero bar) before navigating. */
   onApply?: (palateKey: string | null) => void
 }
 
@@ -76,20 +77,24 @@ export function SearchCuisinesSheetProvider({ children }: PropsWithChildren) {
     sheetRef.current?.dismiss()
   }, [])
 
-  const handleSearch = useCallback(() => {
-    const apply = onApplyRef.current
-    const key = draftKeyRef.current
-    if (apply) {
-      apply(key)
-    } else {
-      router.push({
+  const commitToRestaurants = useCallback(
+    (palateKey: string | null) => {
+      onApplyRef.current?.(palateKey)
+      router.navigate({
         pathname: SCREEN_RESTAURANTS,
-        params: key ? { palate: key } : {},
+        params: palateKey
+          ? { palate: palateKey, search: undefined, listing: undefined }
+          : { palate: undefined, search: undefined, listing: undefined },
       })
-    }
+    },
+    [router],
+  )
+
+  const handleSearch = useCallback(() => {
+    commitToRestaurants(draftKeyRef.current)
     onApplyRef.current = undefined
     dismissSheet()
-  }, [dismissSheet, router])
+  }, [commitToRestaurants, dismissSheet])
 
   const handleDismiss = useCallback(() => {
     onApplyRef.current = undefined
@@ -119,7 +124,35 @@ export function SearchCuisinesSheetProvider({ children }: PropsWithChildren) {
 
   const value = useMemo(() => ({ openSearchCuisines }), [openSearchCuisines])
 
-  const footerBottomPad = Math.max(insets.bottom, 14)
+  const footerBottomInset = Math.max(insets.bottom, 14)
+
+  const renderFooter = useCallback(
+    (props: BottomSheetFooterProps) => (
+      <BottomSheetFooter {...props} bottomInset={footerBottomInset}>
+        <View style={styles.footerInner}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Search with selected cuisine"
+            onPress={handleSearch}
+            className="flex-row items-center justify-center gap-2 rounded-2xl py-3.5 active:opacity-90"
+            style={{ backgroundColor: BRAND_PRIMARY }}
+          >
+            <Ionicons name="search" size={20} color="#fff" />
+            <Text className="text-base font-semibold text-white">Search</Text>
+          </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Reset selection"
+            onPress={handleClear}
+            className="mt-2 items-center py-2 active:opacity-70"
+          >
+            <Text className="text-sm font-medium text-gray-600">Reset</Text>
+          </Pressable>
+        </View>
+      </BottomSheetFooter>
+    ),
+    [footerBottomInset, handleClear, handleSearch],
+  )
 
   return (
     <SearchCuisinesSheetContext.Provider value={value}>
@@ -133,6 +166,7 @@ export function SearchCuisinesSheetProvider({ children }: PropsWithChildren) {
         keyboardBlurBehavior="restore"
         android_keyboardInputMode="adjustResize"
         backdropComponent={renderBackdrop}
+        footerComponent={renderFooter}
         handleIndicatorStyle={{ backgroundColor: '#d1d5db', width: 40 }}
       >
         <BottomSheetView style={styles.sheetRoot}>
@@ -149,38 +183,12 @@ export function SearchCuisinesSheetProvider({ children }: PropsWithChildren) {
             </Pressable>
           </View>
 
-          <View style={styles.body}>
-            <PalatePickerPanel
-              selectedKey={draftKey}
-              onSelectCuisine={handleSelectCuisine}
-              onSelectRegion={handleSelectRegion}
-              onClear={handleClear}
-            />
-
-            <View
-              style={[styles.floatingFooter, { paddingBottom: footerBottomPad }]}
-              pointerEvents="box-none"
-            >
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="Search with selected cuisine"
-                onPress={handleSearch}
-                className="flex-row items-center justify-center gap-2 rounded-2xl py-3.5 active:opacity-90"
-                style={{ backgroundColor: BRAND_PRIMARY }}
-              >
-                <Ionicons name="search" size={20} color="#fff" />
-                <Text className="text-base font-semibold text-white">Search</Text>
-              </Pressable>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="Reset selection"
-                onPress={handleClear}
-                className="mt-2 items-center py-2 active:opacity-70"
-              >
-                <Text className="text-sm font-medium text-gray-600">Reset</Text>
-              </Pressable>
-            </View>
-          </View>
+          <PalatePickerPanel
+            selectedKey={draftKey}
+            onSelectCuisine={handleSelectCuisine}
+            onSelectRegion={handleSelectRegion}
+            onClear={handleClear}
+          />
         </BottomSheetView>
       </BottomSheetModal>
     </SearchCuisinesSheetContext.Provider>
@@ -192,16 +200,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#ffffff',
   },
-  body: {
-    flex: 1,
-    minHeight: 0,
-    position: 'relative',
-  },
-  floatingFooter: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
+  footerInner: {
     backgroundColor: '#ffffff',
     borderTopWidth: 1,
     borderTopColor: '#f3f4f6',

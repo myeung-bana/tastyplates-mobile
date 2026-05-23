@@ -2,9 +2,6 @@ import { View, Text, Pressable, Image } from 'react-native'
 import { BottomSheetScrollView } from '@gorhom/bottom-sheet'
 import { palateOptions } from '@/constants/palateOptions'
 
-/** Space for floating Search footer in {@link SearchCuisinesSheetProvider}. */
-export const PALATE_PICKER_FOOTER_PADDING = 112
-
 interface PalatePickerPanelProps {
   selectedKey: string | null
   onSelectCuisine: (key: string) => void
@@ -29,7 +26,7 @@ export function PalatePickerPanel({
       contentContainerStyle={{
         paddingHorizontal: 16,
         paddingTop: 8,
-        paddingBottom: PALATE_PICKER_FOOTER_PADDING,
+        paddingBottom: 24,
         alignItems: 'stretch',
         width: '100%',
       }}
@@ -73,7 +70,6 @@ export function PalatePickerPanel({
                   selectedKey === c.key ? 'border-orange-500 bg-orange-50' : 'border-gray-200 bg-white'
                 }`}
               >
-                <Image source={{ uri: c.flag }} className="h-5 w-5 rounded-full" />
                 <Text
                   className={`text-sm font-medium ${selectedKey === c.key ? 'text-orange-600' : 'text-gray-800'}`}
                 >

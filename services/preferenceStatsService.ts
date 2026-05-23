@@ -1,4 +1,5 @@
 import { tastyplatesFetch, unwrapEnvelope } from '@/lib/tastyplatesFetch'
+import { coerceRatingNumber } from '@/lib/ratingDisplayUtils'
 
 export interface PreferenceStatRow {
   restaurant_id: number
@@ -28,7 +29,7 @@ export async function getPreferenceStatsByPalate(
   const map = new Map<number, PreferenceStat>()
   for (const row of rows) {
     map.set(row.restaurant_id, {
-      avg: row.preference_rating_avg,
+      avg: coerceRatingNumber(row.preference_rating_avg),
       count: row.preference_review_count ?? 0,
     })
   }

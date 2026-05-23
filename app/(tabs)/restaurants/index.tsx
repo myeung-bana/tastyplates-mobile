@@ -12,7 +12,6 @@ import { useLocalSearchParams, router } from 'expo-router'
 import { AppTopNav } from '@/components/layout/AppTopNav'
 import { RestaurantBrowseCard } from '@/components/restaurant/RestaurantBrowseCard'
 import { PalateFilterChips } from '@/components/search/PalateFilterChips'
-import { PalateSearchBar, type PalateSearchMode } from '@/components/search/PalateSearchBar'
 import {
   getRestaurants,
   formatRestaurantListSubtitle,
@@ -21,10 +20,10 @@ import {
 import { BRAND_PRIMARY, TEXT_HEADING } from '@/constants/brand'
 import { SCREEN_RESTAURANT_DETAIL } from '@/constants/screens'
 import { useLocation } from '@/contexts/LocationContext'
-import { useSearchCuisinesSheet } from '@/contexts/SearchCuisinesSheetContext'
 import { usePalatePreferenceStats } from '@/hooks/usePalatePreferenceStats'
 import { labelForPalateKey } from '@/lib/palateLabels'
 import { isNoPalateFilter } from '@/lib/palateSearch'
+import { coerceRatingNumber } from '@/lib/ratingDisplayUtils'
 
 const PAGE_SIZE = 24
 
@@ -35,11 +34,11 @@ function singleParam(v: string | string[] | undefined): string | undefined {
 
 /**
  * Restaurant discovery tab: lists from Nhost `restaurants-v2/get-restaurants`, respects `palate` / `search` / `listing` params.
+ * Palate search entry: home hero + top-nav search icon (not duplicated here).
  */
 export default function RestaurantsScreen() {
   const { location } = useLocation()
   const locationKey = location.key
-  const { openSearchCuisines } = useSearchCuisinesSheet()
 
   const raw = useLocalSearchParams<{
     palate?: string | string[]
@@ -60,23 +59,6 @@ export default function RestaurantsScreen() {
 
   const palateSlugs = useMemo(() => (palate ? [palate] : undefined), [palate])
   const { getForRestaurant } = usePalatePreferenceStats(palate)
-
-  const [barMode, setBarMode] = useState<PalateSearchMode>('cuisine')
-  const [draftPalate, setDraftPalate] = useState<string | null>(palate ?? null)
-  const [draftKeyword, setDraftKeyword] = useState('')
-
-  useEffect(() => {
-    setDraftPalate(palate ?? null)
-    if (listing?.trim()) {
-      setBarMode('keyword')
-      setDraftKeyword(listing.trim())
-    } else if (search?.trim()) {
-      setBarMode('cuisine')
-      setDraftKeyword(search.trim())
-    } else {
-      setDraftKeyword('')
-    }
-  }, [palate, search, listing])
 
   const [rows, setRows] = useState<RestaurantListRow[]>([])
   const [cursor, setCursor] = useState<string | null>(null)
@@ -148,20 +130,6 @@ export default function RestaurantsScreen() {
     void fetchFirstPage({ isPullRefresh: true })
   }, [fetchFirstPage])
 
-  const applySearchFromBar = useCallback(() => {
-    if (barMode === 'keyword') {
-      if (!draftKeyword.trim()) return
-      router.setParams({ listing: draftKeyword.trim(), palate: undefined, search: undefined })
-      return
-    }
-    const params: Record<string, string | undefined> = {
-      listing: undefined,
-      search: draftKeyword.trim() || undefined,
-      palate: draftPalate ?? undefined,
-    }
-    router.setParams(params)
-  }, [barMode, draftKeyword, draftPalate])
-
   const clearPalate = useCallback(() => {
     router.setParams({ palate: undefined })
   }, [])
@@ -179,28 +147,6 @@ export default function RestaurantsScreen() {
         <Text className="text-xl font-normal" style={{ color: TEXT_HEADING }}>
           Restaurants
         </Text>
-
-        <View className="mt-3">
-          <PalateSearchBar
-            elevated={false}
-            mode={barMode}
-            onModeChange={(next) => {
-              setBarMode(next)
-              setDraftKeyword('')
-              setDraftPalate(null)
-            }}
-            palateKey={draftPalate}
-            onOpenPalatePicker={() =>
-              openSearchCuisines({
-                initialPalateKey: draftPalate,
-                onApply: (key) => setDraftPalate(key),
-              })
-            }
-            keyword={draftKeyword}
-            onKeywordChange={setDraftKeyword}
-            onSubmit={applySearchFromBar}
-          />
-        </View>
 
         <PalateFilterChips
           palate={palate}
@@ -256,15 +202,17 @@ export default function RestaurantsScreen() {
             }
             renderItem={({ item }) => {
               const pref = !isNoPalateFilter(palate) ? getForRestaurant(item.id) : null
+              const overallRating = coerceRatingNumber(item.average_rating)
+              const searchRating = coerceRatingNumber(pref?.avg)
               return (
                 <RestaurantBrowseCard
                   variant="list"
                   title={item.title}
                   imageUrl={item.featured_image_url}
                   subtitle={formatRestaurantListSubtitle(item.listing_street, item.address)}
-                  rating={item.average_rating}
+                  rating={overallRating}
                   reviewCount={item.ratings_count ?? undefined}
-                  searchScore={pref?.avg ?? null}
+                  searchScore={searchRating}
                   searchScoreLabel={palateLabel ?? undefined}
                   onPress={() => {
                     const s = item.slug?.trim()
