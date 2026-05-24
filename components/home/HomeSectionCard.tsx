@@ -1,5 +1,7 @@
 import type { ReactNode } from 'react'
-import { View, Text } from 'react-native'
+import { View } from 'react-native'
+
+import { SectionTitle } from '@/components/layout/SectionTitle'
 
 type Props = {
   title: string
@@ -25,7 +27,7 @@ export function HomeSectionCard({
         className={`rounded-2xl bg-white p-3 ${shadowed ? 'shadow-sm shadow-black/5' : ''}`}
       >
         <View className="flex-row items-center justify-between gap-2">
-          <Text className="text-base font-semibold text-gray-900">{title}</Text>
+          <SectionTitle>{title}</SectionTitle>
           {headerRight ?? null}
         </View>
         <View className="mt-3">{children}</View>

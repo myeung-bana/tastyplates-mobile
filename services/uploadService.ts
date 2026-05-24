@@ -11,21 +11,38 @@ export interface UploadProgress {
   percentage: number
 }
 
+export type UploadableFile =
+  | File
+  | {
+      uri: string
+      name: string
+      type: string
+    }
+
+function extractFileId(metadata: unknown): string | null {
+  if (!metadata || typeof metadata !== 'object') return null
+  const m = metadata as Record<string, unknown>
+  if (typeof m.id === 'string') return m.id
+  const processed = m.processedFiles
+  if (Array.isArray(processed) && processed[0] && typeof processed[0] === 'object') {
+    const id = (processed[0] as Record<string, unknown>).id
+    if (typeof id === 'string') return id
+  }
+  return null
+}
+
 /**
- * Upload a photo to Nhost Storage.
- *
- * Files go directly from the device to Nhost Storage — no proxy server involved.
- * Returns the file ID and public URL on success.
+ * Upload a photo to Nhost Storage (web `File` or React Native `{ uri, name, type }`).
  */
 export async function uploadPhoto(
-  file: File,
+  file: UploadableFile,
   options?: {
     bucketId?: string
     onProgress?: (progress: UploadProgress) => void
   },
 ): Promise<UploadResult> {
   const { fileMetadata, error } = await nhost.storage.upload({
-    file,
+    file: file as never,
     bucketId: options?.bucketId,
   })
 
@@ -33,21 +50,19 @@ export async function uploadPhoto(
     throw new Error(error.message)
   }
 
-  if (!fileMetadata) {
+  const fileId = extractFileId(fileMetadata)
+  if (!fileId) {
     throw new Error('Upload failed: no file metadata returned')
   }
 
-  const url = nhost.storage.getPublicUrl({ fileId: fileMetadata.id })
+  const url = nhost.storage.getPublicUrl({ fileId })
 
   return {
-    fileId: fileMetadata.id,
+    fileId,
     url,
   }
 }
 
-/**
- * Delete a file from Nhost Storage by its file ID.
- */
 export async function deletePhoto(fileId: string): Promise<void> {
   const { error } = await nhost.storage.delete({ fileId })
   if (error) {

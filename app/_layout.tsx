@@ -14,6 +14,8 @@ import { SplashAuthGate } from '@/components/layout/SplashAuthGate'
 import { SystemChrome } from '@/components/layout/SystemChrome'
 import { LocationProvider } from '@/contexts/LocationContext'
 import { SearchCuisinesSheetProvider } from '@/contexts/SearchCuisinesSheetContext'
+import { UploadProvider } from '@/contexts/UploadContext'
+import { UploadProgressBar } from '@/components/ui/UploadProgressBar'
 import { nhost } from '@/lib/nhost'
 import '../global.css'
 
@@ -39,11 +41,14 @@ export default function RootLayout() {
         <ApolloProvider client={apolloClient}>
           <GluestackUIProvider config={config}>
             <BottomSheetModalProvider>
-              <LocationProvider>
-                <SearchCuisinesSheetProvider>
-                  <SplashAuthGate />
-                </SearchCuisinesSheetProvider>
-              </LocationProvider>
+              <UploadProvider>
+                <LocationProvider>
+                  <SearchCuisinesSheetProvider>
+                    <UploadProgressBar />
+                    <SplashAuthGate />
+                  </SearchCuisinesSheetProvider>
+                </LocationProvider>
+              </UploadProvider>
             </BottomSheetModalProvider>
           </GluestackUIProvider>
         </ApolloProvider>

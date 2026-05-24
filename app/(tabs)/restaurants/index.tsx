@@ -11,6 +11,7 @@ import {
 import { useLocalSearchParams, router } from 'expo-router'
 
 import { AppTopNav } from '@/components/layout/AppTopNav'
+import { SectionTitle } from '@/components/layout/SectionTitle'
 import { RestaurantBrowseCard } from '@/components/restaurant/RestaurantBrowseCard'
 import { PalateFilterChips } from '@/components/search/PalateFilterChips'
 import {
@@ -18,7 +19,7 @@ import {
   formatRestaurantCardAddress,
   type RestaurantListRow,
 } from '@/services/restaurantsV2Service'
-import { BRAND_PRIMARY, TEXT_HEADING } from '@/constants/brand'
+import { BRAND_PRIMARY } from '@/constants/brand'
 import { SCREEN_RESTAURANT_DETAIL } from '@/constants/screens'
 import { useLocation } from '@/contexts/LocationContext'
 import { isNoPalateFilter } from '@/lib/palateSearch'
@@ -181,9 +182,7 @@ export default function RestaurantsScreen() {
     <View className="flex-1 bg-white">
       <AppTopNav />
       <View className="flex-1 px-4">
-        <Text className="text-xl font-normal" style={{ color: TEXT_HEADING }}>
-          Restaurants
-        </Text>
+        <SectionTitle>Restaurants</SectionTitle>
 
         <PalateFilterChips
           palate={palate}

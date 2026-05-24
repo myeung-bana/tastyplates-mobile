@@ -25,6 +25,19 @@ export const errorOccurred = 'An Error occurred, Please try again later.'
 export const commentedSuccess = 'Replied successfully!'
 export const maximumCommentReplies = (max: number) => `Comment must be ${max} characters or less.`
 
+export const requiredDescription = 'Description is required.'
+export const maximumReviewTitle = (max: number) => `Review title must be ${max} characters or less.`
+export const maximumReviewDescription = (max: number) =>
+  `Review description must be ${max} characters or less.`
+export const requiredRating = 'Rating is required.'
+export const minimumImageLimit = (min: number) => `You must upload at least ${min} image.`
+export const maximumImageLimit = (max: number) => `You can upload a maximum of ${max} images.`
+export const savedAsDraft = 'Review saved as draft!'
+export const commentDuplicateError = "Duplicate comment detected, You've already said that!"
+export const commentFloodError = 'You are posting comments too quickly. Slow down.'
+export const commentDuplicateWeekError =
+  'You can only post one review per week for this restaurant.'
+
 export function getUsernameErrorMessage(errorKey: string): string {
   switch (errorKey) {
     case 'usernameRequired':

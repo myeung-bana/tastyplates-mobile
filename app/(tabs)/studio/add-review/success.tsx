@@ -8,18 +8,18 @@ import { SCREEN_HOME, SCREEN_STUDIO_REVIEW_LISTING } from '@/constants/screens'
 import { firstSegmentParam } from '@/lib/routeParams'
 
 export default function AddReviewSuccessScreen(): JSX.Element {
-  const raw = useLocalSearchParams<{ slug?: string | string[] }>()
-  const slugLabel = firstSegmentParam(raw.slug)
+  const raw = useLocalSearchParams<{ restaurant?: string | string[]; slug?: string | string[] }>()
+  const restaurantName =
+    firstSegmentParam(raw.restaurant) || firstSegmentParam(raw.slug) || 'this restaurant'
 
   return (
     <SafeAreaView className="flex-1 bg-white px-10" edges={['left', 'right', 'bottom']}>
-      <Text className="pt-36 text-center text-3xl font-semibold" style={{ color: TEXT_HEADING }}>
-        Review queued
+      <Text className="pt-36 text-center font-neusans text-3xl font-semibold" style={{ color: TEXT_HEADING }}>
+        Review published
       </Text>
-      <Text className="mt-8 text-center text-sm leading-relaxed" style={{ color: TEXT_MUTED }}>
-        Nice work —
-        <Text style={{ fontWeight: '700', color: TEXT_HEADING }}> {slugLabel || 'Listing'}</Text> now has fresh
-        signal in the moderator queue whenever status is awaiting approval on the backend.
+      <Text className="mt-8 text-center font-neusans text-sm leading-relaxed" style={{ color: TEXT_MUTED }}>
+        Thanks for sharing your experience at{' '}
+        <Text style={{ fontWeight: '700', color: TEXT_HEADING }}>{restaurantName}</Text>.
       </Text>
 
       <Pressable
@@ -30,11 +30,11 @@ export default function AddReviewSuccessScreen(): JSX.Element {
           router.replace(SCREEN_HOME)
         }}
       >
-        <Text className="text-base font-semibold text-white">Back to Home</Text>
+        <Text className="font-neusans text-base font-semibold text-white">Back to Home</Text>
       </Pressable>
 
       <Pressable className="mt-10" onPress={() => router.replace(SCREEN_STUDIO_REVIEW_LISTING)}>
-        <Text className="text-center text-sm font-semibold" style={{ color: BRAND_PRIMARY }}>
+        <Text className="text-center font-neusans text-sm font-semibold" style={{ color: BRAND_PRIMARY }}>
           Manage all reviews
         </Text>
       </Pressable>

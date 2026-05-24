@@ -1,59 +1,81 @@
-import { Pressable, Text, View } from 'react-native'
-import * as Haptics from 'expo-haptics'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { router, useLocalSearchParams } from 'expo-router'
+import { router, useLocalSearchParams, useNavigation } from 'expo-router'
 
-import { BRAND_PRIMARY, TEXT_HEADING, TEXT_MUTED } from '@/constants/brand'
-import {
-  SCREEN_LISTING_EXPLANATION,
-  SCREEN_STUDIO_ADD_REVIEW,
-  SCREEN_STUDIO_MY_LISTS,
-} from '@/constants/screens'
+import { WriteReviewForm } from '@/components/studio/add-review/WriteReviewForm'
+import { BRAND_PRIMARY, TEXT_HEADING } from '@/constants/brand'
+import { SCREEN_STUDIO_ADD_REVIEW } from '@/constants/screens'
+import { useRequireAuthOnMount } from '@/hooks/useRequireAuthOnMount'
 import { firstSegmentParam } from '@/lib/routeParams'
+import type { PlacesDetailsResult } from '@/lib/googlePlaces'
+import { googlePlacePhotoUrl } from '@/lib/googlePlaces'
+import { createRestaurantFromPlace } from '@/services/createRestaurantFromPlace'
 
-/**
- * Fallback when autocomplete matches Places but TP `match-restaurant` returns zero rows.
- */
-export default function StudioCreateRestaurantScreen(): JSX.Element {
-  const params = useLocalSearchParams<{ placeId?: string | string[]; label?: string | string[] }>()
-  const snippet = firstSegmentParam(params.label) || firstSegmentParam(params.placeId)
+export default function StudioCreateReviewScreen(): JSX.Element {
+  useRequireAuthOnMount()
 
-  return (
-    <SafeAreaView className="flex-1 bg-white px-10" edges={['left', 'right', 'bottom']}>
-      <Text className="pt-24 text-2xl font-semibold" style={{ color: TEXT_HEADING }}>
-        Not on TP yet?
-      </Text>
-      <Text className="mt-6 text-sm leading-relaxed" style={{ color: TEXT_MUTED }}>
-        Anchor it in <Text style={{ fontWeight: '700', color: TEXT_HEADING }}>My Lists</Text> immediately, launch the
-        curator listing wizard whenever Ops is ready.
-        {snippet.length > 0 ? ` Venue hint: ${snippet}.` : ''}
-      </Text>
+  const navigation = useNavigation()
+  const params = useLocalSearchParams<{ placeData?: string | string[] }>()
+  const rawPlace = firstSegmentParam(params.placeData)
 
-      <Pressable
-        className="mt-10 rounded-full px-14 py-4"
-        style={{ backgroundColor: BRAND_PRIMARY }}
-        onPress={() => {
-          void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
-          router.push(SCREEN_LISTING_EXPLANATION)
-        }}
-      >
-        <Text className="text-center text-base font-semibold text-white">Start listing wizard</Text>
-      </Pressable>
+  const placeData = useMemo((): PlacesDetailsResult | null => {
+    if (!rawPlace.length) return null
+    try {
+      return JSON.parse(rawPlace) as PlacesDetailsResult
+    } catch {
+      return null
+    }
+  }, [rawPlace])
 
-      <Pressable
-        className="mt-6"
-        onPress={() => router.push(SCREEN_STUDIO_MY_LISTS)}
-      >
-        <Text className="text-center font-semibold" style={{ color: TEXT_HEADING }}>
-          Save Google place → My Lists
+  const [createdUuid, setCreatedUuid] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!placeData?.name) return
+    const label = placeData.name.length > 28 ? `${placeData.name.slice(0, 28)}…` : placeData.name
+    navigation.setOptions({ title: label })
+  }, [navigation, placeData?.name])
+
+  const resolveRestaurantUuid = useCallback(async (): Promise<string> => {
+    if (createdUuid) return createdUuid
+    if (!placeData) throw new Error('Missing place data')
+    const created = await createRestaurantFromPlace(placeData)
+    setCreatedUuid(created.uuid)
+    return created.uuid
+  }, [createdUuid, placeData])
+
+  if (!placeData) {
+    return (
+      <SafeAreaView className="flex-1 items-center justify-center bg-white px-8">
+        <Text className="text-center font-neusans text-base" style={{ color: TEXT_HEADING }}>
+          Missing Google place data.
         </Text>
-      </Pressable>
-
-      <Pressable className="mt-8" onPress={() => router.replace(SCREEN_STUDIO_ADD_REVIEW)}>
-        <Text className="text-center font-semibold" style={{ color: BRAND_PRIMARY }}>
+        <Text
+          className="mt-4 font-neusans text-sm"
+          style={{ color: BRAND_PRIMARY }}
+          onPress={() => router.replace(SCREEN_STUDIO_ADD_REVIEW)}
+        >
           Back to search
         </Text>
-      </Pressable>
+      </SafeAreaView>
+    )
+  }
+
+  const photoRef = placeData.photos?.[0]?.photo_reference
+  const imageUrl = photoRef ? googlePlacePhotoUrl(photoRef, 200) : null
+  const address = placeData.formatted_address ?? placeData.vicinity ?? ''
+
+  return (
+    <SafeAreaView className="flex-1 bg-white" edges={['left', 'right']}>
+      <WriteReviewForm
+        restaurant={{
+          uuid: createdUuid ?? '',
+          name: placeData.name ?? 'Restaurant',
+          address,
+          imageUrl,
+        }}
+        resolveRestaurantUuid={resolveRestaurantUuid}
+      />
     </SafeAreaView>
   )
 }

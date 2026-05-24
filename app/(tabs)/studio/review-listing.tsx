@@ -7,6 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { router } from 'expo-router'
 import { Swipeable } from 'react-native-gesture-handler'
 
+import { SectionTitle } from '@/components/layout/SectionTitle'
 import {
   BORDER_SUBTLE,
   BRAND_PRIMARY,
@@ -198,9 +199,7 @@ export default function ReviewListingScreen(): JSX.Element {
 
   return (
     <SafeAreaView className="flex-1 bg-white px-6" edges={['left', 'right', 'bottom']}>
-      <Text className="mt-10 text-xl font-semibold" style={{ color: TEXT_HEADING }}>
-        Manage reviews
-      </Text>
+      <SectionTitle className="mt-10">Manage reviews</SectionTitle>
 
       <View className="mt-6 flex-row flex-wrap gap-2">
         {(

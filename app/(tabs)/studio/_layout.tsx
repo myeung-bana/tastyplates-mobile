@@ -38,9 +38,9 @@ export default function StudioSectionLayout(): JSX.Element {
       }}
     >
       <Stack.Screen name="index" options={{ headerShown: false }} />
-      <Stack.Screen name="add-review/index" options={{ title: 'Add review' }} />
+      <Stack.Screen name="add-review/index" options={{ headerShown: false }} />
       <Stack.Screen name="add-review/[slug]" options={{ title: 'Write review' }} />
-      <Stack.Screen name="add-review/create" options={{ title: 'New listing' }} />
+      <Stack.Screen name="add-review/create" options={{ title: 'Write review' }} />
       <Stack.Screen name="add-review/success" options={{ headerShown: false }} />
       <Stack.Screen name="review-listing" options={{ title: 'Your reviews' }} />
       <Stack.Screen name="edit-review/[id]" options={{ title: 'Edit review' }} />

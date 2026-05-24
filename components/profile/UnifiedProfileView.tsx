@@ -14,6 +14,7 @@ import * as Haptics from 'expo-haptics'
 import { Ionicons } from '@expo/vector-icons'
 import { useRouter } from 'expo-router'
 
+import { SectionTitle } from '@/components/layout/SectionTitle'
 import {
   BRAND_PRIMARY,
   TEXT_BODY,
@@ -290,12 +291,7 @@ export function UnifiedProfileView({
         style={{ borderTopWidth: 1, borderTopColor: STATS_BORDER }}
       >
         <View className="mb-3 flex-row items-center gap-2">
-          <Text
-            className="text-xl font-semibold"
-            style={{ color: TEXT_HEADING, letterSpacing: -0.3 }}
-          >
-            Reviews
-          </Text>
+          <SectionTitle style={{ letterSpacing: -0.3 }}>Reviews</SectionTitle>
           <Text style={{ fontSize: 13, color: RATING_STAR }}>★</Text>
         </View>
         {!isOwnProfile && otherUserReviews ? (

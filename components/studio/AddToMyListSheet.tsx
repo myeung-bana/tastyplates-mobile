@@ -25,6 +25,7 @@ import {
 import type { BottomSheetBackdropProps } from '@gorhom/bottom-sheet'
 import * as Haptics from 'expo-haptics'
 
+import { SectionTitle } from '@/components/layout/SectionTitle'
 import { BORDER_SUBTLE, BRAND_PRIMARY, mergeTextInputBodyTypography, TEXT_HEADING, TEXT_MUTED } from '@/constants/brand'
 import { useLocation } from '@/contexts/LocationContext'
 import type { StudioListKind } from '@/hooks/useMyList'
@@ -223,9 +224,7 @@ export const AddToMyListSheet = forwardRef<AddToMyListSheetHandle, Props>(functi
       handleIndicatorStyle={{ backgroundColor: '#d1d5db', width: 40 }}
     >
       <BottomSheetView style={{ flex: 1, backgroundColor: '#ffffff', paddingHorizontal: 16 }}>
-        <Text className="pb-4 text-xl font-semibold" style={{ color: TEXT_HEADING }}>
-          Save a place
-        </Text>
+        <SectionTitle className="pb-4">Save a place</SectionTitle>
 
         <View className="mb-4 flex-row rounded-2xl p-1" style={{ backgroundColor: '#f3f4f6' }}>
           {(

@@ -1,4 +1,5 @@
 import { tastyplatesFetch, unwrapEnvelope } from '@/lib/tastyplatesFetch'
+import type { ReviewImage } from '@/lib/reviewImageUtils'
 
 export interface RestaurantReviewMine {
   id: string
@@ -38,11 +39,13 @@ export async function fetchMyReviews(
 
 export interface CreateReviewPayload {
   restaurant_uuid: string
+  author_id: string
   title?: string | null
   content: string
   rating: number
   status: 'approved' | 'draft'
-  images?: string[] | null
+  images?: ReviewImage[] | null
+  recognitions?: string[]
 }
 
 export async function createRestaurantReview(payload: CreateReviewPayload): Promise<RestaurantReviewMine> {

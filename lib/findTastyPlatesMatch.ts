@@ -56,6 +56,8 @@ export async function matchRestaurantFlexible(options: {
   placeId?: string | null
   name?: string | null
   address?: string | null
+  latitude?: number | null
+  longitude?: number | null
 }): Promise<MatchedRestaurant[]> {
   if (options.placeId?.trim()) {
     const byPlace = await matchRestaurantPlaceId(options.placeId.trim())
@@ -68,4 +70,18 @@ export async function matchRestaurantFlexible(options: {
   }
 
   return []
+}
+
+/** Primary match for inline card — first row from Nhost `matched` array. */
+export async function matchRestaurantForPlace(options: {
+  placeId: string
+  name: string
+  address: string
+  latitude?: number | null
+  longitude?: number | null
+}): Promise<MatchedRestaurant | null> {
+  const rows = await matchRestaurantFlexible(options)
+  const first = rows[0]
+  if (first) return first
+  return null
 }

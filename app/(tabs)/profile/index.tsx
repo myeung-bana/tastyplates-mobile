@@ -4,7 +4,8 @@ import { useRouter } from 'expo-router'
 import { ProfileSignedInView } from '@/components/profile/ProfileSignedInView'
 import { useAuth } from '@/hooks/useAuth'
 import { AppTopNav } from '@/components/layout/AppTopNav'
-import { BRAND_PRIMARY, TEXT_HEADING, TEXT_MUTED } from '@/constants/brand'
+import { SectionTitle } from '@/components/layout/SectionTitle'
+import { BRAND_PRIMARY, TEXT_MUTED } from '@/constants/brand'
 import { SCREEN_PROFILE } from '@/constants/screens'
 import { pushLoginScreen } from '@/lib/authRoutes'
 
@@ -17,9 +18,7 @@ export default function ProfileScreen() {
       <View className="flex-1 bg-white">
         <AppTopNav />
         <View className="flex-1 items-center justify-center px-8">
-          <Text className="text-center text-xl font-normal" style={{ color: TEXT_HEADING }}>
-            Profile
-          </Text>
+          <SectionTitle className="text-center">Profile</SectionTitle>
           <Text
             className="mt-3 text-center text-sm leading-relaxed"
             style={{ color: TEXT_MUTED }}

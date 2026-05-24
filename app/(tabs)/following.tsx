@@ -17,7 +17,8 @@ import {
 } from '@/components/following/FollowingFeedReviewCard'
 import { SuggestedUserRow } from '@/components/following/SuggestedUserRow'
 import { AppTopNav } from '@/components/layout/AppTopNav'
-import { BRAND_PRIMARY, TEXT_HEADING, TEXT_MUTED } from '@/constants/brand'
+import { SectionTitle } from '@/components/layout/SectionTitle'
+import { BRAND_PRIMARY, TEXT_MUTED } from '@/constants/brand'
 import { SCREEN_PUBLIC_PROFILE, SCREEN_REVIEW_VIEWER } from '@/constants/screens'
 import { useAuth } from '@/hooks/useAuth'
 import { pushLoginScreen } from '@/lib/authRoutes'
@@ -44,9 +45,7 @@ function FollowingSuggestedSection({
 }): ReactElement {
   return (
     <View className="px-4 pt-2">
-      <Text className="text-lg font-semibold" style={{ color: TEXT_HEADING }}>
-        Suggested Users
-      </Text>
+      <SectionTitle>Suggested Users</SectionTitle>
       {suggested.length === 0 ? (
         <Text className="mt-3 text-sm" style={{ color: TEXT_MUTED }}>
           No suggestions right now — check back later.
@@ -150,9 +149,7 @@ export default function FollowingScreen() {
       <View className="flex-1 bg-white">
         <AppTopNav />
         <View className="flex-1 items-center justify-center px-8">
-          <Text className="text-center text-xl font-normal" style={{ color: TEXT_HEADING }}>
-            Following
-          </Text>
+          <SectionTitle className="text-center">Following</SectionTitle>
           <Text className="mt-3 text-center text-sm leading-relaxed" style={{ color: TEXT_MUTED }}>
             Sign in to see the latest reviews from people you follow.
           </Text>
@@ -184,9 +181,7 @@ export default function FollowingScreen() {
 
   const pageHeader = (
     <View className="px-4 pt-6 pb-1">
-      <Text className="text-xl font-semibold" style={{ color: TEXT_HEADING }}>
-        Following
-      </Text>
+      <SectionTitle>Following</SectionTitle>
     </View>
   )
 
@@ -199,9 +194,7 @@ export default function FollowingScreen() {
         onFollowed={() => void loadData('refresh')}
       />
       <View className="mt-3 px-4 pb-2">
-        <Text className="text-lg font-semibold" style={{ color: TEXT_HEADING }}>
-          Follower Reviews
-        </Text>
+        <SectionTitle>Follower Reviews</SectionTitle>
       </View>
     </View>
   )
@@ -213,15 +206,11 @@ export default function FollowingScreen() {
         <ScrollView className="flex-1" contentContainerStyle={{ paddingBottom: 32 }}>
           {pageHeader}
           <View className="px-4 pt-2">
-            <Text className="text-lg font-semibold" style={{ color: TEXT_HEADING }}>
-              Suggested Users
-            </Text>
+            <SectionTitle>Suggested Users</SectionTitle>
             <View className="mt-3 h-28 rounded-2xl bg-neutral-100" />
           </View>
           <View className="mt-3 px-4 pb-2">
-            <Text className="text-lg font-semibold" style={{ color: TEXT_HEADING }}>
-              Follower Reviews
-            </Text>
+            <SectionTitle>Follower Reviews</SectionTitle>
           </View>
           <View className="px-4">
             {[0, 1, 2].map((i) => (

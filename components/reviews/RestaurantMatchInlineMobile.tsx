@@ -1,167 +1,174 @@
-import { ActivityIndicator, Linking, Pressable, Text, View } from 'react-native'
+import { ActivityIndicator, Image, Linking, Pressable, Text, View } from 'react-native'
+import { Feather } from '@expo/vector-icons'
 import * as Haptics from 'expo-haptics'
 
-import { BORDER_SUBTLE, BRAND_PRIMARY, TEXT_HEADING, TEXT_MUTED } from '@/constants/brand'
-import type { PlacesAutocompletePrediction } from '@/lib/googlePlaces'
+import { Button } from '@/components/ui/Button'
+import { BRAND_PRIMARY } from '@/constants/brand'
+import { googlePlacePhotoUrl } from '@/lib/googlePlaces'
 import type { MatchedRestaurant } from '@/lib/findTastyPlatesMatch'
+import type { PlacesDetailsResult } from '@/lib/googlePlaces'
+
+export type MatchResultState = {
+  placeData: PlacesDetailsResult
+  existingRestaurant: MatchedRestaurant | null
+}
 
 type Props = {
   matching: boolean
-  chosen: PlacesAutocompletePrediction | null
-  matched: MatchedRestaurant[]
-  onWriteReviewSlug: (slug: string) => void
-  onCreateListingPress: () => void
-  onPickDifferentVenue: () => void
+  matchResult: MatchResultState | null
+  onUseExisting: (restaurant: MatchedRestaurant) => void
+  onCreateNew: (placeData: PlacesDetailsResult) => void
+  onClear: () => void
 }
 
-/**
- * Matches / misses after a Google Places pick — ported from web `RestaurantMatchInline.tsx` structure.
- */
 export function RestaurantMatchInlineMobile({
   matching,
-  chosen,
-  matched,
-  onWriteReviewSlug,
-  onCreateListingPress,
-  onPickDifferentVenue,
+  matchResult,
+  onUseExisting,
+  onCreateNew,
+  onClear,
 }: Props): JSX.Element | null {
-  if (!chosen) return null
+  if (!matchResult && !matching) return null
+
+  if (matching) {
+    return (
+      <View className="items-center py-8">
+        <ActivityIndicator color={BRAND_PRIMARY} />
+        <Text className="mt-3 font-neusans text-sm text-[#6b7280]">Checking restaurant…</Text>
+      </View>
+    )
+  }
+
+  if (!matchResult) return null
+
+  const { placeData, existingRestaurant } = matchResult
+  const photoRef = placeData.photos?.[0]?.photo_reference
+  const placePhoto = photoRef ? googlePlacePhotoUrl(photoRef, 160) : null
+  const placeAddress = placeData.formatted_address ?? placeData.vicinity ?? ''
+  const placeName = placeData.name ?? 'Restaurant'
 
   return (
-    <View className="mt-6 gap-6">
-      {matching ? (
-        <ActivityIndicator />
-      ) : matched.length === 1 ? (
+    <View className="mx-4 mt-3 rounded-2xl border border-[#e5e7eb] p-4">
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Clear selection"
+        onPress={onClear}
+        className="absolute right-3 top-3 z-10 p-1"
+      >
+        <Feather name="x" size={16} color="#9ca3af" />
+      </Pressable>
+
+      {existingRestaurant ? (
         <>
-          <View className="rounded-3xl border border-[#ff7c0a] bg-[#fffbf5] p-5">
-            <Text className="text-[11px] font-bold uppercase tracking-widest" style={{ color: BRAND_PRIMARY }}>
-              Found on TastyPlates
-            </Text>
-            <Text className="mt-1 text-sm text-gray-600">
-              We already list this venue. Prefer the existing listing so reviews stay together.
-            </Text>
-            <Text className="mt-4 text-xl font-bold" style={{ color: TEXT_HEADING }}>
-              {matched[0]!.title}
-            </Text>
-            {matched[0]!.listing_street ? (
-              <Text className="mt-2 text-xs" style={{ color: TEXT_MUTED }}>
-                {matched[0]!.listing_street}
-              </Text>
-            ) : null}
-          </View>
-          <Pressable
-            className="items-center rounded-full py-5 active:opacity-90"
-            style={{ backgroundColor: BRAND_PRIMARY }}
-            accessibilityRole="button"
-            accessibilityLabel="Continue to write review for matched restaurant"
-            onPress={() => {
-              void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
-              onWriteReviewSlug(matched[0]!.slug)
-            }}
-          >
-            <Text className="text-base font-bold text-white">Use this listing</Text>
-          </Pressable>
-          <Pressable
-            accessibilityRole="button"
-            onPress={() => {
-              void Haptics.selectionAsync()
-              onPickDifferentVenue()
-            }}
-            className="-mt-4 items-center"
-          >
-            <Text className="text-sm font-semibold" style={{ color: TEXT_MUTED }}>
-              Pick a different venue
-            </Text>
-          </Pressable>
-        </>
-      ) : matched.length > 1 ? (
-        <View className="gap-4">
-          <Text className="text-sm font-semibold" style={{ color: TEXT_HEADING }}>
-            Multiple possible matches — tap the correct listing:
+          <Text className="mb-3 font-neusans text-sm text-gray-600">
+            We found this restaurant in our database.
           </Text>
-          {matched.slice(0, 5).map((listing) => (
-            <Pressable
-              key={listing.slug}
-              onPress={() => {
-                void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
-                onWriteReviewSlug(listing.slug)
-              }}
-              className="rounded-3xl border p-4"
-              style={{ borderColor: BORDER_SUBTLE }}
-            >
-              <Text className="text-base font-semibold" style={{ color: TEXT_HEADING }}>
-                {listing.title}
+          <View className="mb-3 flex-row gap-3 rounded-xl bg-gray-50 p-3">
+            {existingRestaurant.featured_image_url ? (
+              <Image
+                source={{ uri: existingRestaurant.featured_image_url }}
+                style={{ width: 52, height: 52, borderRadius: 12 }}
+                resizeMode="cover"
+                accessibilityIgnoresInvertColors
+              />
+            ) : (
+              <View className="h-[52px] w-[52px] rounded-xl bg-gray-200" />
+            )}
+            <View className="min-w-0 flex-1">
+              <Text className="font-neusans text-sm font-medium text-[#31343F]" numberOfLines={2}>
+                {existingRestaurant.title}
               </Text>
-              {listing.listing_street ? (
-                <Text className="mt-1 text-xs" style={{ color: TEXT_MUTED }}>
-                  {listing.listing_street}
+              {existingRestaurant.listing_street ? (
+                <Text className="mt-0.5 font-neusans text-xs text-[#9ca3af]" numberOfLines={2}>
+                  {existingRestaurant.listing_street}
                 </Text>
               ) : null}
-            </Pressable>
-          ))}
-          <Pressable
-            accessibilityRole="button"
-            onPress={() => {
-              void Haptics.selectionAsync()
-              onPickDifferentVenue()
-            }}
-            className="items-center py-4"
-          >
-            <Text className="font-semibold" style={{ color: BRAND_PRIMARY }}>
-              Pick a different venue
-            </Text>
-          </Pressable>
-        </View>
-      ) : (
-        <View className="rounded-3xl border p-6" style={{ borderColor: BORDER_SUBTLE }}>
-          <Text className="text-base font-bold" style={{ color: TEXT_HEADING }}>
-            This restaurant isn&apos;t on TastyPlates yet.
-          </Text>
-          <Text className="mt-3 text-sm leading-relaxed" style={{ color: TEXT_MUTED }}>
-            Create a listing so others can discover it — or bookmark it under My Lists while we match the Google
-            place ID.
-          </Text>
-          <Pressable
+              {existingRestaurant.average_rating != null ? (
+                <Text className="mt-1 font-neusans text-[10px] text-[#9ca3af]">
+                  ★ {existingRestaurant.average_rating.toFixed(1)}
+                  {existingRestaurant.ratings_count != null
+                    ? ` (${existingRestaurant.ratings_count})`
+                    : ''}
+                </Text>
+              ) : null}
+            </View>
+          </View>
+          <Button
+            variant="primary"
+            className="mb-2 w-full"
             onPress={() => {
               void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
-              onCreateListingPress()
+              onUseExisting(existingRestaurant)
             }}
-            className="mt-6 rounded-full px-8 py-4"
-            style={{ backgroundColor: '#111827' }}
           >
-            <Text className="text-center text-base font-bold text-white">Create listing &amp; write review</Text>
-          </Pressable>
-          <Pressable
-            accessibilityRole="button"
+            Use this listing
+          </Button>
+          <Button
+            variant="secondary"
+            className="w-full"
             onPress={() => {
               void Haptics.selectionAsync()
-              onPickDifferentVenue()
+              onCreateNew(placeData)
             }}
-            className="mt-4 items-center pb-6"
           >
-            <Text className="font-semibold" style={{ color: BRAND_PRIMARY }}>
-              Pick a different venue
-            </Text>
-          </Pressable>
-        </View>
+            Create new instead
+          </Button>
+        </>
+      ) : (
+        <>
+          <Text className="mb-3 font-neusans text-sm text-gray-600">
+            This restaurant isn&apos;t on TastyPlates yet.
+          </Text>
+          <View className="mb-3 flex-row gap-3 rounded-xl bg-gray-50 p-3">
+            {placePhoto ? (
+              <Image
+                source={{ uri: placePhoto }}
+                style={{ width: 52, height: 52, borderRadius: 12 }}
+                resizeMode="cover"
+                accessibilityIgnoresInvertColors
+              />
+            ) : (
+              <View className="h-[52px] w-[52px] rounded-xl bg-gray-200" />
+            )}
+            <View className="min-w-0 flex-1">
+              <Text className="font-neusans text-sm font-medium text-[#31343F]" numberOfLines={2}>
+                {placeName}
+              </Text>
+              {placeAddress ? (
+                <Text className="mt-0.5 font-neusans text-xs text-[#9ca3af]" numberOfLines={2}>
+                  {placeAddress}
+                </Text>
+              ) : null}
+            </View>
+          </View>
+          <Button
+            variant="primary"
+            className="w-full"
+            onPress={() => {
+              void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
+              onCreateNew(placeData)
+            }}
+          >
+            Create listing & write review
+          </Button>
+        </>
       )}
     </View>
   )
 }
 
-/** Footer helper text + mailto (per palate review wireframe). */
 export function ReviewSearchHelpFooter(): JSX.Element {
   return (
-    <View className="px-4 py-8 items-center">
-      <Text className="text-center text-xs" style={{ color: TEXT_MUTED }}>
+    <View className="items-center px-4 py-8">
+      <Text className="text-center font-neusans text-xs text-[#9ca3af]">
         Can&apos;t find the restaurant?{' '}
         <Text
-          className="font-semibold text-[#ff7c0a]"
+          className="font-neusans text-xs text-[#ff7c0a]"
           onPress={() => {
-            void Linking.openURL('mailto:support@tastyplates.co').catch(() => undefined)
+            void Linking.openURL('mailto:support@tastyplates.co')
           }}
         >
-          Contact the team
+          Contact the TastyPlates team
         </Text>
       </Text>
     </View>
