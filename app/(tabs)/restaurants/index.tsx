@@ -6,6 +6,7 @@ import {
   RefreshControl,
   Pressable,
   ActivityIndicator,
+  useWindowDimensions,
 } from 'react-native'
 import { useLocalSearchParams, router } from 'expo-router'
 
@@ -17,16 +18,15 @@ import {
   formatRestaurantCardAddress,
   type RestaurantListRow,
 } from '@/services/restaurantsV2Service'
-import { restaurantPalateDisplayLabels } from '@/lib/restaurantPalates'
 import { BRAND_PRIMARY, TEXT_HEADING } from '@/constants/brand'
 import { SCREEN_RESTAURANT_DETAIL } from '@/constants/screens'
 import { useLocation } from '@/contexts/LocationContext'
-import { usePalatePreferenceStats } from '@/hooks/usePalatePreferenceStats'
-import { labelForPalateKey } from '@/lib/palateLabels'
 import { isNoPalateFilter } from '@/lib/palateSearch'
 import { coerceRatingNumber } from '@/lib/ratingDisplayUtils'
 
 const PAGE_SIZE = 24
+const HORIZONTAL_PAD = 16
+const ROW_GAP = 12
 
 function singleParam(v: string | string[] | undefined): string | undefined {
   if (v == null) return undefined
@@ -35,11 +35,13 @@ function singleParam(v: string | string[] | undefined): string | undefined {
 
 /**
  * Restaurant discovery tab: lists from Nhost `restaurants-v2/get-restaurants`, respects `palate` / `search` / `listing` params.
- * Palate search entry: home hero + top-nav search icon (not duplicated here).
  */
 export default function RestaurantsScreen() {
+  const { width: screenWidth } = useWindowDimensions()
   const { location } = useLocation()
   const locationKey = location.key
+
+  const cardWidth = useMemo(() => screenWidth - HORIZONTAL_PAD * 2, [screenWidth])
 
   const raw = useLocalSearchParams<{
     palate?: string | string[]
@@ -59,7 +61,6 @@ export default function RestaurantsScreen() {
   }, [search, listing])
 
   const palateSlugs = useMemo(() => (palate ? [palate] : undefined), [palate])
-  const { getForRestaurant } = usePalatePreferenceStats(palate)
 
   const [rows, setRows] = useState<RestaurantListRow[]>([])
   const [cursor, setCursor] = useState<string | null>(null)
@@ -139,7 +140,42 @@ export default function RestaurantsScreen() {
     router.setParams({ search: undefined, listing: undefined })
   }, [])
 
-  const palateLabel = !isNoPalateFilter(palate) ? labelForPalateKey(palate ?? null) : null
+  const navigateToRestaurant = useCallback(
+    (slug: string) => {
+      const s = slug.trim()
+      if (!s) return
+      const params: { slug: string; palate?: string } = { slug: s }
+      if (!isNoPalateFilter(palate)) params.palate = palate!
+      router.push({
+        pathname: SCREEN_RESTAURANT_DETAIL,
+        params,
+      })
+    },
+    [palate],
+  )
+
+  const renderItem = useCallback(
+    ({ item }: { item: RestaurantListRow }) => {
+      const overallRating = coerceRatingNumber(item.average_rating)
+      const slug = item.slug?.trim() ?? ''
+      return (
+        <RestaurantBrowseCard
+          title={item.title}
+          slug={slug || undefined}
+          imageUrl={item.featured_image_url}
+          subtitle={formatRestaurantCardAddress(item.listing_street, item.address)}
+          listingCategories={item.cuisines}
+          categories={item.categories}
+          rating={overallRating}
+          reviewCount={item.ratings_count ?? undefined}
+          containerStyle={{ width: cardWidth }}
+          onPress={() => navigateToRestaurant(slug)}
+          onCommentPress={() => navigateToRestaurant(slug)}
+        />
+      )
+    },
+    [cardWidth, navigateToRestaurant],
+  )
 
   return (
     <View className="flex-1 bg-white">
@@ -176,10 +212,12 @@ export default function RestaurantsScreen() {
             className="mt-3 flex-1"
             data={rows}
             keyExtractor={(item) => item.uuid}
-            ItemSeparatorComponent={() => <View className="h-3" />}
+            renderItem={renderItem}
+            ItemSeparatorComponent={() => <View style={{ height: ROW_GAP }} />}
+            contentContainerStyle={{ paddingBottom: 24 }}
             ListHeaderComponent={
               error && rows.length > 0 ? (
-                <View className="mb-3 rounded-xl bg-red-50 px-3 py-2">
+                <View className="mb-3 rounded-xl bg-red-50 px-3 py-2" style={{ width: '100%' }}>
                   <Text className="text-center text-xs text-red-700">{error}</Text>
                 </View>
               ) : null
@@ -196,40 +234,11 @@ export default function RestaurantsScreen() {
             }
             ListFooterComponent={
               loadingMore ? (
-                <View className="py-4">
+                <View className="w-full items-center py-4">
                   <ActivityIndicator color={BRAND_PRIMARY} />
                 </View>
               ) : null
             }
-            renderItem={({ item }) => {
-              const pref = !isNoPalateFilter(palate) ? getForRestaurant(item.id) : null
-              const overallRating = coerceRatingNumber(item.average_rating)
-              const searchRating = coerceRatingNumber(pref?.avg)
-              return (
-                <RestaurantBrowseCard
-                  variant="list"
-                  title={item.title}
-                  imageUrl={item.featured_image_url}
-                  subtitle={formatRestaurantCardAddress(item.listing_street, item.address)}
-                  palateTags={restaurantPalateDisplayLabels(item.palates)}
-                  highlightPalateSlug={palate}
-                  rating={overallRating}
-                  reviewCount={item.ratings_count ?? undefined}
-                  searchScore={searchRating}
-                  searchScoreLabel={palateLabel ?? undefined}
-                  onPress={() => {
-                    const s = item.slug?.trim()
-                    if (!s) return
-                    const params: { slug: string; palate?: string } = { slug: s }
-                    if (!isNoPalateFilter(palate)) params.palate = palate!
-                    router.push({
-                      pathname: SCREEN_RESTAURANT_DETAIL,
-                      params,
-                    })
-                  }}
-                />
-              )
-            }}
           />
         )}
       </View>

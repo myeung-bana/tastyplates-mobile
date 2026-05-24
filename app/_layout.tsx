@@ -22,6 +22,7 @@ WebBrowser.maybeCompleteAuthSession()
 SplashScreen.preventAutoHideAsync()
 
 export default function RootLayout() {
+  // Neusans: loaded via @font-face in global.css on web; native uses system fallback until .ttf assets are added.
   const [fontsLoaded, fontError] = useFonts({})
 
   const apolloClient = useMemo(() => createApolloClient({ nhost }), [])

@@ -21,6 +21,10 @@ export const usernameNotAvailable = 'This username is already taken.'
 export const palateRequired = 'Please select at least one palate.'
 export const palateMaxLimitMessage = (limit: number) => `You can only select up to ${limit} palates.`
 
+export const errorOccurred = 'An Error occurred, Please try again later.'
+export const commentedSuccess = 'Replied successfully!'
+export const maximumCommentReplies = (max: number) => `Comment must be ${max} characters or less.`
+
 export function getUsernameErrorMessage(errorKey: string): string {
   switch (errorKey) {
     case 'usernameRequired':

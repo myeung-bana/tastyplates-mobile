@@ -1,78 +1,104 @@
-import { useState, useCallback } from 'react'
-import { useMutation } from '@apollo/client'
-import { gql } from '@apollo/client'
-import { useAuth } from './useAuth'
+import { useCallback, useEffect, useRef, useState } from 'react'
 
-const LIKE_REVIEW = gql`
-  mutation LikeReview($reviewId: uuid!, $userId: uuid!) {
-    insert_review_likes_one(object: { review_id: $reviewId, user_id: $userId }) {
-      id
-    }
-  }
-`
+import { useAuth } from '@/hooks/useAuth'
+import { reviewService } from '@/services/reviewService'
 
-const UNLIKE_REVIEW = gql`
-  mutation UnlikeReview($reviewId: uuid!, $userId: uuid!) {
-    delete_review_likes(
-      where: { review_id: { _eq: $reviewId }, user_id: { _eq: $userId } }
-    ) {
-      affected_rows
-    }
-  }
-`
+const LOADING_COOLDOWN_MS = 220
 
 export interface UseReviewLikeOptions {
   reviewId: string
-  initialLiked: boolean
-  initialCount: number
+  initialLiked?: boolean
+  initialCount?: number
+  onAuthRequired?: () => void
+  /** Called after server confirms like state so parent lists can sync. */
+  onConfirm?: (liked: boolean, likesCount: number, reviewId: string) => void
 }
 
 export interface UseReviewLikeResult {
-  liked: boolean
-  likeCount: number
-  toggle: () => void
-  loading: boolean
+  isLiked: boolean
+  likesCount: number
+  isLoading: boolean
+  toggleLike: () => void
 }
 
 /**
- * Optimistic like toggle for a review.
- *
- * Flips the local state immediately, then fires the mutation.
- * On error, reverts the optimistic update.
+ * Optimistic review like toggle — instant UI, background API, revert on failure.
  */
 export function useReviewLike({
   reviewId,
-  initialLiked,
-  initialCount,
+  initialLiked = false,
+  initialCount = 0,
+  onAuthRequired,
+  onConfirm,
 }: UseReviewLikeOptions): UseReviewLikeResult {
-  const { user } = useAuth()
-  const [liked, setLiked] = useState(initialLiked)
-  const [likeCount, setLikeCount] = useState(initialCount)
+  const { user, isAuthenticated } = useAuth()
+  const [isLiked, setIsLiked] = useState(initialLiked)
+  const [likesCount, setLikesCount] = useState(initialCount)
+  const [isLoading, setIsLoading] = useState(false)
+  const inFlightRef = useRef(false)
 
-  const [likeReview, { loading: liking }] = useMutation(LIKE_REVIEW)
-  const [unlikeReview, { loading: unliking }] = useMutation(UNLIKE_REVIEW)
+  useEffect(() => {
+    setIsLiked(initialLiked)
+    setLikesCount(initialCount)
+  }, [reviewId, initialLiked, initialCount])
 
-  const toggle = useCallback(() => {
-    if (!user) return
+  const toggleLike = useCallback(() => {
+    if (inFlightRef.current) return
 
-    const wasLiked = liked
-    const prevCount = likeCount
+    if (!isAuthenticated || !user?.id) {
+      onAuthRequired?.()
+      return
+    }
 
-    setLiked(!wasLiked)
-    setLikeCount(wasLiked ? prevCount - 1 : prevCount + 1)
+    inFlightRef.current = true
+    setIsLoading(true)
 
-    const mutation = wasLiked ? unlikeReview : likeReview
+    const currentLiked = isLiked
+    const currentCount = likesCount
 
-    mutation({ variables: { reviewId, userId: user.id } }).catch(() => {
-      setLiked(wasLiked)
-      setLikeCount(prevCount)
-    })
-  }, [liked, likeCount, user, reviewId, likeReview, unlikeReview])
+    setIsLiked(!currentLiked)
+    setLikesCount(currentLiked ? Math.max(0, currentCount - 1) : currentCount + 1)
+
+    const cooldownTimer = setTimeout(() => setIsLoading(false), LOADING_COOLDOWN_MS)
+
+    void reviewService
+      .toggleReviewLike(reviewId)
+      .then((result) => {
+        const confirmedLiked = result.liked
+        const confirmedCount = confirmedLiked
+          ? currentLiked
+            ? currentCount
+            : currentCount + 1
+          : currentLiked
+            ? Math.max(0, currentCount - 1)
+            : currentCount
+        setIsLiked(confirmedLiked)
+        setLikesCount(confirmedCount)
+        onConfirm?.(confirmedLiked, confirmedCount, reviewId)
+      })
+      .catch(() => {
+        setIsLiked(currentLiked)
+        setLikesCount(currentCount)
+      })
+      .finally(() => {
+        clearTimeout(cooldownTimer)
+        setIsLoading(false)
+        inFlightRef.current = false
+      })
+  }, [
+    isAuthenticated,
+    user?.id,
+    isLiked,
+    likesCount,
+    reviewId,
+    onAuthRequired,
+    onConfirm,
+  ])
 
   return {
-    liked,
-    likeCount,
-    toggle,
-    loading: liking || unliking,
+    isLiked,
+    likesCount,
+    isLoading,
+    toggleLike,
   }
 }

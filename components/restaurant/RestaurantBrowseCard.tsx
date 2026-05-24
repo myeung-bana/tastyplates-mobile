@@ -1,22 +1,38 @@
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import {
-  Pressable,
-  View,
-  Text,
+  Animated,
   Image,
-  ScrollView,
+  Pressable,
+  Text,
+  View,
+  useWindowDimensions,
   type StyleProp,
   type ViewStyle,
 } from 'react-native'
+import { Ionicons } from '@expo/vector-icons'
+import * as Haptics from 'expo-haptics'
+import { usePathname, useRouter } from 'expo-router'
 
-import { RatingDisplay } from '@/components/ui/RatingDisplay'
-import { BRAND_PRIMARY, BORDER_SUBTLE, TEXT_BODY, TEXT_HEADING } from '@/constants/brand'
-import { labelForPalateKey } from '@/lib/palateLabels'
-import { coerceRatingNumber, hasDisplayableRating } from '@/lib/ratingDisplayUtils'
+import { BRAND_PRIMARY } from '@/constants/brand'
+import { useAuth } from '@/hooks/useAuth'
+import { coerceResumeHref, pushLoginScreen } from '@/lib/authRoutes'
+import { coerceRatingNumber, formatRatingValue, hasDisplayableRating } from '@/lib/ratingDisplayUtils'
+import {
+  getFavoriteStatus,
+  toggleFavoriteBySlug,
+} from '@/services/restaurantEngagementService'
+import {
+  normalizeCategoryList,
+  normalizeCuisineList,
+  type RestaurantListCategory,
+  type RestaurantListCuisine,
+} from '@/services/restaurantsV2Service'
 
 const DEFAULT_IMAGE = 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400&q=80'
 
-const PALATE_CHIP_BG = '#f2f2f2'
-const PALATE_CHIP_HIGHLIGHT_BG = '#fef7f0'
+const TEXT_COLOR = '#31343F'
+const CUISINE_PILL_BG = '#ff7c0a'
+const NEUSANS = 'Neusans'
 
 export interface RestaurantBrowseCardProps {
   title: string
@@ -25,16 +41,19 @@ export interface RestaurantBrowseCardProps {
   subtitle?: string | null
   rating?: number | null
   reviewCount?: number | null
-  /** Palate-filtered Search score (preference avg). */
-  searchScore?: number | null
-  searchScoreLabel?: string
-  /** Restaurant palate labels for chip row. */
-  palateTags?: string[]
-  /** Highlights the chip matching active `?palate=` filter. */
-  highlightPalateSlug?: string | null
+  /** Restaurant slug — wishlist toggle + comment navigation. */
+  slug?: string
+  /** Cuisine pills overlaid on the image (maps from API `cuisines`). */
+  listingCategories?: RestaurantListCuisine[]
+  /** Establishment categories; parent rows render as `A / B`. */
+  categories?: RestaurantListCategory[]
+  initialSavedStatus?: boolean | null
+  onWishlistChange?: (isSaved: boolean) => void
   onPress: () => void
-  /** `carousel`: fixed tile (pass `containerStyle` with width/height). `list`: full-width row. */
-  variant?: 'carousel' | 'list'
+  /** Opens reviews / detail; defaults to `onPress` when omitted. */
+  onCommentPress?: () => void
+  /** Compact tile for horizontal carousels — hides action buttons, smaller type. */
+  compact?: boolean
   containerStyle?: StyleProp<ViewStyle>
 }
 
@@ -43,7 +62,7 @@ function buildAccessibilityLabel(
   subtitle: string | null | undefined,
   overallRating: number | null,
   reviewCount: number | null | undefined,
-  palateTags: string[],
+  listingCategories: RestaurantListCuisine[],
 ): string {
   const parts = [title]
   if (subtitle?.trim()) parts.push(subtitle.trim())
@@ -54,35 +73,28 @@ function buildAccessibilityLabel(
         : `rated ${overallRating} out of 5`,
     )
   }
-  if (palateTags.length > 0) parts.push(`palates: ${palateTags.join(', ')}`)
+  if (listingCategories.length > 0) {
+    parts.push(`cuisines: ${listingCategories.map((c) => c.name).join(', ')}`)
+  }
   return parts.join(', ')
 }
 
-function PalateChip({
-  label,
-  highlighted,
-  compact,
-}: {
-  label: string
-  highlighted: boolean
-  compact: boolean
-}): JSX.Element {
+function CuisinePill({ label, compact }: { label: string; compact: boolean }): JSX.Element {
   return (
     <View
-      className="rounded-full"
       style={{
         paddingHorizontal: compact ? 8 : 10,
-        paddingVertical: compact ? 4 : 5,
-        backgroundColor: highlighted ? PALATE_CHIP_HIGHLIGHT_BG : PALATE_CHIP_BG,
-        borderWidth: highlighted ? 2 : 0,
-        borderColor: highlighted ? BRAND_PRIMARY : 'transparent',
+        paddingVertical: compact ? 3 : 4,
+        borderRadius: 20,
+        backgroundColor: CUISINE_PILL_BG,
       }}
     >
       <Text
         style={{
-          fontSize: compact ? 11 : 12,
-          fontWeight: '500',
-          color: highlighted ? BRAND_PRIMARY : TEXT_HEADING,
+          fontFamily: NEUSANS,
+          fontSize: compact ? 11 : 13,
+          fontWeight: '400',
+          color: '#fff',
         }}
         numberOfLines={1}
       >
@@ -92,68 +104,35 @@ function PalateChip({
   )
 }
 
-function PalateTagsRow({
-  tags,
-  highlightPalateSlug,
-  compact,
-  maxVisible,
+function ActionCircle({
+  onPress,
+  disabled,
+  children,
 }: {
-  tags: string[]
-  highlightPalateSlug?: string | null
-  compact: boolean
-  maxVisible?: number
-}): JSX.Element | null {
-  if (tags.length === 0) return null
-
-  const activeLabel = highlightPalateSlug?.trim()
-    ? labelForPalateKey(highlightPalateSlug.trim())
-    : null
-  const visible = maxVisible != null ? tags.slice(0, maxVisible) : tags
-  const overflow = maxVisible != null ? Math.max(0, tags.length - maxVisible) : 0
-
-  const chips = (
-    <>
-      {visible.map((tag, index) => (
-        <View key={`${tag}-${index}`} style={index > 0 ? { marginLeft: compact ? 6 : 8 } : undefined}>
-          <PalateChip
-            label={tag}
-            highlighted={activeLabel != null && tag === activeLabel}
-            compact={compact}
-          />
-        </View>
-      ))}
-      {overflow > 0 ? (
-        <View style={{ marginLeft: compact ? 6 : 8 }}>
-          <PalateChip label={`+${overflow}`} highlighted={false} compact={compact} />
-        </View>
-      ) : null}
-    </>
-  )
-
-  if (maxVisible != null) {
-    return (
-      <View className={compact ? 'mt-1 flex-row flex-wrap items-center' : 'mt-2 flex-row flex-wrap items-center'}>
-        {chips}
-      </View>
-    )
-  }
-
+  onPress: () => void
+  disabled?: boolean
+  children: ReactNode
+}): JSX.Element {
   return (
-    <ScrollView
-      horizontal
-      showsHorizontalScrollIndicator={false}
-      className={compact ? 'mt-1 max-h-8' : 'mt-2'}
-      style={{ maxHeight: compact ? 28 : 36 }}
-      contentContainerStyle={{ alignItems: 'center', paddingRight: 4 }}
+    <Pressable
+      onPress={onPress}
+      disabled={disabled}
+      hitSlop={6}
+      accessibilityRole="button"
+      style={{
+        borderRadius: 999,
+        padding: 8,
+        backgroundColor: '#fff',
+        opacity: disabled ? 0.6 : 1,
+      }}
     >
-      {chips}
-    </ScrollView>
+      {children}
+    </Pressable>
   )
 }
 
 /**
- * Shared restaurant tile (featured carousel + browse list).
- * Visual baseline: design_system §5.3 Card, §11.6 RatingDisplay.
+ * Restaurant browse tile — visual parity with web `RestaurantCard` (transparent card, contain image, cuisine overlay).
  */
 export function RestaurantBrowseCard({
   title,
@@ -161,139 +140,327 @@ export function RestaurantBrowseCard({
   subtitle,
   rating,
   reviewCount,
-  searchScore,
-  searchScoreLabel,
-  palateTags = [],
-  highlightPalateSlug,
+  slug,
+  listingCategories,
+  categories,
+  initialSavedStatus,
+  onWishlistChange,
   onPress,
-  variant = 'list',
+  onCommentPress,
+  compact = false,
   containerStyle,
 }: RestaurantBrowseCardProps) {
   const uri = (imageUrl && imageUrl.trim()) || DEFAULT_IMAGE
-  const isList = variant === 'list'
-  const defaultListStyle: ViewStyle = isList ? { width: '100%' } : {}
+  const router = useRouter()
+  const pathname = usePathname()
+  const { isAuthenticated } = useAuth()
+  const { width: screenWidth } = useWindowDimensions()
 
+  const [saved, setSaved] = useState<boolean | null>(
+    typeof initialSavedStatus === 'boolean' ? initialSavedStatus : null,
+  )
+  const [wishlistBusy, setWishlistBusy] = useState(false)
+  const [wishlistLoading, setWishlistLoading] = useState(false)
+
+  const liftAnim = useRef(new Animated.Value(0)).current
+
+  const isNarrow = screenWidth < 768
   const overallRating = coerceRatingNumber(rating)
-  const palateRating = coerceRatingNumber(searchScore)
-  const showOverall = hasDisplayableRating(overallRating)
-  const showSearchScore = hasDisplayableRating(palateRating)
+  const ratingLabel = formatRatingValue(overallRating)
+  const showRating = hasDisplayableRating(overallRating)
+  const showCount = reviewCount != null && reviewCount > 0
 
-  const a11yLabel = buildAccessibilityLabel(title, subtitle, overallRating, reviewCount, palateTags)
+  const cuisineList = normalizeCuisineList(listingCategories)
+  const categoryList = normalizeCategoryList(categories)
+
+  const parentCategories = categoryList.filter(
+    (cat) => cat.parent_id === null || cat.parent_id === undefined,
+  )
+  const categoryLine =
+    parentCategories.length > 0 ? parentCategories.map((cat) => cat.name).join(' / ') : null
+
+  const visibleCuisines = cuisineList.slice(0, 2)
+  const cuisineOverflow = Math.max(0, cuisineList.length - 2)
+
+  const iconSize = compact ? 12 : isNarrow ? 12 : 16
+  const nameSize = compact ? 12 : isNarrow ? 14 : 16
+  const ratingSize = compact ? 12 : 14
+  const addressSize = compact ? 10 : isNarrow ? 12 : 10
+  const categorySize = compact ? 11 : 13
+
+  useEffect(() => {
+    if (typeof initialSavedStatus === 'boolean') {
+      setSaved(initialSavedStatus)
+    }
+  }, [initialSavedStatus])
+
+  useEffect(() => {
+    if (!slug?.trim() || typeof initialSavedStatus === 'boolean') return
+    if (!isAuthenticated) {
+      setSaved(null)
+      return
+    }
+
+    let cancelled = false
+    setWishlistLoading(true)
+    void getFavoriteStatus(slug.trim())
+      .then((status) => {
+        if (cancelled) return
+        setSaved(status === 'saved')
+      })
+      .finally(() => {
+        if (!cancelled) setWishlistLoading(false)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [slug, initialSavedStatus, isAuthenticated])
+
+  const promptSignIn = useCallback(() => {
+    void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning)
+    pushLoginScreen(router, { resume: coerceResumeHref(pathname) })
+  }, [pathname, router])
+
+  const onBookmarkPress = useCallback(async () => {
+    if (!slug?.trim()) return
+    if (!isAuthenticated) {
+      promptSignIn()
+      return
+    }
+    void Haptics.selectionAsync()
+    setWishlistBusy(true)
+    const prev = saved
+    setSaved(!saved)
+    try {
+      const status = await toggleFavoriteBySlug(slug.trim())
+      const isSaved = status === 'saved'
+      setSaved(isSaved)
+      onWishlistChange?.(isSaved)
+    } catch {
+      setSaved(prev ?? null)
+    } finally {
+      setWishlistBusy(false)
+    }
+  }, [slug, isAuthenticated, saved, onWishlistChange, promptSignIn])
+
+  const onCommentButtonPress = useCallback(() => {
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
+    if (onCommentPress) {
+      onCommentPress()
+      return
+    }
+    onPress()
+  }, [onCommentPress, onPress])
+
+  const onPressIn = useCallback(() => {
+    Animated.timing(liftAnim, {
+      toValue: -4,
+      duration: 200,
+      useNativeDriver: true,
+    }).start()
+  }, [liftAnim])
+
+  const onPressOut = useCallback(() => {
+    Animated.timing(liftAnim, {
+      toValue: 0,
+      duration: 200,
+      useNativeDriver: true,
+    }).start()
+  }, [liftAnim])
+
+  const a11yLabel = buildAccessibilityLabel(title, subtitle, overallRating, reviewCount, cuisineList)
 
   return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={a11yLabel}
-      onPress={onPress}
-      className="flex-col overflow-hidden rounded-lg border bg-white active:opacity-90"
+    <Animated.View
       style={[
-        { borderColor: BORDER_SUBTLE },
-        defaultListStyle,
+        {
+          transform: [{ translateY: liftAnim }],
+          paddingBottom: 16,
+          borderRadius: 8,
+          overflow: 'hidden',
+          backgroundColor: 'transparent',
+        },
         containerStyle,
-        isList
-          ? {
-              shadowColor: '#000',
-              shadowOffset: { width: 0, height: 1 },
-              shadowOpacity: 0.06,
-              shadowRadius: 2,
-              elevation: 2,
-            }
-          : null,
       ]}
     >
-      <View className={isList ? 'h-44 w-full overflow-hidden' : 'w-full flex-[3] min-h-0'}>
-        <Image source={{ uri }} className="h-full w-full" resizeMode="cover" />
-      </View>
-
       <View
-        className={[
-          'border-t',
-          isList ? 'flex-[0] px-4 py-3' : 'flex-[2] min-h-0 justify-center px-2 py-2',
-        ].join(' ')}
-        style={{ borderTopColor: BORDER_SUBTLE }}
+        style={{
+          position: 'relative',
+          width: '100%',
+          ...(compact
+            ? { aspectRatio: 4 / 3 }
+            : isNarrow
+              ? { aspectRatio: 16 / 9 }
+              : { height: 222 }),
+        }}
       >
-        {isList ? (
-          <>
-            <View className="flex-row items-start justify-between gap-3">
-              <Text
-                className="min-w-0 flex-1 text-base leading-snug"
-                style={{ color: TEXT_HEADING }}
-                numberOfLines={2}
-              >
-                {title}
-              </Text>
-              {showOverall ? (
-                <RatingDisplay
-                  size="sm"
-                  value={overallRating}
-                  reviewCount={reviewCount ?? undefined}
-                  className="shrink-0"
+        <Pressable
+          accessibilityRole="imagebutton"
+          accessibilityLabel={`View ${title}`}
+          onPress={onPress}
+          onPressIn={onPressIn}
+          onPressOut={onPressOut}
+          style={{ width: '100%', height: '100%' }}
+        >
+          <Image
+            source={{ uri }}
+            style={{ width: '100%', height: '100%', borderRadius: 16 }}
+            resizeMode="cover"
+            accessibilityIgnoresInvertColors
+          />
+        </Pressable>
+
+        {visibleCuisines.length > 0 ? (
+          <View
+            pointerEvents="none"
+            style={{
+              position: 'absolute',
+              bottom: 8,
+              left: 8,
+              flexDirection: 'row',
+              flexWrap: 'wrap',
+              gap: 4,
+              maxWidth: '85%',
+            }}
+          >
+            {visibleCuisines.map((cuisine) => (
+              <CuisinePill key={cuisine.slug || String(cuisine.id)} label={cuisine.name} compact={compact} />
+            ))}
+            {cuisineOverflow > 0 ? (
+              <CuisinePill label={`+${cuisineOverflow}`} compact={compact} />
+            ) : null}
+          </View>
+        ) : null}
+
+        {!compact && slug ? (
+          <View
+            style={{
+              position: 'absolute',
+              top: 8,
+              right: 8,
+              flexDirection: 'column',
+              gap: 8,
+            }}
+          >
+            <ActionCircle onPress={() => void onBookmarkPress()} disabled={wishlistBusy}>
+              {wishlistLoading ? (
+                <View
+                  style={{
+                    width: iconSize,
+                    height: iconSize,
+                    borderRadius: iconSize / 2,
+                    backgroundColor: '#e5e7eb',
+                  }}
                 />
-              ) : null}
-            </View>
-
-            {subtitle ? (
-              <Text
-                className="mt-1 text-sm leading-normal"
-                style={{ color: TEXT_BODY }}
-                numberOfLines={1}
-              >
-                {subtitle}
-              </Text>
-            ) : null}
-
-            <PalateTagsRow
-              tags={palateTags}
-              highlightPalateSlug={highlightPalateSlug}
-              compact={false}
-            />
-
-            {showSearchScore ? (
-              <View className="mt-1.5">
-                <RatingDisplay size="sm" value={palateRating} label={searchScoreLabel} />
-              </View>
-            ) : null}
-          </>
-        ) : (
-          <>
-            <View className="flex-row items-start justify-between gap-1">
-              <Text
-                className="min-w-0 flex-1 text-xs leading-snug"
-                style={{ color: TEXT_HEADING }}
-                numberOfLines={2}
-              >
-                {title}
-              </Text>
-              {showOverall ? (
-                <RatingDisplay size="xs" value={overallRating} className="shrink-0" />
-              ) : null}
-            </View>
-
-            {subtitle ? (
-              <Text
-                className="mt-0.5 text-[11px] leading-normal"
-                style={{ color: TEXT_BODY }}
-                numberOfLines={1}
-              >
-                {subtitle}
-              </Text>
-            ) : null}
-
-            <PalateTagsRow
-              tags={palateTags}
-              highlightPalateSlug={highlightPalateSlug}
-              compact
-              maxVisible={2}
-            />
-
-            {showSearchScore ? (
-              <View className="mt-0.5">
-                <RatingDisplay size="xs" value={palateRating} label={searchScoreLabel} />
-              </View>
-            ) : null}
-          </>
-        )}
+              ) : (
+                <Ionicons
+                  name={saved ? 'bookmark' : 'bookmark-outline'}
+                  size={iconSize}
+                  color={saved ? BRAND_PRIMARY : TEXT_COLOR}
+                />
+              )}
+            </ActionCircle>
+            <ActionCircle onPress={onCommentButtonPress}>
+              <Ionicons name="chatbubble-outline" size={iconSize} color={TEXT_COLOR} />
+            </ActionCircle>
+          </View>
+        ) : null}
       </View>
-    </Pressable>
+
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={a11yLabel}
+        onPress={onPress}
+        onPressIn={onPressIn}
+        onPressOut={onPressOut}
+        style={{ backgroundColor: 'transparent' }}
+      >
+        <View style={{ paddingTop: compact ? 8 : isNarrow ? 12 : 16 }}>
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 8,
+            }}
+          >
+            <Text
+              style={{
+                flexShrink: 1,
+                maxWidth: compact ? 120 : 220,
+                fontFamily: NEUSANS,
+                fontSize: nameSize,
+                fontWeight: '500',
+                color: TEXT_COLOR,
+              }}
+              numberOfLines={1}
+            >
+              {title}
+            </Text>
+
+            {showRating ? (
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+                <Ionicons name="star" size={16} color={TEXT_COLOR} />
+                <Text
+                  style={{
+                    fontFamily: NEUSANS,
+                    fontSize: ratingSize,
+                    fontWeight: '400',
+                    color: TEXT_COLOR,
+                  }}
+                >
+                  {ratingLabel}
+                </Text>
+                {showCount ? (
+                  <Text
+                    style={{
+                      fontFamily: NEUSANS,
+                      fontSize: ratingSize,
+                      fontWeight: '400',
+                      color: TEXT_COLOR,
+                    }}
+                  >
+                    ({reviewCount})
+                  </Text>
+                ) : null}
+              </View>
+            ) : null}
+          </View>
+
+          {subtitle?.trim() ? (
+            <Text
+              style={{
+                marginTop: 4,
+                fontFamily: NEUSANS,
+                fontSize: addressSize,
+                fontWeight: '400',
+                color: TEXT_COLOR,
+                lineHeight: addressSize * 1.4,
+              }}
+              numberOfLines={2}
+            >
+              {subtitle.trim()}
+            </Text>
+          ) : null}
+
+          {categoryLine ? (
+            <Text
+              style={{
+                marginTop: 4,
+                fontFamily: NEUSANS,
+                fontSize: categorySize,
+                fontWeight: '400',
+                color: TEXT_COLOR,
+                letterSpacing: 0.025 * categorySize,
+              }}
+              numberOfLines={1}
+            >
+              {categoryLine}
+            </Text>
+          ) : null}
+        </View>
+      </Pressable>
+    </Animated.View>
   )
 }

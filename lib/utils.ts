@@ -11,9 +11,31 @@ export function cn(...inputs: ClassValue[]): string {
  * e.g. 1200 → "1.2K", 1000000 → "1M"
  */
 export function formatLikeCount(count: number): string {
-  if (count >= 1_000_000) return `${(count / 1_000_000).toFixed(1)}M`
-  if (count >= 1_000) return `${(count / 1_000).toFixed(1)}K`
+  if (count >= 1_000_000) {
+    return `${(count / 1_000_000).toFixed(1).replace(/\.0$/, '')}M`
+  }
+  if (count >= 1_000) {
+    return `${(count / 1_000).toFixed(1).replace(/\.0$/, '')}k`
+  }
   return String(count)
+}
+
+export function capitalizeWords(str: string): string {
+  return str
+    .trim()
+    .split(' ')
+    .filter(Boolean)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(' ')
+}
+
+/** Strip HTML tags for native Text (alias for web `stripTags`). */
+export function stripTags(input: string): string {
+  if (!input?.trim()) return ''
+  return input
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
 }
 
 /**

@@ -1,28 +1,46 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
+  Animated,
   Linking,
+  Platform,
   Pressable,
   RefreshControl,
   ScrollView,
   Share,
   Text,
+  useWindowDimensions,
   View,
 } from 'react-native'
+import MapView, { Marker } from 'react-native-maps'
 import * as Haptics from 'expo-haptics'
 import { Ionicons } from '@expo/vector-icons'
+import {
+  BottomSheetBackdrop,
+  BottomSheetModal,
+  BottomSheetScrollView,
+} from '@gorhom/bottom-sheet'
+import type { BottomSheetBackdropProps } from '@gorhom/bottom-sheet'
+import RenderHTML from 'react-native-render-html'
 import { usePathname, useRouter } from 'expo-router'
 
 import { RatingDisplay } from '@/components/ui/RatingDisplay'
 import { BORDER_SUBTLE, BRAND_PRIMARY, TEXT_BODY, TEXT_HEADING, TEXT_MUTED } from '@/constants/brand'
-import { SCREEN_REVIEW_VIEWER, SCREEN_STUDIO_ADD_REVIEW_WRITE } from '@/constants/screens'
+import { restaurantDetailPath, SCREEN_REVIEW_VIEWER } from '@/constants/screens'
 import {
-  formatOpeningHoursSummary,
+  buildDirectionsUrl,
+  buildGoogleMapsPlaceUrl,
+  formatDayRange,
+  formatPriceRange,
   formatRestaurantAddress,
-  mapsDirectionsUrl,
+  groupOpeningHours,
+  hasValidCoordinates,
   stripHtml,
+  todayOpeningHoursSummary,
 } from '@/lib/restaurantDetailUtils'
 import { useAuth } from '@/hooks/useAuth'
 import { coerceResumeHref, pushLoginScreen } from '@/lib/authRoutes'
+import { copyToClipboard } from '@/lib/copyToClipboard'
+import { getMarketingWebOrigin } from '@/lib/webAssets'
 import type {
   RatingSummaryRow,
   RestaurantDetailRow,
@@ -34,13 +52,134 @@ import {
   toggleCheckinBySlug,
   toggleFavoriteBySlug,
 } from '@/services/restaurantEngagementService'
+import { toast } from '@/utils/toast'
 
 import { RestaurantDetailSummary } from '@/components/restaurant/RestaurantDetailSummary'
 import { RestaurantRatingMetricsRow } from '@/components/restaurant/RestaurantRatingMetricsRow'
 
-function formatRating(n: number | null | undefined): string {
-  if (n == null || Number.isNaN(n) || n <= 0) return '—'
-  return n.toFixed(1)
+const SAVE_FILLED = '#f97316'
+const CHECKIN_FILLED = '#ff7c0a'
+const ACTION_INK = '#31343F'
+
+function ActionPill({
+  label,
+  icon,
+  onPress,
+  disabled = false,
+}: {
+  label: string
+  icon: keyof typeof Ionicons.glyphMap
+  onPress?: () => void
+  disabled?: boolean
+}): JSX.Element {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      disabled={disabled}
+      onPress={onPress}
+      className={`flex-row items-center gap-2 rounded-[50px] border px-4 py-2 active:opacity-90 ${
+        disabled ? 'border-gray-200 bg-gray-50 opacity-50' : 'border-gray-300 bg-white'
+      }`}
+    >
+      <Ionicons name={icon} size={16} color={disabled ? '#9ca3af' : '#6b7280'} />
+      <Text
+        className={`font-neusans text-sm font-normal ${disabled ? 'text-gray-400' : 'text-gray-900'}`}
+      >
+        {label}
+      </Text>
+    </Pressable>
+  )
+}
+
+function OpeningHoursRow({ openingHours }: { openingHours: string | object | null | undefined }): JSX.Element {
+  const [expanded, setExpanded] = useState(false)
+  const rotateAnim = useRef(new Animated.Value(0)).current
+  const grouped = groupOpeningHours(openingHours)
+  const summary = todayOpeningHoursSummary(openingHours)
+  const isClosed = summary === 'Closed'
+
+  const toggle = () => {
+    void Haptics.selectionAsync()
+    const next = !expanded
+    setExpanded(next)
+    Animated.timing(rotateAnim, {
+      toValue: next ? 1 : 0,
+      duration: 200,
+      useNativeDriver: true,
+    }).start()
+  }
+
+  const chevronRotate = rotateAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0deg', '180deg'],
+  })
+
+  if (grouped.length === 0) {
+    return (
+      <View className="flex-row items-start gap-3">
+        <Ionicons name="time-outline" size={20} color="#6b7280" />
+        <View>
+          <Text className="font-neusans text-sm text-gray-500">Opening Hours</Text>
+          <Text className="font-neusans text-sm text-gray-700">Not available</Text>
+        </View>
+      </View>
+    )
+  }
+
+  return (
+    <View className="flex-row items-start gap-3">
+      <Ionicons name="time-outline" size={20} color="#6b7280" style={{ marginTop: 2 }} />
+      <View className="min-w-0 flex-1">
+        <Pressable
+          accessibilityRole="button"
+          accessibilityState={{ expanded }}
+          onPress={toggle}
+          className="flex-row items-center justify-between gap-2"
+        >
+          <View>
+            <Text className="font-neusans text-sm text-gray-500">Opening Hours</Text>
+            <Text
+              className={`font-neusans text-sm font-medium ${
+                isClosed ? 'text-gray-500' : 'text-green-600'
+              }`}
+            >
+              {summary}
+            </Text>
+          </View>
+          <Animated.View style={{ transform: [{ rotate: chevronRotate }] }}>
+            <Ionicons name="chevron-down" size={16} color="#9ca3af" />
+          </Animated.View>
+        </Pressable>
+
+        {expanded ? (
+          <View className="mt-3 gap-1.5 border-t border-gray-100 pt-3">
+            {grouped.map((group, index) => (
+              <View key={index} className="flex-row items-center justify-between gap-3 px-2 py-1">
+                <Text
+                  className={`font-neusans text-sm ${
+                    group.isToday ? 'font-semibold text-gray-900' : 'font-normal text-gray-700'
+                  }`}
+                >
+                  {formatDayRange(group.days)}
+                </Text>
+                <Text
+                  className={`font-neusans text-sm ${
+                    group.isClosed
+                      ? 'text-gray-400'
+                      : group.isToday
+                        ? 'font-semibold text-gray-900'
+                        : 'font-normal text-gray-700'
+                  }`}
+                >
+                  {group.isClosed ? 'Closed' : group.hours}
+                </Text>
+              </View>
+            ))}
+          </View>
+        ) : null}
+      </View>
+    </View>
+  )
 }
 
 export interface RestaurantDetailViewProps {
@@ -67,13 +206,21 @@ export function RestaurantDetailView({
   searchCount = 0,
   refreshing = false,
   onRefresh,
-}: RestaurantDetailViewProps) {
+}: RestaurantDetailViewProps): JSX.Element {
   const router = useRouter()
   const pathname = usePathname()
+  const { width: windowW } = useWindowDimensions()
   const { isAuthenticated } = useAuth()
-  const address = formatRestaurantAddress(restaurant)
+  const contentWidth = Math.max(280, windowW - 48)
+
+  const address = formatRestaurantAddress(restaurant) ?? undefined
   const about = stripHtml(restaurant.content)
-  const hoursLine = formatOpeningHoursSummary(restaurant.opening_hours)
+  const phone = restaurant.phone?.trim() ?? ''
+  const websiteUrl = restaurant.menu_url?.trim() ?? ''
+  const priceDisplay = formatPriceRange(restaurant.price_range_id) ?? 'Not available'
+  const googleMapsUrl = buildGoogleMapsPlaceUrl(restaurant)
+  const directionsUrl = buildDirectionsUrl(restaurant)
+  const coordsValid = hasValidCoordinates(restaurant)
 
   const overallAvg = summary?.overall_rating_avg ?? restaurant.average_rating
   const overallCount = summary?.overall_review_count ?? restaurant.ratings_count ?? 0
@@ -83,6 +230,9 @@ export function RestaurantDetailView({
   const [saved, setSaved] = useState<boolean | null>(null)
   const [checkedIn, setCheckedIn] = useState<boolean | null>(null)
   const [engageBusy, setEngageBusy] = useState(false)
+
+  const descriptionSheetRef = useRef<BottomSheetModal>(null)
+  const descriptionSnapPoints = useMemo(() => ['55%', '90%'], [])
 
   const syncEngagement = useCallback(async () => {
     if (!isAuthenticated) {
@@ -104,23 +254,29 @@ export function RestaurantDetailView({
     void syncEngagement()
   }, [syncEngagement])
 
+  const renderDescriptionBackdrop = useCallback(
+    (props: BottomSheetBackdropProps) => (
+      <BottomSheetBackdrop {...props} appearsOnIndex={0} disappearsOnIndex={-1} pressBehavior="close" />
+    ),
+    [],
+  )
+
   const onShare = async () => {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
+    const url = `${getMarketingWebOrigin()}${restaurantDetailPath(slug)}`
     try {
-      await Share.share({
-        message: `${restaurant.title} — Tastyplates (${restaurant.slug})`,
+      const result = await Share.share({
+        title: restaurant.title,
+        message: `Check out ${restaurant.title} on TastyPlates!`,
+        url,
       })
+      if (Platform.OS === 'android' && result.action === Share.dismissedAction) {
+        return
+      }
     } catch {
-      /* ignore */
+      const copied = await copyToClipboard(url)
+      if (copied) toast.success('Link copied!')
     }
-  }
-
-  const onWriteReview = () => {
-    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
-    router.push({
-      pathname: SCREEN_STUDIO_ADD_REVIEW_WRITE,
-      params: { slug },
-    })
   }
 
   const promptSignInForEngagement = () => {
@@ -140,7 +296,6 @@ export function RestaurantDetailView({
     try {
       const status = await toggleFavoriteBySlug(slug)
       setSaved(status === 'saved')
-      await Haptics.selectionAsync()
     } catch {
       await syncEngagement()
     } finally {
@@ -160,8 +315,6 @@ export function RestaurantDetailView({
       setCheckedIn(status === 'checkedin')
       if (status === 'checkedin') {
         await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
-      } else {
-        await Haptics.selectionAsync()
       }
     } catch {
       await syncEngagement()
@@ -170,18 +323,33 @@ export function RestaurantDetailView({
     }
   }
 
-  const openDirections = () => {
-    const lat = restaurant.latitude
-    const lng = restaurant.longitude
-    if (lat == null || lng == null) return
+  const openWebsite = () => {
+    if (!websiteUrl.startsWith('http')) return
     void Haptics.selectionAsync()
-    const url = mapsDirectionsUrl(lat, lng)
-    void Linking.openURL(url)
+    void Linking.openURL(websiteUrl)
+  }
+
+  const openCall = () => {
+    if (!phone) return
+    void Haptics.selectionAsync()
+    void Linking.openURL(`tel:${phone.replace(/\s/g, '')}`)
+  }
+
+  const openDirections = () => {
+    void Haptics.selectionAsync()
+    void Linking.openURL(directionsUrl)
+  }
+
+  const openMaps = () => {
+    if (!googleMapsUrl) return
+    void Haptics.selectionAsync()
+    void Linking.openURL(googleMapsUrl)
   }
 
   const visibleReviews = reviews.filter((r) => !r.status || r.status === 'approved')
 
   return (
+  <>
     <ScrollView
       className="flex-1 bg-white"
       showsVerticalScrollIndicator={false}
@@ -191,63 +359,157 @@ export function RestaurantDetailView({
         ) : undefined
       }
     >
-      <RestaurantDetailSummary
-        restaurant={restaurant}
-        overallAvg={overallAvg}
-        overallCount={overallCount}
-        palateSlug={palateSlug}
-        onShare={() => void onShare()}
-      />
+      <RestaurantDetailSummary restaurant={restaurant} />
 
-      <View
-        className="flex-row flex-wrap items-stretch gap-3 border-t px-4 py-4"
-        style={{ borderTopColor: BORDER_SUBTLE }}
-      >
+      {/* Section 3 — Action buttons */}
+      <View className="mx-4 mt-6 flex-row flex-wrap gap-2">
+        <ActionPill
+          label="Website"
+          icon="globe-outline"
+          disabled={!websiteUrl}
+          onPress={websiteUrl ? openWebsite : undefined}
+        />
+        <ActionPill label="Call" icon="call-outline" disabled={!phone} onPress={phone ? openCall : undefined} />
+        <ActionPill label="Directions" icon="navigate-outline" onPress={openDirections} />
         <Pressable
-          onPress={onWriteReview}
-          className="min-w-[140px] flex-1 items-center justify-center rounded-[50px] py-3 active:opacity-90"
-          style={{ backgroundColor: BRAND_PRIMARY }}
-        >
-          <Text className="text-sm font-normal text-white">Write a review</Text>
-        </Pressable>
-        <Pressable
+          accessibilityRole="button"
           disabled={engageBusy}
           onPress={() => void onToggleSave()}
-          className="h-12 w-12 items-center justify-center rounded-full border bg-white active:opacity-90"
-          style={{ borderColor: BORDER_SUBTLE }}
+          className="flex-row items-center gap-2 rounded-[50px] border border-gray-300 bg-white px-4 py-2 active:opacity-90"
         >
           <Ionicons
             name={saved ? 'bookmark' : 'bookmark-outline'}
-            size={22}
-            color={saved ? BRAND_PRIMARY : TEXT_HEADING}
+            size={16}
+            color={saved ? SAVE_FILLED : ACTION_INK}
           />
+          <Text className="font-neusans text-sm font-normal text-gray-900">Save</Text>
         </Pressable>
         <Pressable
+          accessibilityRole="button"
           disabled={engageBusy}
           onPress={() => void onToggleCheckin()}
-          className="h-12 w-12 items-center justify-center rounded-full border bg-white active:opacity-90"
-          style={{ borderColor: BORDER_SUBTLE }}
+          className="flex-row items-center gap-2 rounded-[50px] border border-gray-300 bg-white px-4 py-2 active:opacity-90"
         >
           <Ionicons
-            name={checkedIn ? 'checkmark-circle' : 'checkmark-circle-outline'}
-            size={24}
-            color={checkedIn ? BRAND_PRIMARY : TEXT_HEADING}
+            name={checkedIn ? 'location' : 'location-outline'}
+            size={16}
+            color={checkedIn ? CHECKIN_FILLED : ACTION_INK}
           />
+          <Text className="font-neusans text-sm font-normal text-gray-900">Check-in</Text>
+        </Pressable>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Share restaurant"
+          onPress={() => void onShare()}
+          className="h-9 w-9 items-center justify-center rounded-full border border-gray-300 bg-white active:opacity-90"
+        >
+          <Ionicons name="share-social-outline" size={16} color="#6b7280" />
         </Pressable>
       </View>
 
-      <RestaurantRatingMetricsRow
-        overallAvg={overallAvg}
-        overallCount={overallCount}
-        authenticAvg={authAvg}
-        authenticCount={authCount}
-        searchAvg={searchAvg}
-        searchCount={searchCount}
-        palateSlug={palateSlug}
-        isAuthenticated={isAuthenticated}
-      />
+      {/* Section 4 — Ratings */}
+      <View className="mx-4 mt-4 overflow-hidden rounded-2xl bg-white">
+        <RestaurantRatingMetricsRow
+          overallAvg={overallAvg}
+          overallCount={overallCount}
+          authenticAvg={authAvg}
+          authenticCount={authCount}
+          searchAvg={searchAvg}
+          searchCount={searchCount}
+          palateSlug={palateSlug}
+          isAuthenticated={isAuthenticated}
+          embedded
+        />
+      </View>
 
-      <View className="border-t px-4 py-4" style={{ borderTopColor: BORDER_SUBTLE }}>
+      {/* Section 5 — Location */}
+      <View className="mx-4 mt-4 rounded-2xl bg-white p-6">
+        <Text className="mb-4 font-neusans text-lg font-normal text-gray-900">Location</Text>
+        {coordsValid && restaurant.latitude != null && restaurant.longitude != null ? (
+          <View className="mb-2 overflow-hidden rounded-xl" style={{ height: 256 }}>
+            <MapView
+              style={{ flex: 1 }}
+              scrollEnabled={false}
+              zoomEnabled={false}
+              rotateEnabled={false}
+              pitchEnabled={false}
+              initialRegion={{
+                latitude: restaurant.latitude,
+                longitude: restaurant.longitude,
+                latitudeDelta: 0.01,
+                longitudeDelta: 0.01,
+              }}
+            >
+              <Marker coordinate={{ latitude: restaurant.latitude, longitude: restaurant.longitude }} />
+            </MapView>
+          </View>
+        ) : (
+          <View className="mb-2 h-40 flex-row items-center justify-center rounded-xl bg-gray-100">
+            <Ionicons name="location-outline" size={20} color="#9ca3af" />
+            <Text className="ml-2 font-neusans text-gray-500">Map location not available</Text>
+          </View>
+        )}
+
+        {address ? (
+          <View className="flex-row items-center gap-3 pt-2">
+            <Ionicons name="location-outline" size={18} color="#6b7280" />
+            <Text className="min-w-0 flex-1 font-neusans text-sm font-normal text-gray-700">{address}</Text>
+            {googleMapsUrl ? (
+              <Pressable accessibilityRole="button" onPress={openMaps} hitSlop={8}>
+                <Ionicons name="open-outline" size={16} color={BRAND_PRIMARY} />
+              </Pressable>
+            ) : null}
+          </View>
+        ) : null}
+      </View>
+
+      {/* Section 6 — Restaurant Details */}
+      <View className="mx-4 mt-4 rounded-2xl border border-gray-200 bg-white p-6">
+        <Text className="mb-4 font-neusans text-lg font-normal text-gray-900">Restaurant Details</Text>
+        <View className="gap-4">
+          {about ? (
+            <View className="border-b border-gray-200 pb-4">
+              <Text className="font-neusans text-sm leading-relaxed text-gray-700" numberOfLines={4}>
+                {about}
+              </Text>
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => descriptionSheetRef.current?.present()}
+                className="mt-3 items-center rounded-xl bg-gray-100 px-4 py-3 active:opacity-90"
+              >
+                <Text className="font-neusans text-sm font-medium text-gray-700">See More</Text>
+              </Pressable>
+            </View>
+          ) : null}
+
+          <OpeningHoursRow openingHours={restaurant.opening_hours as string | object | null | undefined} />
+
+          <View className="flex-row items-center gap-3">
+            <Ionicons name="call-outline" size={20} color="#6b7280" />
+            <View className="min-w-0 flex-1">
+              <Text className="font-neusans text-sm text-gray-500">Phone</Text>
+              {phone ? (
+                <Pressable accessibilityRole="button" onPress={openCall}>
+                  <Text className="font-neusans text-sm font-normal text-gray-700">{phone}</Text>
+                </Pressable>
+              ) : (
+                <Text className="font-neusans text-sm font-normal text-gray-700">Not available</Text>
+              )}
+            </View>
+          </View>
+
+          <View className="flex-row items-center gap-3">
+            <Ionicons name="cash-outline" size={20} color="#6b7280" />
+            <View>
+              <Text className="font-neusans text-sm text-gray-500">Price Range</Text>
+              <Text className="font-neusans text-sm font-normal text-gray-700">{priceDisplay}</Text>
+            </View>
+          </View>
+        </View>
+      </View>
+
+      {/* Reviews */}
+      <View className="mx-4 mt-4 rounded-2xl bg-white p-4">
         <Text className="mb-3 text-base font-normal" style={{ color: TEXT_HEADING }}>
           Reviews
         </Text>
@@ -257,31 +519,26 @@ export function RestaurantDetailView({
           </Text>
         ) : (
           <>
-            <View className="-mx-4 flex-row gap-3 pb-1" style={{ paddingHorizontal: 16 }}>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                {visibleReviews.map((item) => (
-                  <View
-                    key={item.id}
-                    className="mr-3 w-[200px] overflow-hidden rounded-lg border bg-white p-3"
-                    style={{
-                      borderColor: BORDER_SUBTLE,
-                      maxWidth: 200,
-                    }}
-                  >
-                    <Text className="text-sm font-normal" style={{ color: TEXT_HEADING }} numberOfLines={2}>
-                      {item.title?.trim() || 'Review'}
-                    </Text>
-                    <View className="mt-1">
-                      <RatingDisplay size="xs" value={item.rating} />
-                    </View>
-                    <Text className="mt-2 text-xs leading-snug" style={{ color: TEXT_BODY }} numberOfLines={4}>
-                      {stripHtml(item.content ?? '').slice(0, 220)}
-                      {(item.content?.length ?? 0) > 220 ? '…' : ''}
-                    </Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+              {visibleReviews.map((item) => (
+                <View
+                  key={item.id}
+                  className="mr-3 w-[200px] overflow-hidden rounded-lg border bg-white p-3"
+                  style={{ borderColor: BORDER_SUBTLE, maxWidth: 200 }}
+                >
+                  <Text className="text-sm font-normal" style={{ color: TEXT_HEADING }} numberOfLines={2}>
+                    {item.title?.trim() || 'Review'}
+                  </Text>
+                  <View className="mt-1">
+                    <RatingDisplay size="xs" value={item.rating} />
                   </View>
-                ))}
-              </ScrollView>
-            </View>
+                  <Text className="mt-2 text-xs leading-snug" style={{ color: TEXT_BODY }} numberOfLines={4}>
+                    {stripHtml(item.content ?? '').slice(0, 220)}
+                    {(item.content?.length ?? 0) > 220 ? '…' : ''}
+                  </Text>
+                </View>
+              ))}
+            </ScrollView>
             <Pressable
               onPress={() => {
                 void Haptics.selectionAsync()
@@ -290,99 +547,33 @@ export function RestaurantDetailView({
                   params: { restaurant_uuid: restaurant.uuid },
                 })
               }}
-              className="mt-3 self-end active:opacity-80"
+              className="mt-3 w-full items-center justify-center rounded-xl border border-gray-300 bg-white py-3 active:opacity-90"
             >
-              <Text className="text-sm" style={{ color: BRAND_PRIMARY }}>
-                View all ({reviewTotal})
+              <Text className="font-neusans text-sm font-medium" style={{ color: BRAND_PRIMARY }}>
+                View All Reviews ({reviewTotal})
               </Text>
             </Pressable>
           </>
         )}
       </View>
 
-      <View className="border-t px-4 py-4" style={{ borderTopColor: BORDER_SUBTLE }}>
-        <Text className="mb-3 text-base font-normal" style={{ color: TEXT_HEADING }}>
-          Location
-        </Text>
-        {restaurant.latitude != null && restaurant.longitude != null ? (
-          <Pressable
-            onPress={openDirections}
-            className="mb-3 overflow-hidden rounded-2xl bg-[#f8f9fa] active:opacity-90"
-            style={{ height: 140, borderWidth: 1, borderColor: BORDER_SUBTLE }}
-          >
-            <View className="flex-1 items-center justify-center px-4">
-              <Ionicons name="map-outline" size={36} color={BRAND_PRIMARY} />
-              <Text className="mt-2 text-center text-sm" style={{ color: TEXT_BODY }}>
-                Open in Maps
-              </Text>
-              <Text className="mt-1 text-center text-xs" style={{ color: TEXT_MUTED }}>
-                Tap for directions
-              </Text>
-            </View>
-          </Pressable>
-        ) : null}
-
-        {address ? (
-          <View className="mb-3 flex-row items-start gap-2">
-            <Ionicons name="location-outline" size={18} color={BRAND_PRIMARY} style={{ marginTop: 2 }} />
-            <Text className="min-w-0 flex-1 text-sm leading-relaxed" style={{ color: TEXT_BODY }}>
-              {address}
-            </Text>
-          </View>
-        ) : null}
-
-        {restaurant.phone?.trim() ? (
-          <Pressable
-            onPress={() => {
-              void Haptics.selectionAsync()
-              void Linking.openURL(`tel:${restaurant.phone!.replace(/\s/g, '')}`)
-            }}
-            className="mb-3 flex-row items-center gap-2 active:opacity-80"
-          >
-            <Ionicons name="call-outline" size={18} color={BRAND_PRIMARY} />
-            <Text className="text-sm" style={{ color: TEXT_BODY }}>
-              {restaurant.phone}
-            </Text>
-          </Pressable>
-        ) : null}
-
-        {hoursLine ? (
-          <Text className="text-xs leading-relaxed" style={{ color: TEXT_MUTED }}>
-            Hours: {hoursLine}
-          </Text>
-        ) : null}
-      </View>
-
-      {about ? (
-        <View className="border-t px-4 py-4" style={{ borderTopColor: BORDER_SUBTLE }}>
-          <Text className="mb-2 text-base font-normal" style={{ color: TEXT_HEADING }}>
-            About
-          </Text>
-          <Text className="text-sm leading-relaxed" style={{ color: TEXT_BODY }}>
-            {about}
-          </Text>
-        </View>
-      ) : null}
-
-      {restaurant.menu_url?.trim() ? (
-        <View className="border-t px-4 py-4" style={{ borderTopColor: BORDER_SUBTLE }}>
-          <Pressable
-            onPress={() => {
-              void Haptics.selectionAsync()
-              const u = restaurant.menu_url!.trim()
-              if (u.startsWith('http')) void Linking.openURL(u)
-            }}
-            className="flex-row items-center gap-2 active:opacity-80"
-          >
-            <Ionicons name="restaurant-outline" size={20} color={BRAND_PRIMARY} />
-            <Text className="text-sm" style={{ color: BRAND_PRIMARY }}>
-              View menu
-            </Text>
-          </Pressable>
-        </View>
-      ) : null}
-
       <View style={{ height: 32 }} />
     </ScrollView>
+
+    <BottomSheetModal
+      ref={descriptionSheetRef}
+      snapPoints={descriptionSnapPoints}
+      enablePanDownToClose
+      backdropComponent={renderDescriptionBackdrop}
+      handleIndicatorStyle={{ backgroundColor: '#d1d5db', width: 40 }}
+    >
+      <BottomSheetScrollView contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 32 }}>
+        <Text className="mb-3 font-neusans text-lg font-semibold text-gray-900">{restaurant.title}</Text>
+        {restaurant.content?.trim() ? (
+          <RenderHTML contentWidth={contentWidth} source={{ html: restaurant.content }} />
+        ) : null}
+      </BottomSheetScrollView>
+    </BottomSheetModal>
+  </>
   )
 }

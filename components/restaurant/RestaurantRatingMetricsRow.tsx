@@ -13,6 +13,8 @@ export type RestaurantRatingMetricsRowProps = {
   searchCount: number
   palateSlug: string | null | undefined
   isAuthenticated: boolean
+  /** When true, omit outer border — parent provides the white card shell. */
+  embedded?: boolean
 }
 
 function formatRating(n: number | null | undefined): string {
@@ -37,6 +39,7 @@ export function RestaurantRatingMetricsRow({
   searchCount,
   palateSlug,
   isAuthenticated,
+  embedded = false,
 }: RestaurantRatingMetricsRowProps): JSX.Element {
   const palateActive = !isNoPalateFilter(palateSlug)
   const showSearchValues = isAuthenticated || palateActive
@@ -51,14 +54,14 @@ export function RestaurantRatingMetricsRow({
   const sharedUnlocked = isAuthenticated
 
   return (
-    <View className="border-t px-0 py-4" style={{ borderTopColor: '#e5e7eb' }}>
-      <Text className="mb-3 px-4 text-base font-normal" style={{ color: TEXT_HEADING }}>
+    <View className={embedded ? 'py-6' : 'border-t px-0 py-4'} style={embedded ? undefined : { borderTopColor: '#e5e7eb' }}>
+      <Text className={`mb-4 font-neusans text-lg ${embedded ? 'px-6' : 'mb-3 px-4 text-base font-normal'}`} style={{ color: TEXT_HEADING }}>
         Ratings
       </Text>
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ paddingHorizontal: 16, gap: 0 }}
+        contentContainerStyle={{ paddingHorizontal: embedded ? 24 : 16, gap: 0 }}
       >
         <MetricColumn
           title="Overall Score"

@@ -208,7 +208,7 @@ export default function FollowingScreen() {
 
   if (loading && !refreshing) {
     return (
-      <View className="flex-1 bg-neutral-50">
+      <View className="flex-1 bg-white">
         <AppTopNav />
         <ScrollView className="flex-1" contentContainerStyle={{ paddingBottom: 32 }}>
           {pageHeader}
@@ -216,7 +216,7 @@ export default function FollowingScreen() {
             <Text className="text-lg font-semibold" style={{ color: TEXT_HEADING }}>
               Suggested Users
             </Text>
-            <View className="mt-3 h-28 rounded-2xl bg-neutral-200/80" />
+            <View className="mt-3 h-28 rounded-2xl bg-neutral-100" />
           </View>
           <View className="mt-3 px-4 pb-2">
             <Text className="text-lg font-semibold" style={{ color: TEXT_HEADING }}>
@@ -263,7 +263,7 @@ export default function FollowingScreen() {
   }
 
   return (
-    <View className="flex-1 bg-neutral-50">
+    <View className="flex-1 bg-white">
       <AppTopNav />
       <FlatList
         style={{ flex: 1 }}

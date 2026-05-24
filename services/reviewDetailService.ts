@@ -16,6 +16,7 @@ export interface ReviewDetailRow {
   recognitions?: unknown
   likes_count?: number | null
   replies_count?: number | null
+  user_liked?: boolean | null
   status?: string | null
   is_pinned?: boolean | null
   is_featured?: boolean | null

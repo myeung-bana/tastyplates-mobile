@@ -17,7 +17,6 @@ import {
 import { formatRestaurantCardAddress } from '@/services/restaurantsV2Service'
 
 const CARD_W = 148
-const CARD_H = Math.round((CARD_W * 4) / 3)
 
 export interface RecommendedRestaurantsCarouselProps {
   /** Section title (`design_system` §3.3). */
@@ -112,12 +111,14 @@ export function RecommendedRestaurantsCarousel({
             return (
               <RestaurantBrowseCard
                 key={row.id}
-                variant="list"
+                compact
                 title={r.title}
+                slug={r.slug?.trim() || undefined}
                 imageUrl={r.featured_image_url}
                 subtitle={subtitle}
                 rating={r.average_rating}
                 reviewCount={r.ratings_count ?? undefined}
+                containerStyle={{ width: CARD_W }}
                 onPress={() => {
                   const s = r.slug?.trim()
                   if (!s) return
@@ -147,13 +148,14 @@ export function RecommendedRestaurantsCarousel({
             return (
               <RestaurantBrowseCard
                 key={row.id}
-                variant="carousel"
+                compact
                 title={r.title}
+                slug={r.slug?.trim() || undefined}
                 imageUrl={r.featured_image_url}
                 subtitle={subtitle}
                 rating={r.average_rating}
                 reviewCount={r.ratings_count ?? undefined}
-                containerStyle={{ width: CARD_W, height: CARD_H }}
+                containerStyle={{ width: CARD_W }}
                 onPress={() => {
                   const s = r.slug?.trim()
                   if (!s) return

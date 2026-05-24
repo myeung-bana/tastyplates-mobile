@@ -19,6 +19,8 @@ export interface TrendingReviewRow {
   rating: number | null
   title: string | null
   restaurant_uuid: string
+  likes_count?: number | null
+  replies_count?: number | null
   AuthorProfile?: TrendingReviewAuthor | null
 }
 

@@ -1,5 +1,18 @@
 import { tastyplatesFetch, unwrapEnvelope } from '@/lib/tastyplatesFetch'
 
+export interface RestaurantListCuisine {
+  id: number
+  name: string
+  slug: string
+}
+
+export interface RestaurantListCategory {
+  id: number
+  name: string
+  slug: string
+  parent_id?: number | null
+}
+
 /** Row shape returned by `restaurants-v2/get-restaurants` (Hasura `restaurants` list). */
 export interface RestaurantListRow {
   id: number
@@ -19,9 +32,9 @@ export interface RestaurantListRow {
     country_short?: string
     street_address?: string
   } | null
-  cuisines: unknown
+  cuisines: RestaurantListCuisine[] | unknown
   palates: unknown
-  categories: unknown
+  categories: RestaurantListCategory[] | unknown
   is_main_location: boolean | null
   created_at: string
   updated_at: string
@@ -52,6 +65,58 @@ export interface GetRestaurantsParams {
   locationKey?: string
 }
 
+function parseJsonbField(value: unknown): unknown {
+  if (value == null) return null
+  if (typeof value === 'string') {
+    try {
+      return JSON.parse(value) as unknown
+    } catch {
+      return null
+    }
+  }
+  return value
+}
+
+/** JSONB `cuisines` may arrive as array, string, or null — always return an array. */
+export function normalizeCuisineList(value: unknown): RestaurantListCuisine[] {
+  const parsed = parseJsonbField(value)
+  if (!Array.isArray(parsed)) return []
+  return parsed
+    .filter((item): item is Record<string, unknown> => item != null && typeof item === 'object')
+    .map((item) => ({
+      id: Number(item.id),
+      name: String(item.name ?? '').trim(),
+      slug: String(item.slug ?? '').trim(),
+    }))
+    .filter((item) => item.name.length > 0)
+}
+
+/** JSONB `categories` may arrive as array, string, or null — always return an array. */
+export function normalizeCategoryList(value: unknown): RestaurantListCategory[] {
+  const parsed = parseJsonbField(value)
+  if (!Array.isArray(parsed)) return []
+  return parsed
+    .filter((item): item is Record<string, unknown> => item != null && typeof item === 'object')
+    .map((item) => ({
+      id: Number(item.id),
+      name: String(item.name ?? '').trim(),
+      slug: String(item.slug ?? '').trim(),
+      parent_id:
+        item.parent_id === null || item.parent_id === undefined
+          ? null
+          : Number(item.parent_id),
+    }))
+    .filter((item) => item.name.length > 0)
+}
+
+export function normalizeRestaurantListRow(row: RestaurantListRow): RestaurantListRow {
+  return {
+    ...row,
+    cuisines: normalizeCuisineList(row.cuisines),
+    categories: normalizeCategoryList(row.categories),
+  }
+}
+
 function buildQuery(params: GetRestaurantsParams): string {
   const qs = new URLSearchParams()
   const limit = params.limit ?? 24
@@ -72,7 +137,11 @@ export async function getRestaurants(params: GetRestaurantsParams = {}): Promise
   const envelope = await tastyplatesFetch<GetRestaurantsResponse>(
     `restaurants-v2/get-restaurants?${query}`,
   )
-  return unwrapEnvelope(envelope)
+  const data = unwrapEnvelope(envelope)
+  return {
+    ...data,
+    restaurants: data.restaurants.map(normalizeRestaurantListRow),
+  }
 }
 
 export type RestaurantAddressFields = RestaurantListRow['address']
