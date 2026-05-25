@@ -61,3 +61,55 @@ export function getShortAddress(address: AddressComponents | null | undefined): 
 export function getMapsQuery(address: AddressComponents | null | undefined): string {
   return encodeURIComponent(getBestAddress(address))
 }
+
+/**
+ * Shape of the `address` JSONB column on Hasura `restaurants` rows.
+ * Mirrors the web `GoogleMapUrl` type.
+ */
+export interface HasuraGoogleMapUrl {
+  streetAddress?: string | null
+  streetNumber?: string | null
+  streetName?: string | null
+  suburb?: string | null
+  city?: string | null
+  state?: string | null
+  stateShort?: string | null
+  country?: string | null
+  countryShort?: string | null
+  postCode?: string | null
+  latitude?: string | null
+  longitude?: string | null
+  placeId?: string | null
+  zoom?: number | null
+}
+
+/**
+ * Best display address for a Hasura restaurant row.
+ *
+ * Priority (mirrors web `getBestAddress`):
+ * 1. `googleMapUrl.streetAddress`
+ * 2. Composed "streetNumber streetName, suburb/city" from `googleMapUrl`
+ * 3. `listingStreet` plain text field
+ * 4. `fallback` (default empty string)
+ */
+export function getBestRestaurantAddress(
+  googleMapUrl?: HasuraGoogleMapUrl | null,
+  listingStreet?: string | null,
+  fallback = '',
+): string {
+  if (googleMapUrl?.streetAddress?.trim()) return googleMapUrl.streetAddress.trim()
+
+  if (googleMapUrl) {
+    const parts: string[] = []
+    const street = [googleMapUrl.streetNumber, googleMapUrl.streetName].filter(Boolean).join(' ')
+    if (street) parts.push(street)
+    if (googleMapUrl.suburb) parts.push(googleMapUrl.suburb)
+    else if (googleMapUrl.city) parts.push(googleMapUrl.city)
+    const composed = parts.join(', ')
+    if (composed) return composed
+  }
+
+  if (listingStreet?.trim()) return listingStreet.trim()
+
+  return fallback
+}

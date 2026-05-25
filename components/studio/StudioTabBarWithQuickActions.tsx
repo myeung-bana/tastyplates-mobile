@@ -19,6 +19,7 @@ import type { BottomTabBarProps } from '@react-navigation/bottom-tabs'
 import { BottomTabBar } from '@react-navigation/bottom-tabs'
 import type { Href } from 'expo-router'
 import { useRouter } from 'expo-router'
+import { castHref } from '@/lib/routeParams'
 import * as Haptics from 'expo-haptics'
 import Animated, {
   Easing,
@@ -31,6 +32,7 @@ import Animated, {
 
 import {
   SCREEN_STUDIO_ADD_REVIEW,
+  SCREEN_STUDIO_MANAGE_LISTS,
   SCREEN_STUDIO_MY_LISTS,
   SCREEN_STUDIO_REVIEW_LISTING,
 } from '@/constants/screens'
@@ -41,7 +43,7 @@ import { useStudioQuickMenu } from '@/contexts/StudioQuickMenuContext'
 
 const { height: SCREEN_H, width: SCREEN_W } = Dimensions.get('window')
 
-const SHEET_MAX_H = Math.min(SCREEN_H * 0.45, 340)
+const SHEET_MAX_H = Math.min(SCREEN_H * 0.52, 400)
 /** Sheet translate baseline: hides panel below viewport */
 const SHEET_HIDDEN_Y = SHEET_MAX_H + 24
 
@@ -231,9 +233,15 @@ export function StudioTabBarWithQuickActions(props: BottomTabBarProps): JSX.Elem
               onPress={() => queueNavThenClose(SCREEN_STUDIO_REVIEW_LISTING)}
             />
             <QuickActionRow
+              icon="albums-outline"
+              label="Manage Lists"
+              subtitle="Create and edit your restaurant playlists"
+              onPress={() => queueNavThenClose(castHref(SCREEN_STUDIO_MANAGE_LISTS))}
+            />
+            <QuickActionRow
               icon="bookmark-outline"
-              label="My List"
-              subtitle="Create and update your favourite restaurants"
+              label="Dine-In / Check-Ins"
+              subtitle="Track your favourite restaurants"
               onPress={() => queueNavThenClose(SCREEN_STUDIO_MY_LISTS)}
             />
           </Animated.View>

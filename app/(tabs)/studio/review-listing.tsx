@@ -7,7 +7,10 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { router } from 'expo-router'
 import { Swipeable } from 'react-native-gesture-handler'
 
-import { SectionTitle } from '@/components/layout/SectionTitle'
+import {
+  ReviewListingFilterChips,
+  type ReviewListingFilter,
+} from '@/components/studio/ReviewListingFilterChips'
 import {
   BORDER_SUBTLE,
   BRAND_PRIMARY,
@@ -25,9 +28,7 @@ import {
   updateRestaurantReview,
 } from '@/services/studioReviewApi'
 
-type FilterChip = 'all' | 'draft' | 'live'
-
-function emptyStateMessage(filter: FilterChip): string {
+function emptyStateMessage(filter: ReviewListingFilter): string {
   if (filter === 'draft') return 'There are no drafts currently.'
   return 'There are no reviews yet.'
 }
@@ -135,7 +136,7 @@ export default function ReviewListingScreen(): JSX.Element {
 
   const [reviews, setReviews] = useState<RestaurantReviewMine[]>([])
   const [fetching, setFetching] = useState(true)
-  const [chip, setChip] = useState<FilterChip>('all')
+  const [chip, setChip] = useState<ReviewListingFilter>('all')
 
   const loadReviews = useCallback(async () => {
     if (!userId) return
@@ -199,34 +200,7 @@ export default function ReviewListingScreen(): JSX.Element {
 
   return (
     <SafeAreaView className="flex-1 bg-white px-6" edges={['left', 'right', 'bottom']}>
-      <SectionTitle className="mt-10">Manage reviews</SectionTitle>
-
-      <View className="mt-6 flex-row flex-wrap gap-2">
-        {(
-          [
-            { key: 'all' as const, label: 'All' },
-            { key: 'draft' as const, label: 'Drafts' },
-            { key: 'live' as const, label: 'Live' },
-          ] as const
-        ).map((tab) => {
-          const pressed = chip === tab.key
-          return (
-            <Pressable
-              accessibilityRole="button"
-              accessibilityState={{ selected: pressed }}
-              key={tab.key}
-              onPress={() => {
-                void Haptics.selectionAsync()
-                setChip(tab.key)
-              }}
-              className="rounded-full px-7 py-2"
-              style={{ backgroundColor: pressed ? BRAND_PRIMARY : '#f3f4f6' }}
-            >
-              <Text style={{ fontWeight: '700', color: pressed ? '#ffffff' : TEXT_HEADING }}>{tab.label}</Text>
-            </Pressable>
-          )
-        })}
-      </View>
+      <ReviewListingFilterChips active={chip} onChange={setChip} />
 
       {isLoading ? (
         <ScrollView

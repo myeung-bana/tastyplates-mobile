@@ -1,4 +1,6 @@
-import { tastyplatesFetch, unwrapEnvelope } from '@/lib/tastyplatesFetch'
+import { nhost } from '@/lib/nhost'
+import { tastyplatesFetch, unwrapEnvelope, getNhostFunctionsBase } from '@/lib/tastyplatesFetch'
+import type { HasuraRestaurantRow } from '@/lib/myListsRestaurant'
 
 /** Row from `restaurant-users/get-restaurant-user-by-username` / `get-restaurant-user-by-id`. */
 export interface RestaurantUserRow {
@@ -66,4 +68,72 @@ export async function fetchRestaurantUserById(id: string): Promise<RestaurantUse
     `restaurant-users/get-restaurant-user-by-id?id=${encodeURIComponent(id)}`,
   )
   return unwrapEnvelope(envelope).user
+}
+
+// ─── Wishlist / Check-ins ──────────────────────────────────────────────────
+
+export interface ListMeta {
+  total: number
+  limit: number
+  offset: number
+  hasMore: boolean
+}
+
+export interface WishlistItem {
+  favorite_id: string
+  created_at: string
+  restaurant: HasuraRestaurantRow | null
+}
+
+export interface CheckinItem {
+  checkin_id: string
+  checked_in_at: string
+  restaurant: HasuraRestaurantRow | null
+}
+
+export interface GetWishlistResponse {
+  items: WishlistItem[]
+  meta: ListMeta
+}
+
+export interface GetCheckinsResponse {
+  items: CheckinItem[]
+  meta: ListMeta
+}
+
+async function authFetch<T>(path: string): Promise<T> {
+  const base = getNhostFunctionsBase()
+  const token = nhost.auth.getAccessToken()
+  const res = await fetch(`${base}/${path}`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  })
+  if (!res.ok) {
+    const text = await res.text().catch(() => res.statusText)
+    throw new Error(`HTTP ${res.status}: ${text}`)
+  }
+  const envelope = (await res.json()) as { ok: boolean; data?: T; error?: string }
+  if (!envelope.ok || !envelope.data) throw new Error(envelope.error ?? 'Unknown error')
+  return envelope.data
+}
+
+export async function getWishlist(params: {
+  user_id: string
+  limit?: number
+  offset?: number
+}): Promise<GetWishlistResponse> {
+  const q = new URLSearchParams({ user_id: params.user_id })
+  if (params.limit != null) q.set('limit', String(params.limit))
+  if (params.offset != null) q.set('offset', String(params.offset))
+  return authFetch<GetWishlistResponse>(`restaurant-users/get-wishlist?${q.toString()}`)
+}
+
+export async function getCheckins(params: {
+  user_id: string
+  limit?: number
+  offset?: number
+}): Promise<GetCheckinsResponse> {
+  const q = new URLSearchParams({ user_id: params.user_id })
+  if (params.limit != null) q.set('limit', String(params.limit))
+  if (params.offset != null) q.set('offset', String(params.offset))
+  return authFetch<GetCheckinsResponse>(`restaurant-users/get-checkins?${q.toString()}`)
 }

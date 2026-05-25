@@ -1,0 +1,300 @@
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { Alert, Pressable, RefreshControl, Share, Text, View } from 'react-native'
+import * as Haptics from 'expo-haptics'
+import { FlashList } from '@shopify/flash-list'
+import { SafeAreaView } from 'react-native-safe-area-context'
+import { router, useLocalSearchParams, useNavigation } from 'expo-router'
+import { Feather } from '@expo/vector-icons'
+import type { Swipeable } from 'react-native-gesture-handler'
+
+import { Button } from '@/components/ui/Button'
+import { ManageListItemRow } from '@/components/studio/manage-lists/ManageListItemRow'
+import { RestaurantListSkeletonList } from '@/components/ui/Skeleton/RestaurantListSkeleton'
+import { BRAND_PRIMARY } from '@/constants/brand'
+import {
+  listDeletedSuccess,
+  listDeleteError,
+  listItemRemovedSuccess,
+  listItemRemoveError,
+  listUpdatedSuccess,
+  listUpdateError,
+} from '@/constants/messages'
+import {
+  studioManageListAddPath,
+  studioManageListEditPath,
+} from '@/constants/screens'
+import { castHref } from '@/lib/routeParams'
+import { firstSegmentParam } from '@/lib/routeParams'
+import {
+  deleteList,
+  getListBySlug,
+  removeListItem,
+  updateList,
+} from '@/services/restaurantListService'
+import type { RestaurantListDetail, RestaurantListItem } from '@/types/restaurantList'
+import { toast } from '@/utils/toast'
+
+const SHARE_BASE = 'https://tastyplates.co/lists/share'
+
+function formatRelativeTime(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime()
+  const days = Math.floor(diff / 86400000)
+  if (days < 1) return 'today'
+  if (days === 1) return 'yesterday'
+  if (days < 30) return `${days}d ago`
+  const months = Math.floor(days / 30)
+  return `${months}mo ago`
+}
+
+export default function ListDetailScreen(): JSX.Element {
+  const params = useLocalSearchParams()
+  const uuid = firstSegmentParam(params.uuid)
+  const slugParam = firstSegmentParam(params.slug)
+  const titleParam = firstSegmentParam(params.title)
+
+  const navigation = useNavigation()
+
+  const [list, setList] = useState<RestaurantListDetail | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [refreshing, setRefreshing] = useState(false)
+  const [fetched, setFetched] = useState(false)
+  const [makingPublic, setMakingPublic] = useState(false)
+
+  const swipeableRefs = useRef<Map<string, Swipeable>>(new Map())
+
+  const fetchDetail = useCallback(
+    async (refresh = false) => {
+      // slug is passed from create / hub navigation; fall back to uuid-based cache
+      const slugToFetch = list?.slug ?? slugParam
+      if (!slugToFetch) return
+
+      if (refresh) {
+        setRefreshing(true)
+      } else if (!fetched) {
+        setLoading(true)
+      }
+
+      try {
+        const detail = await getListBySlug(slugToFetch)
+        setList(detail)
+        setFetched(true)
+        navigation.setOptions({ title: detail.title })
+      } catch {
+        // Show what we have or empty
+      } finally {
+        setLoading(false)
+        setRefreshing(false)
+      }
+    },
+    [slugParam, fetched, list?.slug, navigation],
+  )
+
+  useEffect(() => {
+    void fetchDetail()
+    if (titleParam) navigation.setOptions({ title: titleParam })
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Refresh detail when returning from add-restaurant screen
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('focus', () => {
+      if (fetched) void fetchDetail(true)
+    })
+    return unsubscribe
+  }, [navigation, fetched, fetchDetail])
+
+  const handleRemoveItem = useCallback(
+    async (item: RestaurantListItem) => {
+      if (!list) return
+      const prevItems = list.items
+      setList((prev) => prev ? { ...prev, items: prev.items.filter((i) => i.id !== item.id) } : prev)
+      try {
+        await removeListItem({ list_uuid: list.uuid, item_id: item.id })
+        toast.success(listItemRemovedSuccess)
+      } catch {
+        setList((prev) => prev ? { ...prev, items: prevItems } : prev)
+        toast.error(listItemRemoveError)
+      }
+    },
+    [list],
+  )
+
+  const handleMakePublic = useCallback(async () => {
+    if (!list) return
+    setMakingPublic(true)
+    try {
+      await updateList({ list_uuid: list.uuid, visibility: 'public' })
+      setList((prev) => prev ? { ...prev, visibility: 'public' } : prev)
+      toast.success(listUpdatedSuccess)
+    } catch {
+      toast.error(listUpdateError)
+    } finally {
+      setMakingPublic(false)
+    }
+  }, [list])
+
+  const handleShare = useCallback(() => {
+    if (!list) return
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
+    const shareToken = list.share_token
+    if (shareToken) {
+      void Share.share({ url: `${SHARE_BASE}/${shareToken}`, message: `Check out my restaurant list: ${list.title}` })
+    } else {
+      void Share.share({ url: `https://tastyplates.co/lists/${list.slug}`, message: `Check out my restaurant list: ${list.title}` })
+    }
+  }, [list])
+
+  const handleDelete = useCallback(() => {
+    if (!list) return
+    Alert.alert(
+      'Delete List',
+      `Are you sure you want to delete "${list.title}"? This cannot be undone.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => {
+            void (async () => {
+              try {
+                await deleteList(list.uuid)
+                toast.success(listDeletedSuccess)
+                router.back()
+              } catch {
+                toast.error(listDeleteError)
+              }
+            })()
+          },
+        },
+      ],
+    )
+  }, [list])
+
+  const itemCount = list?.items.length ?? 0
+  const visibilityLabel = list?.visibility === 'public' ? 'Public' : 'Private'
+  const updatedLabel = list ? formatRelativeTime(list.updated_at) : ''
+
+  if (loading && !fetched) {
+    return (
+      <SafeAreaView className="flex-1 bg-white" edges={['left', 'right', 'bottom']}>
+        <RestaurantListSkeletonList count={5} />
+      </SafeAreaView>
+    )
+  }
+
+  return (
+    <SafeAreaView className="flex-1 bg-white" edges={['left', 'right', 'bottom']}>
+      <FlashList
+        data={list?.items ?? []}
+        keyExtractor={(item) => String(item.id)}
+        renderItem={({ item }) => (
+          <ManageListItemRow
+            item={item}
+            swipeableRefs={swipeableRefs}
+            onRemove={(i) => void handleRemoveItem(i)}
+          />
+        )}
+        ListHeaderComponent={
+          <View>
+            {/* List metadata header */}
+            <View className="border-b border-gray-100 px-4 pt-4 pb-3">
+              <Text className="font-neusans text-xl font-medium text-[#31343F]" numberOfLines={2}>
+                {list?.title ?? titleParam ?? ''}
+              </Text>
+              {list?.description ? (
+                <Text className="mt-1 font-neusans text-sm text-[#6b7280]" numberOfLines={2}>
+                  {list.description}
+                </Text>
+              ) : null}
+              <Text className="mt-2 font-neusans text-xs text-[#9ca3af]">
+                {`${itemCount} ${itemCount === 1 ? 'place' : 'places'} · ${visibilityLabel} · Updated ${updatedLabel}`}
+              </Text>
+
+              {/* Action row */}
+              <View className="mt-3 flex-row flex-wrap gap-2">
+                <Pressable
+                  accessibilityRole="button"
+                  onPress={handleShare}
+                  className="flex-row items-center gap-2 rounded-[50px] border border-gray-300 bg-white px-4 py-2"
+                >
+                  <Feather name="share-2" size={14} color="#374151" />
+                  <Text className="font-neusans text-sm text-[#374151]">Share Link</Text>
+                </Pressable>
+
+                {list?.visibility === 'private' ? (
+                  <Pressable
+                    accessibilityRole="button"
+                    onPress={() => void handleMakePublic()}
+                    disabled={makingPublic}
+                    className="flex-row items-center gap-2 rounded-[50px] border border-gray-300 bg-white px-4 py-2"
+                  >
+                    <Feather name="globe" size={14} color="#374151" />
+                    <Text className="font-neusans text-sm text-[#374151]">
+                      {makingPublic ? 'Saving…' : 'Make Public'}
+                    </Text>
+                  </Pressable>
+                ) : null}
+
+                <Pressable
+                  accessibilityRole="button"
+                  onPress={() => {
+                    if (!list) return
+                    router.push(castHref(studioManageListEditPath(uuid)), {
+                      relativeToDirectory: false,
+                    } as Parameters<typeof router.push>[1])
+                  }}
+                  className="flex-row items-center gap-2 rounded-[50px] border border-gray-300 bg-white px-4 py-2"
+                >
+                  <Feather name="edit-2" size={14} color="#374151" />
+                  <Text className="font-neusans text-sm text-[#374151]">Edit</Text>
+                </Pressable>
+
+                <Pressable
+                  accessibilityRole="button"
+                  onPress={handleDelete}
+                  className="flex-row items-center gap-2 rounded-[50px] border border-red-200 bg-white px-4 py-2"
+                >
+                  <Feather name="trash-2" size={14} color="#ef4444" />
+                  <Text className="font-neusans text-sm text-red-500">Delete</Text>
+                </Pressable>
+              </View>
+            </View>
+
+            {/* Add restaurant CTA */}
+            <View className="border-b border-gray-100 px-4 py-3">
+              <Button
+                variant="primary"
+                onPress={() => {
+                  void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
+                  router.push(castHref(studioManageListAddPath(uuid)))
+                }}
+              >
+                + Add Restaurant
+              </Button>
+            </View>
+
+            {/* Empty items state */}
+            {fetched && (list?.items ?? []).length === 0 ? (
+              <View className="items-center px-8 py-12">
+                <Feather name="search" size={28} color="#ff7c0a" style={{ marginBottom: 12 }} />
+                <Text className="mb-2 text-center font-neusans text-base font-medium text-gray-900">
+                  Nothing in this list yet
+                </Text>
+                <Text className="text-center font-neusans text-sm text-gray-500">
+                  Start adding restaurants to build your list
+                </Text>
+              </View>
+            ) : null}
+          </View>
+        }
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={() => void fetchDetail(true)}
+            tintColor={BRAND_PRIMARY}
+          />
+        }
+        contentContainerStyle={{ paddingBottom: 32 }}
+      />
+    </SafeAreaView>
+  )
+}

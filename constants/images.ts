@@ -11,6 +11,9 @@ export type SvgIconComponent = ComponentType<SvgProps>
 
 export const STAR_FILLED: SvgIconComponent = StarFilledIcon
 
+export const DEFAULT_RESTAURANT_IMAGE =
+  'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400&q=80'
+
 export const RECOGNITION_TAGS: ReadonlyArray<{
   name: string
   Icon: SvgIconComponent

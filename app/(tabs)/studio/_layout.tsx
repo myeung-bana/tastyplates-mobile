@@ -42,9 +42,35 @@ export default function StudioSectionLayout(): JSX.Element {
       <Stack.Screen name="add-review/[slug]" options={{ title: 'Write review' }} />
       <Stack.Screen name="add-review/create" options={{ title: 'Write review' }} />
       <Stack.Screen name="add-review/success" options={{ headerShown: false }} />
-      <Stack.Screen name="review-listing" options={{ title: 'Your reviews' }} />
+      <Stack.Screen
+        name="review-listing"
+        options={{
+          title: 'Manage Reviews',
+          headerBackTitle: '',
+          headerBackTitleVisible: false,
+        }}
+      />
       <Stack.Screen name="edit-review/[id]" options={{ title: 'Edit review' }} />
-      <Stack.Screen name="my-lists/index" options={{ title: 'My lists' }} />
+      <Stack.Screen
+        name="my-lists/index"
+        options={{
+          title: 'To Dine / Check-Ins',
+          headerBackTitle: '',
+          headerBackTitleVisible: false,
+        }}
+      />
+      <Stack.Screen
+        name="manage-lists/index"
+        options={{
+          title: 'Manage Lists',
+          headerBackTitle: '',
+          headerBackTitleVisible: false,
+        }}
+      />
+      <Stack.Screen name="manage-lists/create" options={{ title: 'New List' }} />
+      <Stack.Screen name="manage-lists/[uuid]/index" options={{ headerShown: false }} />
+      <Stack.Screen name="manage-lists/[uuid]/edit" options={{ title: 'Edit List' }} />
+      <Stack.Screen name="manage-lists/[uuid]/add" options={{ title: 'Add Restaurant' }} />
     </Stack>
   )
 }

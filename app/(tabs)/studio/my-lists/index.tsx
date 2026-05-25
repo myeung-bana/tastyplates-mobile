@@ -1,159 +1,176 @@
-import { useCallback, useMemo, useRef, useState } from 'react'
-import { ActivityIndicator, Alert, Pressable, RefreshControl, Text, View } from 'react-native'
-import { Ionicons } from '@expo/vector-icons'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { RefreshControl, View } from 'react-native'
 import * as Haptics from 'expo-haptics'
 import { FlashList } from '@shopify/flash-list'
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
+import { SafeAreaView } from 'react-native-safe-area-context'
+import type { Swipeable } from 'react-native-gesture-handler'
 
-import { AddToMyListSheet, type AddToMyListSheetHandle } from '@/components/studio/AddToMyListSheet'
-import { GlobalLocationPill } from '@/components/navigation/GlobalLocationPill'
-import { MyListPlaceCard } from '@/components/studio/MyListPlaceCard'
-import { BORDER_SUBTLE, BRAND_PRIMARY, TEXT_HEADING, TEXT_MUTED } from '@/constants/brand'
+import { MyListsEmptyState } from '@/components/studio/my-lists/MyListsEmptyState'
+import { MyListsRestaurantRow } from '@/components/studio/my-lists/MyListsRestaurantRow'
+import { MyListsTabBar } from '@/components/studio/my-lists/MyListsTabBar'
+import type { MyListsTab } from '@/components/studio/my-lists/MyListsTabBar'
+import { RestaurantListSkeletonList } from '@/components/ui/Skeleton/RestaurantListSkeleton'
+import { checkInStatusError, favoriteStatusError, removedFromWishlistSuccess, uncheckInRestaurantSuccess } from '@/constants/messages'
 import { useAuth } from '@/hooks/useAuth'
-import type { MyListPlaceRow, StudioListKind } from '@/hooks/useMyList'
-import { useMyList } from '@/hooks/useMyList'
+import { dedupeRestaurants, mapHasuraRestaurantToListItem } from '@/lib/myListsRestaurant'
+import type { MyListRestaurant } from '@/lib/myListsRestaurant'
+import { getCheckins, getWishlist } from '@/services/restaurantUserService'
+import { toggleCheckinBySlug, toggleFavoriteBySlug } from '@/services/restaurantEngagementService'
+import { toast } from '@/utils/toast'
 
-export default function StudioMyListsScreen(): JSX.Element {
-  const sheetRef = useRef<AddToMyListSheetHandle>(null)
+export default function MyListsScreen(): JSX.Element {
   const { authUser } = useAuth()
   const userId = authUser?.id ?? null
-  const insets = useSafeAreaInsets()
 
-  const [segment, setSegment] = useState<StudioListKind>('checkin')
-  const [refreshPull, setRefreshPull] = useState(false)
-  const { rows, loading, refetch, attachPlaceFromGoogleDetails, removeRow } = useMyList(userId, segment)
+  const [activeTab, setActiveTab] = useState<MyListsTab>('todine')
 
-  const onPullRefresh = useCallback(async () => {
-    setRefreshPull(true)
-    try {
-      await refetch?.()
-    } finally {
-      setRefreshPull(false)
+  const [todineItems, setTodineItems] = useState<MyListRestaurant[]>([])
+  const [todineLoading, setTodineLoading] = useState(false)
+  const [todineRefreshing, setTodineRefreshing] = useState(false)
+  const [todineFetched, setTodineFetched] = useState(false)
+
+  const [checkinItems, setCheckinItems] = useState<MyListRestaurant[]>([])
+  const [checkinLoading, setCheckinLoading] = useState(false)
+  const [checkinRefreshing, setCheckinRefreshing] = useState(false)
+  const [checkinFetched, setCheckinFetched] = useState(false)
+
+  const swipeableRefs = useRef<Map<string, Swipeable>>(new Map())
+
+  const fetchTodine = useCallback(async (refresh = false) => {
+    if (!userId) return
+    if (refresh) {
+      setTodineItems([])
+      setTodineFetched(false)
+      setTodineRefreshing(true)
+    } else {
+      setTodineLoading(true)
     }
-  }, [refetch])
+    try {
+      const res = await getWishlist({ user_id: userId, limit: 50, offset: 0 })
+      const mapped = res.items
+        .filter((item) => item.restaurant != null)
+        .map((item) => mapHasuraRestaurantToListItem(item.restaurant!))
+      setTodineItems(dedupeRestaurants(mapped))
+      setTodineFetched(true)
+    } catch {
+      toast.error(favoriteStatusError)
+    } finally {
+      setTodineLoading(false)
+      setTodineRefreshing(false)
+    }
+  }, [userId])
 
-  const guardedRemoveRow = useCallback(
-    async (id: string) => {
-      try {
-        await removeRow(id)
-      } catch {
-        Alert.alert(
-          'Could not remove',
-          'Verify Hasura delete permissions on user_place_collections, then retry.',
-        )
-      }
-    },
-    [removeRow],
-  )
+  const fetchCheckins = useCallback(async (refresh = false) => {
+    if (!userId) return
+    if (refresh) {
+      setCheckinItems([])
+      setCheckinFetched(false)
+      setCheckinRefreshing(true)
+    } else {
+      setCheckinLoading(true)
+    }
+    try {
+      const res = await getCheckins({ user_id: userId, limit: 50, offset: 0 })
+      const mapped = res.items
+        .filter((item) => item.restaurant != null)
+        .map((item) => mapHasuraRestaurantToListItem(item.restaurant!))
+      setCheckinItems(dedupeRestaurants(mapped))
+      setCheckinFetched(true)
+    } catch {
+      toast.error(checkInStatusError)
+    } finally {
+      setCheckinLoading(false)
+      setCheckinRefreshing(false)
+    }
+  }, [userId])
 
-  const renderItem = useCallback(
-    ({ item }: { item: MyListPlaceRow }) => <MyListPlaceCard row={item} onRemove={guardedRemoveRow} />,
-    [guardedRemoveRow],
-  )
+  // Fetch To-Dine on mount
+  useEffect(() => {
+    if (userId && !todineFetched && !todineLoading) {
+      void fetchTodine()
+    }
+  }, [userId, todineFetched, todineLoading, fetchTodine])
 
-  const listHeader = useMemo(
-    () => (
-      <>
-        <View className="mb-6 flex-row items-center justify-between">
-          <View className="mr-4 flex-shrink">
-            <Text className="text-sm" style={{ color: TEXT_MUTED }}>
-              Anchored region
-            </Text>
-          </View>
-          <GlobalLocationPill maxWidth={148} />
-        </View>
+  // Lazy-load Check-ins on first tab activation
+  useEffect(() => {
+    if (activeTab === 'checkins' && userId && !checkinFetched && !checkinLoading) {
+      void fetchCheckins()
+    }
+  }, [activeTab, userId, checkinFetched, checkinLoading, fetchCheckins])
 
-        <View className="mb-4 flex-row rounded-2xl border p-1" style={{ borderColor: BORDER_SUBTLE }}>
-          {(
-            [
-              { key: 'checkin' as const, label: 'Check-ins' },
-              { key: 'like' as const, label: 'Likes' },
-            ] as const
-          ).map((tab) => {
-            const chosen = segment === tab.key
-            return (
-              <Pressable
-                accessibilityRole="button"
-                accessibilityState={{ selected: chosen }}
-                key={tab.key}
-                onPress={() => {
-                  void Haptics.selectionAsync()
-                  setSegment(tab.key)
-                }}
-                style={{
-                  flex: 1,
-                  alignItems: 'center',
-                  borderRadius: 14,
-                  paddingVertical: 10,
-                  backgroundColor: chosen ? BRAND_PRIMARY : '#ffffff',
-                }}
-              >
-                <Text style={{ fontWeight: '700', fontSize: 13, color: chosen ? '#ffffff' : TEXT_HEADING }}>
-                  {tab.label}
-                </Text>
-              </Pressable>
-            )
-          })}
-        </View>
-      </>
-    ),
-    [segment],
-  )
+  const handleRemoveTodine = useCallback(async (restaurant: MyListRestaurant) => {
+    const originalIndex = todineItems.findIndex((r) => r.slug === restaurant.slug)
+    setTodineItems((prev) => prev.filter((r) => r.slug !== restaurant.slug))
+    try {
+      await toggleFavoriteBySlug(restaurant.slug)
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
+      toast.success(removedFromWishlistSuccess)
+    } catch {
+      toast.error(favoriteStatusError)
+      setTodineItems((prev) => {
+        const idx = originalIndex < 0 ? prev.length : originalIndex
+        return [...prev.slice(0, idx), restaurant, ...prev.slice(idx)]
+      })
+    }
+  }, [todineItems])
+
+  const handleRemoveCheckin = useCallback(async (restaurant: MyListRestaurant) => {
+    const originalIndex = checkinItems.findIndex((r) => r.slug === restaurant.slug)
+    setCheckinItems((prev) => prev.filter((r) => r.slug !== restaurant.slug))
+    try {
+      await toggleCheckinBySlug(restaurant.slug)
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
+      toast.success(uncheckInRestaurantSuccess)
+    } catch {
+      toast.error(checkInStatusError)
+      setCheckinItems((prev) => {
+        const idx = originalIndex < 0 ? prev.length : originalIndex
+        return [...prev.slice(0, idx), restaurant, ...prev.slice(idx)]
+      })
+    }
+  }, [checkinItems])
+
+  const isTodine = activeTab === 'todine'
+  const items = isTodine ? todineItems : checkinItems
+  const loading = isTodine ? todineLoading : checkinLoading
+  const refreshing = isTodine ? todineRefreshing : checkinRefreshing
+  const handleRemove = isTodine ? handleRemoveTodine : handleRemoveCheckin
+  const handleRefresh = isTodine ? () => void fetchTodine(true) : () => void fetchCheckins(true)
 
   return (
-    <SafeAreaView className="relative flex-1 bg-white px-5 pt-6" edges={['left', 'right', 'bottom']}>
-      {!userId ? (
-        <ActivityIndicator />
-      ) : loading && rows.length === 0 ? (
-        <ActivityIndicator />
-      ) : (
-        <FlashList
-          style={{ flex: 1 }}
-          data={rows}
-          keyExtractor={(row) => row.id}
-          ListHeaderComponent={listHeader}
-          renderItem={renderItem}
-          ListEmptyComponent={
-            <View className="items-center pb-28 pt-8">
-              <Text className="text-center text-sm" style={{ color: TEXT_MUTED }}>
-                No saved places yet. Tap (+) below to anchor a Google venue to this list. We hydrate the TastyPlates match once listings sync (via match-restaurant + slug deep links).
-              </Text>
-            </View>
-          }
-          refreshControl={
-            userId ? (
-              <RefreshControl refreshing={refreshPull || loading} onRefresh={() => void onPullRefresh()} />
-            ) : undefined
-          }
-          contentContainerStyle={{ paddingBottom: 120 }}
-        />
-      )}
+    <SafeAreaView className="flex-1 bg-white px-6" edges={['left', 'right', 'bottom']}>
+      <View className="mt-4">
+        <MyListsTabBar activeTab={activeTab} onTabChange={setActiveTab} />
+      </View>
 
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel="Add place to list"
-        onPress={() => {
-          void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
-          sheetRef.current?.present()
-        }}
-        className="absolute h-14 w-14 items-center justify-center rounded-full shadow-lg active:opacity-90"
-        style={{
-          bottom: Math.max(insets.bottom + 12, 32),
-          right: 26,
-          backgroundColor: BRAND_PRIMARY,
-          elevation: 5,
-          shadowOpacity: 0.2,
-        }}
-      >
-        <Ionicons name="add" size={29} color="#ffffff" />
-      </Pressable>
-
-      <AddToMyListSheet
-        ref={sheetRef}
-        userId={userId}
-        activeListKind={segment}
-        attachPlaceFromGoogleDetails={attachPlaceFromGoogleDetails}
-      />
+      <View className="mt-6 flex-1">
+        {loading && items.length === 0 ? (
+          <RestaurantListSkeletonList />
+        ) : (
+          <FlashList
+            data={items}
+            keyExtractor={(r) => r.id || r.slug}
+            renderItem={({ item }) => (
+              <MyListsRestaurantRow
+                restaurant={item}
+                swipeableRefs={swipeableRefs}
+                onRemove={(r) => void handleRemove(r)}
+              />
+            )}
+            ListEmptyComponent={
+              !loading ? <MyListsEmptyState tab={activeTab} /> : null
+            }
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={handleRefresh}
+                tintColor="#ff7c0a"
+              />
+            }
+            contentContainerStyle={{ paddingBottom: 32 }}
+          />
+        )}
+      </View>
     </SafeAreaView>
   )
 }

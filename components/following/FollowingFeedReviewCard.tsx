@@ -144,9 +144,6 @@ export function FollowingFeedReviewCard({
         onPress={onPressCard}
         style={({ pressed }) => [styles.body, pressed && styles.bodyPressed]}
       >
-        {/* star icons + score */}
-        <StarRow rating={review.rating} />
-
         {/* review excerpt */}
         {excerpt.length > 0 ? (
           <Text style={styles.excerpt} numberOfLines={4}>

@@ -181,9 +181,10 @@ export default function RestaurantsScreen() {
   return (
     <View className="flex-1 bg-white">
       <AppTopNav />
-      <View className="flex-1 px-4">
+      <View className="px-4 pt-6 pb-1">
         <SectionTitle>Restaurants</SectionTitle>
-
+      </View>
+      <View className="flex-1 px-4">
         <PalateFilterChips
           palate={palate}
           searchQuery={searchQuery}

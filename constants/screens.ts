@@ -71,6 +71,29 @@ export const SCREEN_STUDIO_REVIEW_LISTING = '/studio/review-listing' as const
 export const SCREEN_STUDIO_MY_LISTS = '/studio/my-lists' as const
 export const SCREEN_STUDIO_EDIT_REVIEW = '/studio/edit-review/[id]' as const
 
+// ─── Manage Lists (user-curated playlists) ────────────────────────────────────
+
+export const SCREEN_STUDIO_MANAGE_LISTS = '/studio/manage-lists' as const
+export const SCREEN_STUDIO_MANAGE_LISTS_CREATE = '/studio/manage-lists/create' as const
+export const SCREEN_STUDIO_MANAGE_LIST_DETAIL = '/studio/manage-lists/[uuid]' as const
+export const SCREEN_STUDIO_MANAGE_LIST_EDIT = '/studio/manage-lists/[uuid]/edit' as const
+export const SCREEN_STUDIO_MANAGE_LIST_ADD = '/studio/manage-lists/[uuid]/add' as const
+
+/** Build the manage-list detail path for a given list UUID. */
+export function studioManageListDetailPath(uuid: string): string {
+  return `/studio/manage-lists/${encodeURIComponent(uuid)}`
+}
+
+/** Build the add-restaurant path for a given list UUID. */
+export function studioManageListAddPath(uuid: string): string {
+  return `/studio/manage-lists/${encodeURIComponent(uuid)}/add`
+}
+
+/** Build the edit path for a given list UUID. */
+export function studioManageListEditPath(uuid: string): string {
+  return `/studio/manage-lists/${encodeURIComponent(uuid)}/edit`
+}
+
 /** Build the write-review path for a given restaurant slug. */
 export function studioAddReviewWritePath(slug: string): string {
   return `/studio/add-review/${encodeURIComponent(slug)}`

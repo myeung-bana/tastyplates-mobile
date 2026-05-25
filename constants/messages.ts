@@ -38,6 +38,24 @@ export const commentFloodError = 'You are posting comments too quickly. Slow dow
 export const commentDuplicateWeekError =
   'You can only post one review per week for this restaurant.'
 
+export const removedFromWishlistSuccess = 'You have removed this restaurant from your wishlist!'
+export const uncheckInRestaurantSuccess = 'You have removed this restaurant from your checked in!'
+export const favoriteStatusError = 'Failed to update favorite status. Please try again.'
+export const checkInStatusError = 'Failed to update check-in status. Please try again.'
+
+// ── Manage Lists ──────────────────────────────────────────────────────────────
+
+export const listCreatedSuccess = 'List created!'
+export const listDeletedSuccess = 'List deleted.'
+export const listDeleteError = 'Failed to delete list. Please try again.'
+export const listUpdatedSuccess = 'List saved!'
+export const listUpdateError = 'Failed to save list. Please try again.'
+export const listItemAddedSuccess = (name: string) => `"${name}" added to your list.`
+export const listItemRemovedSuccess = 'Removed from list.'
+export const listItemRemoveError = 'Failed to remove item. Please try again.'
+export const listItemDuplicateError = 'Already in this list.'
+export const listItemAddError = 'Failed to add restaurant. Please try again.'
+
 export function getUsernameErrorMessage(errorKey: string): string {
   switch (errorKey) {
     case 'usernameRequired':
