@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Alert, Pressable, RefreshControl, Share, Text, View } from 'react-native'
+import { Alert, Image, Pressable, RefreshControl, Share, Text, View } from 'react-native'
 import * as Haptics from 'expo-haptics'
 import { FlashList } from '@shopify/flash-list'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { router, useLocalSearchParams, useNavigation } from 'expo-router'
-import { Feather } from '@expo/vector-icons'
+import { Feather, Ionicons } from '@expo/vector-icons'
 import type { Swipeable } from 'react-native-gesture-handler'
 
 import { Button } from '@/components/ui/Button'
@@ -51,6 +51,7 @@ export default function ListDetailScreen(): JSX.Element {
   const uuid = firstSegmentParam(params.uuid)
   const slugParam = firstSegmentParam(params.slug)
   const titleParam = firstSegmentParam(params.title)
+  const displayPicParam = firstSegmentParam(params.display_pic)
 
   const navigation = useNavigation()
 
@@ -181,6 +182,13 @@ export default function ListDetailScreen(): JSX.Element {
   const visibilityLabel = list?.is_public ? 'Public' : 'Private'
   const updatedLabel = list ? formatRelativeTime(list.updated_at) : ''
 
+  const coverUri =
+    list?.display_pic?.trim() ||
+    list?.cover_image_url?.trim() ||
+    displayPicParam?.trim() ||
+    list?.items[0]?.image_url?.trim() ||
+    null
+
   if (loading && !fetched) {
     return (
       <SafeAreaView className="flex-1 bg-white" edges={['left', 'right', 'bottom']}>
@@ -203,8 +211,34 @@ export default function ListDetailScreen(): JSX.Element {
         )}
         ListHeaderComponent={
           <View>
+            {/* Spotify-style centered list artwork */}
+            <View className="items-center px-4 pt-6 pb-2">
+              <View
+                className="items-center justify-center overflow-hidden rounded-lg bg-gray-100"
+                style={{
+                  width: 200,
+                  height: 200,
+                  shadowColor: '#000',
+                  shadowOffset: { width: 0, height: 4 },
+                  shadowOpacity: 0.12,
+                  shadowRadius: 12,
+                  elevation: 6,
+                }}
+              >
+                {coverUri ? (
+                  <Image
+                    source={{ uri: coverUri }}
+                    style={{ width: 200, height: 200 }}
+                    resizeMode="cover"
+                  />
+                ) : (
+                  <Ionicons name="albums-outline" size={72} color="#9ca3af" />
+                )}
+              </View>
+            </View>
+
             {/* List metadata header */}
-            <View className="border-b border-gray-100 px-4 pt-4 pb-3">
+            <View className="border-b border-gray-100 px-4 pt-2 pb-3">
               {list?.description ? (
                 <Text className="font-neusans text-sm text-[#6b7280]" numberOfLines={3}>
                   {list.description}

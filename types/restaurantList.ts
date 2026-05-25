@@ -16,7 +16,7 @@ export interface RestaurantListSummary {
   is_active: boolean
   /** Returned only when the caller is the owner */
   share_token?: string
-  /** 0 until list-items FK relationship is tracked in Hasura */
+  /** Count of restaurants in this list */
   items_count: number
   /** User-set cover image URL stored directly on the list row */
   display_pic?: string | null
@@ -50,6 +50,8 @@ export interface RestaurantListDetail {
   slug: string
   title: string
   description: string | null
+  display_pic?: string | null
+  cover_image_url?: string | null
   is_public: boolean
   is_active: boolean
   share_token?: string

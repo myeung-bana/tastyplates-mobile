@@ -19,7 +19,9 @@ export function ManageListRow({ list, swipeableRefs, onDelete }: Props): JSX.Ele
   const swipeRef = useRef<Swipeable>(null)
 
   const coverUri = list.display_pic?.trim() || list.cover_image_url || null
-  const subtitle = list.description?.trim() || null
+  const visibilityLabel = list.is_public ? 'Public' : 'Private'
+  const placesLabel = `${list.items_count} ${list.items_count === 1 ? 'place' : 'places'} · ${visibilityLabel}`
+  const subtitle = list.description?.trim() || placesLabel
 
   function renderRightActions(): JSX.Element {
     return (
@@ -66,7 +68,11 @@ export function ManageListRow({ list, swipeableRefs, onDelete }: Props): JSX.Ele
           void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
           router.push({
             pathname: castHref(studioManageListDetailPath(list.uuid)) as never,
-            params: { slug: list.slug, title: list.title },
+            params: {
+              slug: list.slug,
+              title: list.title,
+              display_pic: list.display_pic?.trim() || list.cover_image_url?.trim() || '',
+            },
           })
         }}
         className="flex-row items-center gap-3 border-b border-gray-50 bg-white px-4 py-3"
