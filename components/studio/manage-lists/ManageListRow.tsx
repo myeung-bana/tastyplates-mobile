@@ -18,7 +18,8 @@ interface Props {
 export function ManageListRow({ list, swipeableRefs, onDelete }: Props): JSX.Element {
   const swipeRef = useRef<Swipeable>(null)
 
-  const subtitle = `${list.items_count} ${list.items_count === 1 ? 'place' : 'places'}`
+  const visibilityLabel = list.is_public ? 'Public' : 'Private'
+  const subtitle = `${list.items_count} ${list.items_count === 1 ? 'place' : 'places'} · ${visibilityLabel}`
 
   function renderRightActions(): JSX.Element {
     return (
@@ -63,7 +64,10 @@ export function ManageListRow({ list, swipeableRefs, onDelete }: Props): JSX.Ele
         accessibilityRole="button"
         onPress={() => {
           void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
-          router.push(castHref(studioManageListDetailPath(list.uuid)))
+          router.push({
+            pathname: castHref(studioManageListDetailPath(list.uuid)) as never,
+            params: { slug: list.slug, title: list.title },
+          })
         }}
         className="flex-row items-center gap-3 border-b border-gray-50 bg-white px-4 py-3"
       >

@@ -18,7 +18,7 @@ export default function CreateListScreen(): JSX.Element {
       const list = await createList({
         title: values.title,
         description: values.description || undefined,
-        visibility: values.visibility,
+        is_public: values.is_public,
       })
       toast.success(listCreatedSuccess)
       // Navigate to detail; pass slug so detail can load immediately

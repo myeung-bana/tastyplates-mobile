@@ -13,37 +13,43 @@ import { ManageListsTabBar } from '@/components/studio/manage-lists/ManageListsT
 import type { ManageListsTab } from '@/components/studio/manage-lists/ManageListsTabBar'
 import { RestaurantListSkeletonList } from '@/components/ui/Skeleton/RestaurantListSkeleton'
 import { SCREEN_STUDIO_MANAGE_LISTS_CREATE } from '@/constants/screens'
-import { listDeletedSuccess, listDeleteError } from '@/constants/messages'
+import { listDeletedSuccess, listDeleteError, listLoadError } from '@/constants/messages'
 import { castHref } from '@/lib/routeParams'
 import { deleteList, getMyLists } from '@/services/restaurantListService'
 import type { RestaurantListSummary } from '@/types/restaurantList'
 import { toast } from '@/utils/toast'
 
+function filterListsByTab(lists: RestaurantListSummary[], tab: ManageListsTab): RestaurantListSummary[] {
+  if (tab === 'all') return lists
+  return lists.filter((list) => list.is_public === (tab === 'public'))
+}
+
 export default function ManageListsScreen(): JSX.Element {
   const navigation = useNavigation()
 
   const [lists, setLists] = useState<RestaurantListSummary[]>([])
-  const [activeTab, setActiveTab] = useState<ManageListsTab>('public')
+  const [activeTab, setActiveTab] = useState<ManageListsTab>('all')
   const [loading, setLoading] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
   const [fetched, setFetched] = useState(false)
 
   const swipeableRefs = useRef<Map<string, Swipeable>>(new Map())
+  const hasFetchedRef = useRef(false)
 
   const fetchLists = useCallback(async (refresh = false) => {
     if (refresh) {
-      setLists([])
-      setFetched(false)
       setRefreshing(true)
-    } else {
+    } else if (!hasFetchedRef.current) {
       setLoading(true)
     }
     try {
       const data = await getMyLists()
       setLists(data)
       setFetched(true)
+      hasFetchedRef.current = true
     } catch {
-      // Silent — show empty state
+      if (!hasFetchedRef.current) setLists([])
+      toast.error(listLoadError)
     } finally {
       setLoading(false)
       setRefreshing(false)
@@ -53,6 +59,14 @@ export default function ManageListsScreen(): JSX.Element {
   useEffect(() => {
     void fetchLists()
   }, [fetchLists])
+
+  // Refetch owned lists when returning from create / detail / edit
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('focus', () => {
+      if (hasFetchedRef.current) void fetchLists(true)
+    })
+    return unsubscribe
+  }, [navigation, fetchLists])
 
   useLayoutEffect(() => {
     navigation.setOptions({
@@ -74,7 +88,7 @@ export default function ManageListsScreen(): JSX.Element {
   }, [navigation])
 
   const filteredLists = useMemo(
-    () => lists.filter((list) => list.visibility === activeTab),
+    () => filterListsByTab(lists, activeTab),
     [lists, activeTab],
   )
 

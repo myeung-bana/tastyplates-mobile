@@ -45,6 +45,7 @@ export const checkInStatusError = 'Failed to update check-in status. Please try 
 
 // ── Manage Lists ──────────────────────────────────────────────────────────────
 
+export const listLoadError = 'Could not load your lists. Pull to refresh or try again.'
 export const listCreatedSuccess = 'List created!'
 export const listDeletedSuccess = 'List deleted.'
 export const listDeleteError = 'Failed to delete list. Please try again.'

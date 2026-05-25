@@ -11,12 +11,10 @@ import { toast } from '@/utils/toast'
 export default function EditListScreen(): JSX.Element {
   const params = useLocalSearchParams()
   const uuid = firstSegmentParam(params.uuid)
-  // Initial values are passed as route params from the detail screen
   const initialTitle = firstSegmentParam(params.title) || ''
   const initialDescription = firstSegmentParam(params.description) || ''
-  const rawVisibility = firstSegmentParam(params.visibility)
-  const initialVisibility: 'private' | 'public' =
-    rawVisibility === 'public' ? 'public' : 'private'
+  const rawIsPublic = firstSegmentParam(params.is_public)
+  const initialIsPublic = rawIsPublic === 'true'
 
   const [submitting, setSubmitting] = useState(false)
 
@@ -27,7 +25,7 @@ export default function EditListScreen(): JSX.Element {
         list_uuid: uuid,
         title: values.title,
         description: values.description,
-        visibility: values.visibility,
+        is_public: values.is_public,
       })
       toast.success(listUpdatedSuccess)
       router.back()
@@ -43,7 +41,7 @@ export default function EditListScreen(): JSX.Element {
       initialValues={{
         title: initialTitle,
         description: initialDescription,
-        visibility: initialVisibility,
+        is_public: initialIsPublic,
       }}
       submitLabel="Save Changes"
       submitting={submitting}

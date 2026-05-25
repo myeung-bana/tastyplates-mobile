@@ -20,7 +20,7 @@ import { Button } from '@/components/ui/Button'
 export interface ListFormValues {
   title: string
   description: string
-  visibility: 'private' | 'public'
+  is_public: boolean
 }
 
 interface Props {
@@ -32,12 +32,12 @@ interface Props {
 }
 
 function VisibilityPills({
-  visibility,
+  isPublic,
   onChange,
   centered,
 }: {
-  visibility: 'private' | 'public'
-  onChange: (v: 'private' | 'public') => void
+  isPublic: boolean
+  onChange: (isPublic: boolean) => void
   centered?: boolean
 }): JSX.Element {
   return (
@@ -48,16 +48,19 @@ function VisibilityPills({
         Who can see this list?
       </Text>
       <View className={`flex-row gap-3${centered ? ' justify-center' : ''}`}>
-        {(['private', 'public'] as const).map((opt) => {
-          const isActive = visibility === opt
+        {([
+          { label: 'Private', value: false, icon: 'lock' as const },
+          { label: 'Public', value: true, icon: 'globe' as const },
+        ]).map((opt) => {
+          const isActive = isPublic === opt.value
           return (
             <Pressable
-              key={opt}
+              key={opt.label}
               accessibilityRole="button"
               accessibilityState={{ selected: isActive }}
               onPress={() => {
                 void Haptics.selectionAsync()
-                onChange(opt)
+                onChange(opt.value)
               }}
               className="flex-row items-center gap-2 rounded-[50px] border-2 px-4 py-2.5"
               style={{
@@ -66,7 +69,7 @@ function VisibilityPills({
               }}
             >
               <Feather
-                name={opt === 'private' ? 'lock' : 'globe'}
+                name={opt.icon}
                 size={14}
                 color={isActive ? '#ffffff' : '#31343F'}
               />
@@ -74,7 +77,7 @@ function VisibilityPills({
                 className="font-neusans text-sm"
                 style={{ color: isActive ? '#ffffff' : '#31343F' }}
               >
-                {opt === 'private' ? 'Private' : 'Public'}
+                {opt.label}
               </Text>
             </Pressable>
           )
@@ -91,7 +94,7 @@ function CreateListForm({
 }: Pick<Props, 'submitLabel' | 'submitting' | 'onSubmit'>): JSX.Element {
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
-  const [visibility, setVisibility] = useState<'private' | 'public'>('public')
+  const [isPublic, setIsPublic] = useState(true)
   const [titleError, setTitleError] = useState<string | null>(null)
 
   function handleSubmit(): void {
@@ -101,7 +104,7 @@ function CreateListForm({
     }
     setTitleError(null)
     void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
-    onSubmit({ title: title.trim(), description: description.trim(), visibility })
+    onSubmit({ title: title.trim(), description: description.trim(), is_public: isPublic })
   }
 
   return (
@@ -122,7 +125,6 @@ function CreateListForm({
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        {/* Cover — Spotify-style hero tile */}
         <View
           className="mb-8 items-center justify-center rounded-2xl bg-gray-100"
           style={{ width: 200, height: 200 }}
@@ -130,7 +132,6 @@ function CreateListForm({
           <Ionicons name="albums-outline" size={72} color="#9ca3af" />
         </View>
 
-        {/* List name — large, centered */}
         <TextInput
           value={title}
           onChangeText={(v) => {
@@ -152,7 +153,6 @@ function CreateListForm({
           <Text className="mt-1 font-neusans text-xs text-[#9ca3af]">{title.length}/100</Text>
         )}
 
-        {/* Description */}
         <TextInput
           value={description}
           onChangeText={setDescription}
@@ -167,7 +167,7 @@ function CreateListForm({
         <Text className="mt-1 font-neusans text-xs text-[#9ca3af]">{description.length}/500</Text>
 
         <View className="mt-10 w-full max-w-sm">
-          <VisibilityPills visibility={visibility} onChange={setVisibility} centered />
+          <VisibilityPills isPublic={isPublic} onChange={setIsPublic} centered />
         </View>
       </ScrollView>
 
@@ -188,9 +188,7 @@ function EditListForm({
 }: Pick<Props, 'initialValues' | 'submitLabel' | 'submitting' | 'onSubmit'>): JSX.Element {
   const [title, setTitle] = useState(initialValues?.title ?? '')
   const [description, setDescription] = useState(initialValues?.description ?? '')
-  const [visibility, setVisibility] = useState<'private' | 'public'>(
-    initialValues?.visibility ?? 'private',
-  )
+  const [isPublic, setIsPublic] = useState(initialValues?.is_public ?? false)
   const [titleError, setTitleError] = useState<string | null>(null)
 
   function handleSubmit(): void {
@@ -200,7 +198,7 @@ function EditListForm({
     }
     setTitleError(null)
     void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
-    onSubmit({ title: title.trim(), description: description.trim(), visibility })
+    onSubmit({ title: title.trim(), description: description.trim(), is_public: isPublic })
   }
 
   return (
@@ -259,7 +257,7 @@ function EditListForm({
         </View>
 
         <View className="mb-6">
-          <VisibilityPills visibility={visibility} onChange={setVisibility} />
+          <VisibilityPills isPublic={isPublic} onChange={setIsPublic} />
         </View>
       </ScrollView>
 

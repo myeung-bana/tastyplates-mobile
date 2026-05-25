@@ -12,7 +12,7 @@ export interface RestaurantListSummary {
   slug: string
   title: string
   description: string | null
-  visibility: 'private' | 'public'
+  is_public: boolean
   is_active: boolean
   /** Returned only when the caller is the owner */
   share_token?: string
@@ -46,7 +46,7 @@ export interface RestaurantListDetail {
   slug: string
   title: string
   description: string | null
-  visibility: 'private' | 'public'
+  is_public: boolean
   is_active: boolean
   share_token?: string
   owner_id: string | null

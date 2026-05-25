@@ -68,7 +68,14 @@ export default function StudioSectionLayout(): JSX.Element {
         }}
       />
       <Stack.Screen name="manage-lists/create" options={{ title: 'New List' }} />
-      <Stack.Screen name="manage-lists/[uuid]/index" options={{ headerShown: false }} />
+      <Stack.Screen
+        name="manage-lists/[uuid]/index"
+        options={{
+          title: 'List',
+          headerBackTitle: '',
+          headerBackTitleVisible: false,
+        }}
+      />
       <Stack.Screen name="manage-lists/[uuid]/edit" options={{ title: 'Edit List' }} />
       <Stack.Screen name="manage-lists/[uuid]/add" options={{ title: 'Add Restaurant' }} />
     </Stack>

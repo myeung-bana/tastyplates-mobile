@@ -3,7 +3,7 @@ import * as Haptics from 'expo-haptics'
 
 import { BRAND_PRIMARY, TEXT_HEADING } from '@/constants/brand'
 
-export type ManageListsTab = 'public' | 'private'
+export type ManageListsTab = 'all' | 'public' | 'private'
 
 interface Props {
   activeTab: ManageListsTab
@@ -11,6 +11,7 @@ interface Props {
 }
 
 const TABS: { key: ManageListsTab; label: string }[] = [
+  { key: 'all', label: 'All' },
   { key: 'public', label: 'Public' },
   { key: 'private', label: 'Private' },
 ]

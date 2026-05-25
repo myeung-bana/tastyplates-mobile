@@ -10,14 +10,14 @@ import type { RestaurantListSummary, RestaurantListDetail } from '@/types/restau
 export interface CreateListBody {
   title: string
   description?: string
-  visibility?: 'private' | 'public'
+  is_public?: boolean
 }
 
 export interface UpdateListBody {
   list_uuid: string
   title?: string
   description?: string
-  visibility?: 'private' | 'public'
+  is_public?: boolean
 }
 
 export interface AddItemBody {
@@ -67,10 +67,35 @@ async function authDelete<T>(path: string, body: unknown): Promise<T> {
 
 // ── API functions ─────────────────────────────────────────────────────────────
 
-/** Returns all lists owned by the authenticated user. */
+export interface ClaimListsBody {
+  list_uuids: string[]
+}
+
+export interface ClaimListsResult {
+  owner_id: string
+  claimed: Array<{ uuid: string; title: string; owner_id: string }>
+  claimed_count: number
+  skipped_count: number
+}
+
+/**
+ * Assigns owner_id to lists that were created without one (Hasura Console, etc.).
+ * owner_id is set to the authenticated user's id (auth.users.id).
+ */
+export async function claimLists(body: ClaimListsBody): Promise<ClaimListsResult> {
+  return authPost<ClaimListsResult>('restaurant-lists/claim-lists', body)
+}
+
+/** Returns all lists owned by the authenticated user (owner_id = JWT user id). */
 export async function getMyLists(): Promise<RestaurantListSummary[]> {
   const data = await authGet<RestaurantListSummary[]>('restaurant-lists/get-my-lists')
-  return data
+  if (!Array.isArray(data)) {
+    throw new Error('Invalid lists response')
+  }
+  return data.map((list) => ({
+    ...list,
+    items_count: typeof list.items_count === 'number' ? list.items_count : 0,
+  }))
 }
 
 /** Creates a new list. Returns the created list summary including share_token. */
@@ -79,7 +104,7 @@ export async function createList(body: CreateListBody): Promise<RestaurantListSu
   return data.list
 }
 
-/** Updates title, description, and/or visibility of a list. */
+/** Updates title, description, and/or is_public of a list. */
 export async function updateList(body: UpdateListBody): Promise<{ list: unknown }> {
   return authPatch<{ list: unknown }>('restaurant-lists/update-list', body)
 }

@@ -91,8 +91,16 @@ export default function ListDetailScreen(): JSX.Element {
 
   useEffect(() => {
     void fetchDetail()
-    if (titleParam) navigation.setOptions({ title: titleParam })
+    if (titleParam) {
+      navigation.setOptions({ title: titleParam })
+    }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (list?.title) {
+      navigation.setOptions({ title: list.title })
+    }
+  }, [list?.title, navigation])
 
   // Refresh detail when returning from add-restaurant screen
   useEffect(() => {
@@ -122,8 +130,8 @@ export default function ListDetailScreen(): JSX.Element {
     if (!list) return
     setMakingPublic(true)
     try {
-      await updateList({ list_uuid: list.uuid, visibility: 'public' })
-      setList((prev) => prev ? { ...prev, visibility: 'public' } : prev)
+      await updateList({ list_uuid: list.uuid, is_public: true })
+      setList((prev) => prev ? { ...prev, is_public: true } : prev)
       toast.success(listUpdatedSuccess)
     } catch {
       toast.error(listUpdateError)
@@ -170,7 +178,7 @@ export default function ListDetailScreen(): JSX.Element {
   }, [list])
 
   const itemCount = list?.items.length ?? 0
-  const visibilityLabel = list?.visibility === 'public' ? 'Public' : 'Private'
+  const visibilityLabel = list?.is_public ? 'Public' : 'Private'
   const updatedLabel = list ? formatRelativeTime(list.updated_at) : ''
 
   if (loading && !fetched) {
@@ -197,15 +205,12 @@ export default function ListDetailScreen(): JSX.Element {
           <View>
             {/* List metadata header */}
             <View className="border-b border-gray-100 px-4 pt-4 pb-3">
-              <Text className="font-neusans text-xl font-medium text-[#31343F]" numberOfLines={2}>
-                {list?.title ?? titleParam ?? ''}
-              </Text>
               {list?.description ? (
-                <Text className="mt-1 font-neusans text-sm text-[#6b7280]" numberOfLines={2}>
+                <Text className="font-neusans text-sm text-[#6b7280]" numberOfLines={3}>
                   {list.description}
                 </Text>
               ) : null}
-              <Text className="mt-2 font-neusans text-xs text-[#9ca3af]">
+              <Text className={`font-neusans text-xs text-[#9ca3af]${list?.description ? ' mt-2' : ''}`}>
                 {`${itemCount} ${itemCount === 1 ? 'place' : 'places'} · ${visibilityLabel} · Updated ${updatedLabel}`}
               </Text>
 
@@ -220,7 +225,7 @@ export default function ListDetailScreen(): JSX.Element {
                   <Text className="font-neusans text-sm text-[#374151]">Share Link</Text>
                 </Pressable>
 
-                {list?.visibility === 'private' ? (
+                {!list?.is_public ? (
                   <Pressable
                     accessibilityRole="button"
                     onPress={() => void handleMakePublic()}
@@ -238,9 +243,14 @@ export default function ListDetailScreen(): JSX.Element {
                   accessibilityRole="button"
                   onPress={() => {
                     if (!list) return
-                    router.push(castHref(studioManageListEditPath(uuid)), {
-                      relativeToDirectory: false,
-                    } as Parameters<typeof router.push>[1])
+                    router.push({
+                      pathname: castHref(studioManageListEditPath(uuid)) as never,
+                      params: {
+                        title: list.title,
+                        description: list.description ?? '',
+                        is_public: list.is_public ? 'true' : 'false',
+                      },
+                    })
                   }}
                   className="flex-row items-center gap-2 rounded-[50px] border border-gray-300 bg-white px-4 py-2"
                 >

@@ -20,6 +20,12 @@ function emptyCopy(tab: ManageListsTab, noListsAtAll: boolean): { title: string;
       subtitle: 'Create your first restaurant playlist',
     }
   }
+  if (tab === 'all') {
+    return {
+      title: 'No Lists Yet',
+      subtitle: 'Create your first restaurant playlist',
+    }
+  }
   if (tab === 'public') {
     return {
       title: 'No Public Lists',
