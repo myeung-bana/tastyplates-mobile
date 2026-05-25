@@ -31,8 +31,17 @@ export async function tastyplatesFetch<T>(
   const headers = new Headers(h)
 
   if (withAuth) {
-    const token = nhost.auth.getAccessToken()
-    if (token) headers.set('Authorization', `Bearer ${token}`)
+    // Try sync path first (session already hydrated from SecureStore)
+    const token = nhost.auth.getAccessToken() ?? nhost.auth.getSession()?.accessToken ?? null
+    if (token) {
+      headers.set('Authorization', `Bearer ${token}`)
+    } else if (__DEV__) {
+      console.warn(
+        '[tastyplatesFetch] withAuth=true but no access token available.',
+        'Path:', path,
+        '— Gate callers with useSession().isReady.',
+      )
+    }
   }
 
   if (!headers.has('Content-Type') && rest.body && typeof rest.body === 'string') {

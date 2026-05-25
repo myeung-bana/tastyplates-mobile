@@ -16,7 +16,11 @@ export interface RestaurantListSummary {
   is_active: boolean
   /** Returned only when the caller is the owner */
   share_token?: string
+  /** 0 until list-items FK relationship is tracked in Hasura */
   items_count: number
+  /** User-set cover image URL stored directly on the list row */
+  display_pic?: string | null
+  /** Resolved cover image — prefers display_pic, falls back to first-item photo */
   cover_image_url: string | null
   created_at: string
   updated_at: string

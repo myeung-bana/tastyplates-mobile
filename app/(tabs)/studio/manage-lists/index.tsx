@@ -14,6 +14,7 @@ import type { ManageListsTab } from '@/components/studio/manage-lists/ManageList
 import { RestaurantListSkeletonList } from '@/components/ui/Skeleton/RestaurantListSkeleton'
 import { SCREEN_STUDIO_MANAGE_LISTS_CREATE } from '@/constants/screens'
 import { listDeletedSuccess, listDeleteError, listLoadError } from '@/constants/messages'
+import { useSession } from '@/hooks/useSession'
 import { castHref } from '@/lib/routeParams'
 import { deleteList, getMyLists } from '@/services/restaurantListService'
 import type { RestaurantListSummary } from '@/types/restaurantList'
@@ -26,6 +27,8 @@ function filterListsByTab(lists: RestaurantListSummary[], tab: ManageListsTab): 
 
 export default function ManageListsScreen(): JSX.Element {
   const navigation = useNavigation()
+  const { isReady, user } = useSession()
+  const isAuthenticated = user !== null
 
   const [lists, setLists] = useState<RestaurantListSummary[]>([])
   const [activeTab, setActiveTab] = useState<ManageListsTab>('all')
@@ -56,17 +59,25 @@ export default function ManageListsScreen(): JSX.Element {
     }
   }, [])
 
+  // Gate on session readiness — avoids firing before Nhost restores token from SecureStore
   useEffect(() => {
-    void fetchLists()
-  }, [fetchLists])
+    if (isReady && isAuthenticated && !hasFetchedRef.current) {
+      void fetchLists()
+    }
+  }, [isReady, isAuthenticated, fetchLists])
 
-  // Refetch owned lists when returning from create / detail / edit
+  // Refetch when returning from create / detail / edit, and recover from a failed first load
   useEffect(() => {
     const unsubscribe = navigation.addListener('focus', () => {
-      if (hasFetchedRef.current) void fetchLists(true)
+      if (!isReady || !isAuthenticated) return
+      if (hasFetchedRef.current) {
+        void fetchLists(true)
+      } else {
+        void fetchLists()
+      }
     })
     return unsubscribe
-  }, [navigation, fetchLists])
+  }, [navigation, isReady, isAuthenticated, fetchLists])
 
   useLayoutEffect(() => {
     navigation.setOptions({
@@ -107,7 +118,7 @@ export default function ManageListsScreen(): JSX.Element {
     [lists],
   )
 
-  const showSkeleton = loading && !fetched
+  const showSkeleton = !isReady || (loading && !fetched)
   const noListsAtAll = fetched && lists.length === 0
 
   return (

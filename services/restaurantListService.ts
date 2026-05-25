@@ -95,6 +95,8 @@ export async function getMyLists(): Promise<RestaurantListSummary[]> {
   return data.map((list) => ({
     ...list,
     items_count: typeof list.items_count === 'number' ? list.items_count : 0,
+    display_pic: list.display_pic?.trim() || null,
+    cover_image_url: list.display_pic?.trim() || list.cover_image_url || null,
   }))
 }
 
