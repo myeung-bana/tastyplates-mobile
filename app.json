@@ -12,9 +12,9 @@
     "primaryColor": "#ff7c0a",
     "runtimeVersion": "1.0.0",
     "splash": {
-      "image": "./assets/AppIcons/appstore.png",
+      "image": "./assets/splash-logo.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ff7c0a"
+      "backgroundColor": "#31343F"
     },
     "assetBundlePatterns": ["**/*"],
     "ios": {
@@ -48,7 +48,21 @@
       "description": "TastyPlates — restaurant discovery, reviews, and food stories from people whose taste you trust.",
       "themeColor": "#ff7c0a"
     },
-    "plugins": ["expo-router", "expo-font", "expo-web-browser", "expo-secure-store"],
+    "plugins": [
+      "expo-router",
+      "expo-font",
+      "expo-web-browser",
+      "expo-secure-store",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-logo.png",
+          "resizeMode": "contain",
+          "backgroundColor": "#31343F",
+          "imageWidth": 200
+        }
+      ]
+    ],
     "experiments": {
       "typedRoutes": true
     },

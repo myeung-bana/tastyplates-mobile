@@ -56,14 +56,14 @@ export default function GetStartedScreen(): JSX.Element {
     setPageIndex(next)
   }, [])
 
-  const goSignup = useCallback(async () => {
-    await setGetStartedCompleted()
-    router.replace(loginScreenHref({ mode: 'signup' }))
-  }, [router])
-
-  const goLogin = useCallback(async () => {
+  const goAuth = useCallback(async () => {
     await setGetStartedCompleted()
     router.replace(loginScreenHref())
+  }, [router])
+
+  const goSignIn = useCallback(async () => {
+    await setGetStartedCompleted()
+    router.replace(loginScreenHref({ mode: 'signin' }))
   }, [router])
 
   return (
@@ -120,7 +120,7 @@ export default function GetStartedScreen(): JSX.Element {
 
           <Pressable
             accessibilityRole="button"
-            onPress={() => void goSignup()}
+            onPress={() => void goAuth()}
             className="mb-8 w-full items-center rounded-full py-4 active:opacity-90"
             style={{ backgroundColor: BRAND_PRIMARY }}
           >
@@ -131,7 +131,7 @@ export default function GetStartedScreen(): JSX.Element {
             <Text className="text-base" style={{ color: TEXT_BODY }}>
               Already have an account?{' '}
             </Text>
-            <Pressable onPress={() => void goLogin()} hitSlop={8}>
+            <Pressable onPress={() => void goSignIn()} hitSlop={8}>
               <Text className="text-base font-semibold" style={{ color: TEXT_HEADING }}>
                 Log in
               </Text>

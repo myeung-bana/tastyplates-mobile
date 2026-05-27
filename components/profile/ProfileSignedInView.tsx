@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useState } from 'react'
 import { ActivityIndicator, Alert, Pressable, Text, View } from 'react-native'
 import * as Haptics from 'expo-haptics'
 import { useRouter } from 'expo-router'
@@ -12,8 +12,9 @@ import {
 import { readStringMeta } from '@/lib/profileMetaUtils'
 import { formatMemberSince, initialsFromName, parseProfilePalates } from '@/lib/profileFormatting'
 import { useNhostSession } from '@/hooks/useNhostSession'
+import { useOwnProfilePresentation } from '@/hooks/useOwnProfilePresentation'
 import { useOwnProfileStats } from '@/hooks/useOwnProfileStats'
-import { fetchRestaurantUserById, normalizeLegacyProfileAvatar, type RestaurantUserRow } from '@/services/restaurantUserService'
+import type { RestaurantUserRow } from '@/services/restaurantUserService'
 import {
   SCREEN_EDIT_PROFILE,
   SCREEN_FOLLOWING,
@@ -27,45 +28,20 @@ export function ProfileSignedInView() {
   const { signOut } = useSignOut()
   const [signingOut, setSigningOut] = useState(false)
   const { authUser, profile, loading: sessionLoading } = useNhostSession()
-  const userId = authUser?.id
+  const {
+    authUserId: userId,
+    avatarUrl,
+    restaurantUser: ru,
+    loading: ruLoading,
+    refreshRestaurantUser,
+  } = useOwnProfilePresentation()
   const statsApi = useOwnProfileStats(userId)
-  const [ru, setRu] = useState<RestaurantUserRow | null>(null)
-  const [ruLoading, setRuLoading] = useState(true)
   const [pullRefreshing, setPullRefreshing] = useState(false)
-
-  useEffect(() => {
-    if (!userId) {
-      setRu(null)
-      setRuLoading(false)
-      return
-    }
-    let cancelled = false
-    setRuLoading(true)
-    void (async () => {
-      try {
-        const row = await fetchRestaurantUserById(userId)
-        if (!cancelled) setRu(row)
-      } catch {
-        if (!cancelled) setRu(null)
-      } finally {
-        if (!cancelled) setRuLoading(false)
-      }
-    })()
-    return () => {
-      cancelled = true
-    }
-  }, [userId])
 
   const refreshAll = useCallback(async () => {
     await statsApi.refresh()
-    if (!userId) return
-    try {
-      const row = await fetchRestaurantUserById(userId)
-      setRu(row)
-    } catch {
-      /* keep previous */
-    }
-  }, [statsApi.refresh, userId])
+    await refreshRestaurantUser()
+  }, [statsApi.refresh, refreshRestaurantUser])
 
   const onPullRefresh = useCallback(async () => {
     setPullRefreshing(true)
@@ -99,10 +75,6 @@ export function ProfileSignedInView() {
       : parseProfilePalates(metadata?.palates)
 
   const slug = routeSlug(ru, authUser?.email ?? undefined)
-
-  const avatarUrl =
-    profile?.avatarUrl?.trim() ||
-    normalizeLegacyProfileAvatar(ru?.avatarUrl, ru?.profile_image)
 
   const memberSinceLabel = ru?.created_at ? formatMemberSince(ru.created_at) : ''
 

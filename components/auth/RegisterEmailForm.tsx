@@ -51,9 +51,11 @@ export type RegisterEmailFormProps = {
   resume?: string
   /** When false, parent shows intro copy in the hero sheet header. */
   showIntro?: boolean
-  /** When true, hide footer log-in link (parent uses segment control). */
+  /** When true, hide footer log-in link unless `onSwitchToSignIn` is provided. */
   embedded?: boolean
   onRegisterSuccess: (payload: RegisterSuccessPayload) => void | Promise<void>
+  /** When embedded, switch to sign-in without router (optional). */
+  onSwitchToSignIn?: () => void
 }
 
 /**
@@ -64,6 +66,7 @@ export function RegisterEmailForm({
   showIntro = true,
   embedded = false,
   onRegisterSuccess,
+  onSwitchToSignIn,
 }: RegisterEmailFormProps) {
   const { signUpEmailPassword, isLoading } = useSignUpEmailPassword()
 
@@ -227,12 +230,23 @@ export function RegisterEmailForm({
         )}
       </Pressable>
 
-      {!embedded ? (
+      {embedded && onSwitchToSignIn ? (
         <View className="flex-row flex-wrap justify-center gap-1 pb-6">
           <Text className="text-center text-sm" style={{ color: TEXT_MUTED }}>
             Already have an account?
           </Text>
-          <Link href={loginScreenHref({ resume })} asChild>
+          <Pressable onPress={onSwitchToSignIn}>
+            <Text className="text-sm font-semibold" style={{ color: BRAND_PRIMARY }}>
+              Log in
+            </Text>
+          </Pressable>
+        </View>
+      ) : !embedded ? (
+        <View className="flex-row flex-wrap justify-center gap-1 pb-6">
+          <Text className="text-center text-sm" style={{ color: TEXT_MUTED }}>
+            Already have an account?
+          </Text>
+          <Link href={loginScreenHref({ mode: 'signin', resume })} asChild>
             <Pressable>
               <Text className="text-sm font-semibold" style={{ color: BRAND_PRIMARY }}>
                 Log in

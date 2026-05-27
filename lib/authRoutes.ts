@@ -69,15 +69,20 @@ export function serializeAuthResume(
   }
 }
 
+export type AuthScreenMode = 'chooser' | 'signin' | 'signup'
+
 /**
- * Stable `Href` for the login screen (supports `resume` + `mode=signup`).
+ * Stable `Href` for the login screen.
+ * Omit `mode` for the method chooser (Sign Up Free / Google / Email).
  */
 export function loginScreenHref(options?: {
   resume?: string
-  mode?: 'signin' | 'signup'
+  mode?: AuthScreenMode
 }): Href {
   const params: Record<string, string> = {}
-  if (options?.mode === 'signup') params.mode = 'signup'
+  if (options?.mode === 'signup' || options?.mode === 'signin') {
+    params.mode = options.mode
+  }
   if (options?.resume?.length) params.resume = options.resume
   return Object.keys(params).length === 0
     ? SCREEN_LOGIN
@@ -86,7 +91,7 @@ export function loginScreenHref(options?: {
 
 export function pushLoginScreen(
   router: Router,
-  options?: { resume?: Parameters<Router['replace']>[0]; mode?: 'signin' | 'signup' },
+  options?: { resume?: Parameters<Router['replace']>[0]; mode?: AuthScreenMode },
 ): void {
   const resume = serializeAuthResume(options?.resume)
   router.push(

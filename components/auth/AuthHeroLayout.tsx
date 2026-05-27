@@ -33,7 +33,7 @@ type AuthHeroLayoutProps = {
   title: string
   subtitle?: string
   children: ReactNode
-  /** Optional slot above title (e.g. sign-in / sign-up segment control). */
+  /** Optional slot above title (e.g. back button on email sign-in / sign-up). */
   headerSlot?: ReactNode
 }
 
@@ -76,7 +76,7 @@ export function AuthHeroLayout({
               backgroundColor: 'rgba(0,0,0,0.28)',
             }}
           />
-          <View className="flex-1 items-center justify-center pb-6">
+          <View className="flex-1 items-center justify-center pb-6 pt-6">
             <TastyLogoWhite
               accessible={false}
               importantForAccessibility="no"
@@ -109,14 +109,14 @@ export function AuthHeroLayout({
               elevation: 8,
             }}
           >
-            <View className="mb-4 items-center">
+            <View className="mb-4 items-center pt-3">
               <View className="mb-3 h-1 w-9 rounded-full bg-gray-200" />
             </View>
 
             {headerSlot ? <View className="mb-5">{headerSlot}</View> : null}
 
             <Text
-              className="text-center text-2xl font-normal"
+              className="text-center text-2xl font-bold pt-10"
               style={{ color: TEXT_HEADING }}
               maxFontSizeMultiplier={1.3}
             >

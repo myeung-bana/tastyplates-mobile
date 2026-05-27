@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -10,17 +9,22 @@ import {
   View,
 } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
-import * as Linking from 'expo-linking'
 import { Link } from 'expo-router'
-import * as WebBrowser from 'expo-web-browser'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Controller, useForm } from 'react-hook-form'
 import type { User } from '@nhost/nhost-js'
-import { useNhostClient, useSignInEmailPassword } from '@nhost/react'
+import { useSignInEmailPassword } from '@nhost/react'
 import { z } from 'zod'
 
-import { BRAND_PRIMARY, mergeTextInputBodyTypography, TEXT_BODY, TEXT_HEADING, TEXT_MUTED } from '@/constants/brand'
-import { SCREEN_FORGOT_PASSWORD, SCREEN_LOGIN } from '@/constants/screens'
+import {
+  BRAND_PRIMARY,
+  mergeTextInputBodyTypography,
+  TEXT_BODY,
+  TEXT_HEADING,
+  TEXT_MUTED,
+} from '@/constants/brand'
+import { SCREEN_FORGOT_PASSWORD } from '@/constants/screens'
+import { useGoogleSignIn } from '@/hooks/useGoogleSignIn'
 import { loginScreenHref } from '@/lib/authRoutes'
 import { toast } from '@/utils/toast'
 
@@ -45,24 +49,26 @@ export type LoginFormProps = {
   resume?: string
   /** When false, omit the subtitle under the headings (parent shows context). */
   showIntro?: boolean
-  /**
-   * When true, render fields only (parent provides scroll + keyboard avoidance).
-   * Hides footer sign-up link when parent uses segment control.
-   */
+  /** When true, render fields only (parent provides scroll + keyboard avoidance). */
   embedded?: boolean
+  /** When false, hide Google button (chooser screen provides Google). Default true. */
+  showGoogle?: boolean
   /** Called after a successful `signInEmailPassword`. */
   onSignInSuccess: (payload: SignInSuccessPayload) => void | Promise<void>
+  /** When embedded, switch to sign-up without router (optional). */
+  onSwitchToSignUp?: () => void
 }
 
 export function LoginForm({
   resume,
   showIntro = true,
   embedded = false,
+  showGoogle = true,
   onSignInSuccess,
+  onSwitchToSignUp,
 }: LoginFormProps) {
-  const nhost = useNhostClient()
   const { signInEmailPassword, isLoading } = useSignInEmailPassword()
-  const [googleBusy, setGoogleBusy] = useState(false)
+  const { continueWithGoogle, googleBusy } = useGoogleSignIn({ onSuccess: onSignInSuccess })
 
   const {
     control,
@@ -87,184 +93,151 @@ export function LoginForm({
 
   const busy = isLoading
 
-  const onContinueWithGoogle = async () => {
-    if (busy || googleBusy) return
-    setGoogleBusy(true)
-    try {
-      const redirectTo = Linking.createURL(SCREEN_LOGIN)
-      const started = await nhost.auth.signIn({ provider: 'google', options: { redirectTo } })
-      const providerUrl = started.providerUrl
-      if (!providerUrl) {
-        toast.error(started.error?.message ?? 'Google sign-in is unavailable.')
-        return
-      }
-      const result = await WebBrowser.openAuthSessionAsync(providerUrl, redirectTo)
-      if (result.type !== 'success') return
-      if (!('url' in result) || result.url.length === 0) {
-        toast.error('Could not complete Google sign-in.')
-        return
-      }
-      const query = Linking.parse(result.url).queryParams
-      const oauthErr = query?.error
-      if (oauthErr != null && String(oauthErr).length > 0) {
-        const desc =
-          typeof query?.errorDescription === 'string' ? query.errorDescription : String(oauthErr)
-        toast.error(desc)
-        return
-      }
-      const refreshToken = readRefreshTokenFromCallbackUrl(result.url)
-      if (!refreshToken) {
-        toast.error('Could not complete Google sign-in.')
-        return
-      }
-      const refreshed = await nhost.auth.refreshSession(refreshToken)
-      if (refreshed.error) {
-        toast.error(refreshed.error.message ?? 'Could not finish sign-in.')
-        return
-      }
-      const user: User | null = refreshed.session?.user ?? nhost.auth.getUser()
-      if (!user) {
-        toast.error('Could not finish sign-in.')
-        return
-      }
-      await onSignInSuccess({
-        needsEmailVerification: false,
-        user,
-      })
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Google sign-in failed.')
-    } finally {
-      setGoogleBusy(false)
-    }
-  }
-
-  const fields = (
-    <>
-        {showIntro ? (
-          <Text className="mb-8 text-base leading-relaxed" style={{ color: TEXT_BODY }}>
-            Sign in with your Tastyplates email and password.
+  const signUpFooter =
+    embedded && onSwitchToSignUp ? (
+      <View className="flex-row flex-wrap justify-center gap-1 pb-6">
+        <Text className="text-center text-sm" style={{ color: TEXT_MUTED }}>
+          {"Don't have an account?"}
+        </Text>
+        <Pressable onPress={onSwitchToSignUp}>
+          <Text className="text-sm font-semibold" style={{ color: BRAND_PRIMARY }}>
+            Sign up
           </Text>
-        ) : null}
-
-        <Text className="mb-1 text-sm font-medium" style={{ color: TEXT_HEADING }}>
-          Email
+        </Pressable>
+      </View>
+    ) : !embedded ? (
+      <View className="flex-row flex-wrap justify-center gap-1 pb-6">
+        <Text className="text-center text-sm" style={{ color: TEXT_MUTED }}>
+          {"Don't have an account?"}
         </Text>
-        <Controller
-          control={control}
-          name="email"
-          render={({ field: { onChange, onBlur, value } }) => (
-            <TextInput
-              autoCapitalize="none"
-              autoComplete="email"
-              autoCorrect={false}
-              keyboardType="email-address"
-              onBlur={onBlur}
-              onChangeText={onChange}
-              placeholder="Email Address"
-              placeholderTextColor="#797979"
-              value={value}
-              className={inputClass}
-              style={mergeTextInputBodyTypography()}
-            />
-          )}
-        />
-        {errors.email ? (
-          <Text className="mb-4 text-sm text-red-600">{errors.email.message}</Text>
-        ) : (
-          <View className="mb-4" />
-        )}
-
-        <Text className="mb-1 text-sm font-medium" style={{ color: TEXT_HEADING }}>
-          Password
-        </Text>
-        <Controller
-          control={control}
-          name="password"
-          render={({ field: { onChange, onBlur, value } }) => (
-            <TextInput
-              autoCapitalize="none"
-              autoComplete="password"
-              onBlur={onBlur}
-              onChangeText={onChange}
-              placeholder="••••••••"
-              placeholderTextColor="#797979"
-              secureTextEntry
-              value={value}
-              className={inputClass}
-              style={mergeTextInputBodyTypography()}
-            />
-          )}
-        />
-        {errors.password ? (
-          <Text className="mb-4 text-sm text-red-600">{errors.password.message}</Text>
-        ) : (
-          <View className="mb-2" />
-        )}
-
-        <Link href={SCREEN_FORGOT_PASSWORD} asChild>
-          <Pressable className="mb-6 self-start py-1">
-            <Text className="text-sm font-medium" style={{ color: TEXT_BODY }}>
-              Forgot password?
+        <Link href={loginScreenHref({ mode: 'signup', resume })} asChild>
+          <Pressable>
+            <Text className="text-sm font-semibold" style={{ color: BRAND_PRIMARY }}>
+              Sign up
             </Text>
           </Pressable>
         </Link>
+      </View>
+    ) : null
 
-        <Pressable
-          accessibilityRole="button"
-          disabled={busy || googleBusy}
-          onPress={onSubmit}
-          className="mb-8 items-center rounded-full py-4 active:opacity-90 disabled:opacity-50"
-          style={{ backgroundColor: BRAND_PRIMARY }}
-        >
-          {busy ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <Text className="text-base font-semibold text-white">Log in</Text>
-          )}
-        </Pressable>
+  const fields = (
+    <>
+      {showIntro ? (
+        <Text className="mb-8 text-base leading-relaxed" style={{ color: TEXT_BODY }}>
+          Sign in with your Tastyplates email and password.
+        </Text>
+      ) : null}
 
-        <View className="mb-6 flex-row items-center gap-3">
-          <View className="h-px flex-1 bg-gray-200" />
-          <Text className="text-xs font-medium uppercase" style={{ color: TEXT_MUTED }}>
-            or
+      <Text className="mb-1 text-sm font-medium" style={{ color: TEXT_HEADING }}>
+        Email
+      </Text>
+      <Controller
+        control={control}
+        name="email"
+        render={({ field: { onChange, onBlur, value } }) => (
+          <TextInput
+            autoCapitalize="none"
+            autoComplete="email"
+            autoCorrect={false}
+            keyboardType="email-address"
+            onBlur={onBlur}
+            onChangeText={onChange}
+            placeholder="Email Address"
+            placeholderTextColor="#797979"
+            value={value}
+            className={inputClass}
+            style={mergeTextInputBodyTypography()}
+          />
+        )}
+      />
+      {errors.email ? (
+        <Text className="mb-4 text-sm text-red-600">{errors.email.message}</Text>
+      ) : (
+        <View className="mb-4" />
+      )}
+
+      <Text className="mb-1 text-sm font-medium" style={{ color: TEXT_HEADING }}>
+        Password
+      </Text>
+      <Controller
+        control={control}
+        name="password"
+        render={({ field: { onChange, onBlur, value } }) => (
+          <TextInput
+            autoCapitalize="none"
+            autoComplete="password"
+            onBlur={onBlur}
+            onChangeText={onChange}
+            placeholder="••••••••"
+            placeholderTextColor="#797979"
+            secureTextEntry
+            value={value}
+            className={inputClass}
+            style={mergeTextInputBodyTypography()}
+          />
+        )}
+      />
+      {errors.password ? (
+        <Text className="mb-4 text-sm text-red-600">{errors.password.message}</Text>
+      ) : (
+        <View className="mb-2" />
+      )}
+
+      <Link href={SCREEN_FORGOT_PASSWORD} asChild>
+        <Pressable className="mb-6 self-start py-1">
+          <Text className="text-sm font-medium" style={{ color: TEXT_BODY }}>
+            Forgot password?
           </Text>
-          <View className="h-px flex-1 bg-gray-200" />
-        </View>
-
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Continue with Google"
-          disabled={busy || googleBusy}
-          onPress={() => void onContinueWithGoogle()}
-          className="mb-8 flex-row items-center justify-center gap-3 rounded-full border bg-white px-5 py-3.5 active:bg-gray-50 disabled:opacity-50"
-          style={{ borderColor: '#d1d5db', borderWidth: 1 }}
-        >
-          {googleBusy ? (
-            <ActivityIndicator color={TEXT_HEADING} />
-          ) : (
-            <>
-              <Ionicons name="logo-google" size={22} color="#4285F4" />
-              <Text className="text-base font-semibold" style={{ color: TEXT_HEADING }}>
-                Continue with Google
-              </Text>
-            </>
-          )}
         </Pressable>
+      </Link>
 
-        {!embedded ? (
-          <View className="flex-row flex-wrap justify-center gap-1 pb-6">
-            <Text className="text-center text-sm" style={{ color: TEXT_MUTED }}>
-              {"Don't have an account?"}
+      <Pressable
+        accessibilityRole="button"
+        disabled={busy || googleBusy}
+        onPress={onSubmit}
+        className="mb-8 items-center rounded-full py-4 active:opacity-90 disabled:opacity-50"
+        style={{ backgroundColor: BRAND_PRIMARY }}
+      >
+        {busy ? (
+          <ActivityIndicator color="#fff" />
+        ) : (
+          <Text className="text-base font-semibold text-white">Log in</Text>
+        )}
+      </Pressable>
+
+      {showGoogle ? (
+        <>
+          <View className="mb-6 flex-row items-center gap-3">
+            <View className="h-px flex-1 bg-gray-200" />
+            <Text className="text-xs font-medium uppercase" style={{ color: TEXT_MUTED }}>
+              or
             </Text>
-            <Link href={loginScreenHref({ mode: 'signup', resume })} asChild>
-              <Pressable>
-                <Text className="text-sm font-semibold" style={{ color: BRAND_PRIMARY }}>
-                  Sign up
-                </Text>
-              </Pressable>
-            </Link>
+            <View className="h-px flex-1 bg-gray-200" />
           </View>
-        ) : null}
+
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Continue with Google"
+            disabled={busy || googleBusy}
+            onPress={() => void continueWithGoogle()}
+            className="mb-8 flex-row items-center justify-center gap-3 rounded-full border bg-white px-5 py-3.5 active:bg-gray-50 disabled:opacity-50"
+            style={{ borderColor: '#d1d5db', borderWidth: 1 }}
+          >
+            {googleBusy ? (
+              <ActivityIndicator color={TEXT_HEADING} />
+            ) : (
+              <>
+                <Ionicons name="logo-google" size={22} color="#4285F4" />
+                <Text className="text-base font-semibold" style={{ color: TEXT_HEADING }}>
+                  Continue with Google
+                </Text>
+              </>
+            )}
+          </Pressable>
+        </>
+      ) : null}
+
+      {signUpFooter}
     </>
   )
 
@@ -285,28 +258,4 @@ export function LoginForm({
       </ScrollView>
     </KeyboardAvoidingView>
   )
-}
-
-/** Nhost appends refreshToken to OAuth redirect (?refreshToken=…). */
-function readRefreshTokenFromCallbackUrl(rawUrl: string): string | null {
-  const qp = Linking.parse(rawUrl).queryParams?.refreshToken
-  if (typeof qp === 'string' && qp.length > 0) return qp
-
-  try {
-    const qPart = rawUrl.split('?')[1]
-    const beforeHash = qPart?.split('#')[0] ?? ''
-    if (beforeHash) {
-      const fromQuery = new URLSearchParams(beforeHash).get('refreshToken')
-      if (fromQuery) return fromQuery
-    }
-    const hash = rawUrl.includes('#') ? rawUrl.split('#')[1]! : ''
-    if (hash) {
-      const fromHash = new URLSearchParams(hash).get('refreshToken')
-      if (fromHash) return fromHash
-    }
-  } catch {
-    /* ignore */
-  }
-
-  return null
 }
