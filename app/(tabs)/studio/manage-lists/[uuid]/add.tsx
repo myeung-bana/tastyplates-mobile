@@ -41,6 +41,7 @@ import {
   autocompletePlacesEstablishments,
   fetchGooglePlaceDetails,
   getNearbyRestaurants,
+  googlePlacePhotoUrl,
   type NearbyPlaceRow,
   type PlacesAutocompletePrediction,
 } from '@/lib/googlePlaces'
@@ -185,10 +186,18 @@ export default function AddRestaurantToListScreen(): JSX.Element {
         })
         if (seq !== selectSeqRef.current) return
 
+        const photoRef = placeData.photos?.[0]?.photo_reference
         await addListItem({
           list_uuid: listUuid,
           restaurant_uuid: existing?.uuid ?? undefined,
           google_place_id: placeId,
+          place_name: placeData.name ?? name,
+          place_address: address || undefined,
+          place_photo_url: photoRef ? googlePlacePhotoUrl(photoRef, 400) : undefined,
+          place_rating: placeData.rating,
+          place_latitude: placeData.geometry?.location?.lat,
+          place_longitude: placeData.geometry?.location?.lng,
+          restaurant_slug: existing?.slug,
         })
 
         void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
@@ -245,7 +254,7 @@ export default function AddRestaurantToListScreen(): JSX.Element {
           ) : null}
         </View>
         <Text className="px-5 font-neusans text-xs text-[#9ca3af]">
-          Searching in 🏳 {localityLine}
+          Searching in {localityLine}
         </Text>
       </View>
 

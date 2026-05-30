@@ -11,6 +11,7 @@ export interface CreateListBody {
   title: string
   description?: string
   is_public?: boolean
+  display_pic?: string
 }
 
 export interface UpdateListBody {
@@ -18,12 +19,22 @@ export interface UpdateListBody {
   title?: string
   description?: string
   is_public?: boolean
+  /** Public URL from Nhost Storage, or `null` to clear the cover. */
+  display_pic?: string | null
 }
 
 export interface AddItemBody {
   list_uuid: string
   restaurant_uuid?: string
   google_place_id?: string
+  /** Required with `google_place_id` — upserted into `google_place_cache` for list display. */
+  place_name?: string
+  place_address?: string
+  place_photo_url?: string
+  place_rating?: number
+  place_latitude?: number
+  place_longitude?: number
+  restaurant_slug?: string
 }
 
 export interface RemoveItemBody {
@@ -133,7 +144,11 @@ export async function getListByUuid(listUuid: string): Promise<RestaurantListDet
     { withAuth: true },
   )
   const data = unwrapEnvelope(env)
-  return data.list
+  const list = data?.list ?? (data as unknown as RestaurantListDetail)
+  if (!list || typeof list !== 'object' || !('uuid' in list)) {
+    throw new Error('Invalid list response')
+  }
+  return list
 }
 
 /** Adds a restaurant to a list. Throws with HTTP 409 text when already present. */

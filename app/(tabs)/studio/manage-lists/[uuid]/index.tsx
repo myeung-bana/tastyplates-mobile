@@ -303,6 +303,8 @@ export default function ListDetailScreen(): JSX.Element {
                         title: list.title,
                         description: list.description ?? '',
                         is_public: list.is_public ? 'true' : 'false',
+                        display_pic:
+                          list.display_pic?.trim() || list.cover_image_url?.trim() || '',
                       },
                     })
                   }}

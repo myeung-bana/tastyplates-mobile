@@ -236,7 +236,7 @@ export default function AddReviewSearchScreen(): JSX.Element {
           ) : null}
         </View>
         <Text className="px-5 font-neusans text-xs text-[#9ca3af]">
-          Searching in 🏳 {localityLine}
+          Searching in {localityLine}
         </Text>
       </View>
 

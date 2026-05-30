@@ -125,7 +125,7 @@ services/
   reviewService.ts            # Apollo mutation wrappers (toggleLike, createReview, etc.)
   restaurantService.ts
   userService.ts
-  uploadService.ts            # Nhost Storage upload helpers
+  uploadService.ts            # S3 upload via POST upload/image
 
 contexts/
   UploadContext.tsx           # Global upload progress state
@@ -216,18 +216,21 @@ const { data, loading } = useQuery(GET_RESTAURANT_REVIEWS, {
 });
 ```
 
-### Nhost Storage (uploads)
+### Image uploads (S3 via Nhost Functions)
 
-Photo uploads go from the device directly to Nhost Storage via the Nhost React Native SDK. The app never streams files through a proxy server.
+User photos (reviews, profile avatar, list `display_pic`) upload as **multipart** to `POST /v1/upload/image`. The function resizes (Sharp), writes to **S3**, and returns `{ fileUrl, filePath }`. The mobile app stores `fileUrl` on the target entity.
 
 ```typescript
-import { useNhostClient } from '@nhost/react-native';
+import { uploadImageToS3 } from '@/services/uploadService'
 
-const nhost = useNhostClient();
-const { fileMetadata, error } = await nhost.storage.upload({ file });
+const { fileUrl } = await uploadImageToS3({
+  uri: picked.uri,
+  name: picked.fileName,
+  type: picked.mimeType,
+})
 ```
 
-Progress is tracked via the upload context (`contexts/UploadContext.tsx`) and displayed as a single fixed progress bar — not stacked toasts.
+Review uploads use `lib/uploadReviewPhotos.ts` with progress from `contexts/UploadContext.tsx` (single progress bar, not stacked toasts).
 
 ---
 

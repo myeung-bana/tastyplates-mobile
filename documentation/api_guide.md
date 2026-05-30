@@ -221,6 +221,19 @@ const res = await fetch(`${base}/upload/image`, {
 
 Do not set `Content-Type` manually for multipart uploads; the browser will set the boundary.
 
+**React Native (Expo)** — same endpoint; use `uploadImageToS3` from `services/uploadService.ts`:
+
+```typescript
+import { uploadImageToS3 } from '@/services/uploadService'
+
+const { fileUrl } = await uploadImageToS3({
+  uri: asset.uri,
+  name: asset.fileName ?? 'photo.jpg',
+  type: asset.mimeType ?? 'image/jpeg',
+})
+// Persist fileUrl on reviews, profile_image, or list display_pic
+```
+
 ### 6.4 CORS
 
 Browser requests from a different origin than the functions host require CORS to allow your frontend origin. Server-side requests from Next.js or Node are not subject to browser CORS restrictions.

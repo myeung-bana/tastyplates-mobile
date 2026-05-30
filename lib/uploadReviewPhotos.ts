@@ -1,5 +1,5 @@
 import type { UploadContextValue } from '@/contexts/UploadContext'
-import { uploadPhoto } from '@/services/uploadService'
+import { uploadImageToS3 } from '@/services/uploadService'
 
 export type PendingReviewPhoto = {
   uri: string
@@ -24,12 +24,12 @@ export async function uploadReviewPhotos(
   try {
     for (let i = 0; i < pending.length; i++) {
       const item = pending[i]!
-      const { url } = await uploadPhoto({
+      const { fileUrl } = await uploadImageToS3({
         uri: item.uri,
         name: item.fileName || guessFileName(item.uri, i),
         type: item.mimeType || 'image/jpeg',
       })
-      urls.push(url)
+      urls.push(fileUrl)
       uploadCtx.updateProgress(i + 1, pending.length)
     }
     return urls

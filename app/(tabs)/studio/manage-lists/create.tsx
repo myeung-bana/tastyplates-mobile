@@ -6,6 +6,7 @@ import type { ListFormValues } from '@/components/studio/manage-lists/ListForm'
 import { listCreatedSuccess } from '@/constants/messages'
 import { castHref } from '@/lib/routeParams'
 import { studioManageListDetailPath } from '@/constants/screens'
+import { uploadListCoverPhoto } from '@/lib/listCoverUpload'
 import { createList } from '@/services/restaurantListService'
 import { toast } from '@/utils/toast'
 
@@ -15,19 +16,24 @@ export default function CreateListScreen(): JSX.Element {
   async function handleSubmit(values: ListFormValues): Promise<void> {
     setSubmitting(true)
     try {
+      let display_pic: string | undefined
+      if (values.pendingCover) {
+        display_pic = await uploadListCoverPhoto(values.pendingCover)
+      }
+
       const list = await createList({
         title: values.title,
         description: values.description || undefined,
         is_public: values.is_public,
+        display_pic,
       })
       toast.success(listCreatedSuccess)
-      // Navigate to detail; pass slug so detail can load immediately
       router.replace({
         pathname: castHref(studioManageListDetailPath(list.uuid)) as never,
         params: { slug: list.slug, title: list.title },
       })
-    } catch {
-      toast.error('Failed to create list. Please try again.')
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Failed to create list. Please try again.')
     } finally {
       setSubmitting(false)
     }
@@ -35,11 +41,10 @@ export default function CreateListScreen(): JSX.Element {
 
   return (
     <ListForm
-      variant="create"
+      mode="create"
       submitLabel="Create List"
       submitting={submitting}
       onSubmit={(values) => void handleSubmit(values)}
     />
   )
 }
-

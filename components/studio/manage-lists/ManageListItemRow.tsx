@@ -8,6 +8,7 @@ import { AppIcon } from '@/components/ui/AppIcon'
 import { DEFAULT_RESTAURANT_IMAGE } from '@/constants/images'
 import { castHref } from '@/lib/routeParams'
 import { restaurantDetailPath } from '@/constants/screens'
+import { formatShortFormattedAddress } from '@/services/restaurantsV2Service'
 import { isLinkedItem, getItemDisplayName } from '@/types/restaurantList'
 import type { RestaurantListItem } from '@/types/restaurantList'
 
@@ -22,6 +23,7 @@ export function ManageListItemRow({ item, swipeableRefs, onRemove }: Props): JSX
   const rowKey = String(item.id)
   const linked = isLinkedItem(item)
   const displayName = getItemDisplayName(item)
+  const subtitle = formatShortFormattedAddress(item.address) ?? item.address
 
   function handlePress(): void {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
@@ -95,15 +97,10 @@ export function ManageListItemRow({ item, swipeableRefs, onRemove }: Props): JSX
           >
             {displayName}
           </Text>
-          {item.address ? (
+          {subtitle ? (
             <Text className="font-neusans text-[13px] text-[#6b7280]" numberOfLines={1}>
-              {item.address}
+              {subtitle}
             </Text>
-          ) : null}
-          {!linked ? (
-            <View className="mt-0.5 self-start rounded-full bg-gray-100 px-2 py-0.5">
-              <Text className="font-neusans text-[10px] text-[#9ca3af]">Google Places</Text>
-            </View>
           ) : null}
         </View>
 

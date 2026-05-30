@@ -1,10 +1,11 @@
 /**
- * Shared form for Create List and Edit List.
- * Create uses a centered Spotify-style layout; edit uses the compact field form.
+ * Shared centered form for Create List and Edit List (Spotify-style layout).
  */
 import { useState } from 'react'
 import { AppIcon } from '@/components/ui/AppIcon'
 import {
+  Alert,
+  Image,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -16,17 +17,30 @@ import {
 import * as Haptics from 'expo-haptics'
 
 import { Button } from '@/components/ui/Button'
+import type { PickedListCoverPhoto } from '@/lib/pickListCoverPhoto'
+import { pickListCoverPhoto } from '@/lib/pickListCoverPhoto'
+import { toast } from '@/utils/toast'
 
 export interface ListFormValues {
   title: string
   description: string
   is_public: boolean
+  pendingCover?: PickedListCoverPhoto
+  clearDisplayPic?: boolean
+}
+
+export interface ListFormInitialValues {
+  title?: string
+  description?: string
+  is_public?: boolean
+  display_pic?: string | null
 }
 
 interface Props {
-  variant?: 'create' | 'edit'
-  initialValues?: Partial<ListFormValues>
+  mode?: 'create' | 'edit'
+  initialValues?: ListFormInitialValues
   submitLabel: string
+  submittingLabel?: string
   submitting: boolean
   onSubmit: (values: ListFormValues) => void
 }
@@ -34,20 +48,16 @@ interface Props {
 function VisibilityPills({
   isPublic,
   onChange,
-  centered,
 }: {
   isPublic: boolean
   onChange: (isPublic: boolean) => void
-  centered?: boolean
 }): JSX.Element {
   return (
-    <View className={centered ? 'items-center' : undefined}>
-      <Text
-        className={`mb-3 font-neusans text-sm text-[#374151]${centered ? ' text-center' : ''}`}
-      >
+    <View className="items-center">
+      <Text className="mb-3 text-center font-neusans text-sm text-[#374151]">
         Who can see this list?
       </Text>
-      <View className={`flex-row gap-3${centered ? ' justify-center' : ''}`}>
+      <View className="flex-row justify-center gap-3">
         {([
           { label: 'Private', value: false, icon: 'lock' as const },
           { label: 'Public', value: true, icon: 'globe' as const },
@@ -87,25 +97,70 @@ function VisibilityPills({
   )
 }
 
-function CreateListForm({
+export function ListForm({
+  mode = 'create',
+  initialValues,
   submitLabel,
+  submittingLabel,
   submitting,
   onSubmit,
-}: Pick<Props, 'submitLabel' | 'submitting' | 'onSubmit'>): JSX.Element {
-  const [title, setTitle] = useState('')
-  const [description, setDescription] = useState('')
-  const [isPublic, setIsPublic] = useState(true)
+}: Props): JSX.Element {
+  const isEdit = mode === 'edit'
+  const [title, setTitle] = useState(initialValues?.title ?? '')
+  const [description, setDescription] = useState(initialValues?.description ?? '')
+  const [isPublic, setIsPublic] = useState(initialValues?.is_public ?? true)
   const [titleError, setTitleError] = useState<string | null>(null)
+  const [pendingCover, setPendingCover] = useState<PickedListCoverPhoto | null>(null)
+  const [clearDisplayPic, setClearDisplayPic] = useState(false)
+
+  const savedCoverUrl = initialValues?.display_pic?.trim() || null
+  const coverPreviewUri = pendingCover?.uri ?? (clearDisplayPic ? null : savedCoverUrl)
+  const hasCover = Boolean(coverPreviewUri)
+
+  function handlePickCover(): void {
+    void Haptics.selectionAsync()
+    void pickListCoverPhoto()
+      .then((picked) => {
+        if (!picked) return
+        setPendingCover(picked)
+        setClearDisplayPic(false)
+      })
+      .catch((e) => {
+        toast.error(e instanceof Error ? e.message : 'Could not pick photo')
+      })
+  }
+
+  function handleRemoveCover(): void {
+    Alert.alert('Remove cover photo?', undefined, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Remove',
+        style: 'destructive',
+        onPress: () => {
+          setPendingCover(null)
+          setClearDisplayPic(true)
+        },
+      },
+    ])
+  }
 
   function handleSubmit(): void {
     if (!title.trim()) {
-      setTitleError('Give your list a name to continue.')
+      setTitleError(isEdit ? 'List name is required.' : 'Give your list a name to continue.')
       return
     }
     setTitleError(null)
     void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
-    onSubmit({ title: title.trim(), description: description.trim(), is_public: isPublic })
+    onSubmit({
+      title: title.trim(),
+      description: description.trim(),
+      is_public: isPublic,
+      ...(pendingCover ? { pendingCover } : {}),
+      ...(clearDisplayPic ? { clearDisplayPic: true } : {}),
+    })
   }
+
+  const busyLabel = submittingLabel ?? (isEdit ? 'Saving…' : 'Creating…')
 
   return (
     <KeyboardAvoidingView
@@ -125,12 +180,41 @@ function CreateListForm({
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        <View
-          className="mb-8 items-center justify-center rounded-2xl bg-gray-100"
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={hasCover ? 'Change list cover photo' : 'Add list cover photo'}
+          onPress={handlePickCover}
+          onLongPress={hasCover ? handleRemoveCover : undefined}
+          className="mb-2 overflow-hidden rounded-2xl bg-gray-100"
           style={{ width: 200, height: 200 }}
         >
-          <AppIcon name="image" size={72} color="#9ca3af" />
-        </View>
+          {hasCover && coverPreviewUri ? (
+            <Image
+              source={{ uri: coverPreviewUri }}
+              style={{ width: 200, height: 200 }}
+              resizeMode="cover"
+            />
+          ) : (
+            <View className="h-full w-full items-center justify-center">
+              <AppIcon name="image" size={72} color="#9ca3af" />
+            </View>
+          )}
+          <View
+            className="absolute bottom-0 left-0 right-0 items-center bg-black/40 py-2"
+            pointerEvents="none"
+          >
+            <Text className="font-neusans text-xs font-medium text-white">
+              {hasCover ? 'Change photo' : 'Add photo'}
+            </Text>
+          </View>
+        </Pressable>
+        {hasCover ? (
+          <Pressable accessibilityRole="button" onPress={handleRemoveCover} className="mb-6">
+            <Text className="font-neusans text-xs text-[#6b7280]">Remove photo</Text>
+          </Pressable>
+        ) : (
+          <View className="mb-8" />
+        )}
 
         <TextInput
           value={title}
@@ -141,7 +225,7 @@ function CreateListForm({
           placeholder="Give your list a name"
           placeholderTextColor="#9ca3af"
           maxLength={100}
-          autoFocus
+          autoFocus={!isEdit}
           textAlign="center"
           className="w-full font-neusans font-semibold text-[#31343F]"
           style={{ fontSize: 28, lineHeight: 34, paddingVertical: 8 }}
@@ -167,127 +251,15 @@ function CreateListForm({
         <Text className="mt-1 font-neusans text-xs text-[#9ca3af]">{description.length}/500</Text>
 
         <View className="mt-10 w-full max-w-sm">
-          <VisibilityPills isPublic={isPublic} onChange={setIsPublic} centered />
-        </View>
-      </ScrollView>
-
-      <View className="border-t border-gray-100 bg-white px-6 pb-8 pt-3">
-        <Button variant="primary" onPress={handleSubmit} disabled={submitting}>
-          {submitting ? 'Creating…' : submitLabel}
-        </Button>
-      </View>
-    </KeyboardAvoidingView>
-  )
-}
-
-function EditListForm({
-  initialValues,
-  submitLabel,
-  submitting,
-  onSubmit,
-}: Pick<Props, 'initialValues' | 'submitLabel' | 'submitting' | 'onSubmit'>): JSX.Element {
-  const [title, setTitle] = useState(initialValues?.title ?? '')
-  const [description, setDescription] = useState(initialValues?.description ?? '')
-  const [isPublic, setIsPublic] = useState(initialValues?.is_public ?? false)
-  const [titleError, setTitleError] = useState<string | null>(null)
-
-  function handleSubmit(): void {
-    if (!title.trim()) {
-      setTitleError('List name is required.')
-      return
-    }
-    setTitleError(null)
-    void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
-    onSubmit({ title: title.trim(), description: description.trim(), is_public: isPublic })
-  }
-
-  return (
-    <KeyboardAvoidingView
-      className="flex-1"
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      keyboardVerticalOffset={100}
-    >
-      <ScrollView
-        className="flex-1 px-4 pt-4"
-        contentContainerStyle={{ paddingBottom: 120 }}
-        keyboardShouldPersistTaps="handled"
-      >
-        <View className="mb-5">
-          <Text className="mb-2 font-neusans text-sm text-[#374151]">List Name</Text>
-          <TextInput
-            value={title}
-            onChangeText={(v) => {
-              setTitle(v)
-              if (titleError) setTitleError(null)
-            }}
-            placeholder="Give your list a name"
-            maxLength={100}
-            className="rounded-[10px] border border-[#797979] px-4 py-3 font-neusans text-base text-[#31343F]"
-            style={{ fontSize: 16 }}
-            returnKeyType="next"
-          />
-          <View className="mt-1 flex-row items-center justify-between">
-            {titleError ? (
-              <Text className="text-xs text-red-600">{titleError}</Text>
-            ) : (
-              <View />
-            )}
-            <Text className="font-neusans text-xs text-[#9ca3af]">{title.length}/100</Text>
-          </View>
-        </View>
-
-        <View className="mb-5">
-          <View className="mb-2 flex-row items-center gap-1">
-            <Text className="font-neusans text-sm text-[#374151]">Description</Text>
-            <Text className="font-neusans text-xs text-[#9ca3af]">(optional)</Text>
-          </View>
-          <TextInput
-            value={description}
-            onChangeText={setDescription}
-            placeholder="Describe your list"
-            maxLength={500}
-            multiline
-            numberOfLines={3}
-            className="rounded-[10px] border border-[#797979] px-4 py-3 font-neusans text-base text-[#31343F]"
-            style={{ fontSize: 16, minHeight: 80, textAlignVertical: 'top' }}
-          />
-          <Text className="mt-1 self-end font-neusans text-xs text-[#9ca3af]">
-            {description.length}/500
-          </Text>
-        </View>
-
-        <View className="mb-6">
           <VisibilityPills isPublic={isPublic} onChange={setIsPublic} />
         </View>
       </ScrollView>
 
-      <View className="border-t border-gray-100 bg-white px-4 pb-8 pt-3">
-        <Button variant="primary" onPress={handleSubmit} disabled={submitting}>
-          {submitting ? 'Saving…' : submitLabel}
+      <View className="border-t border-gray-100 bg-white px-6 pb-8 pt-3">
+        <Button variant="primary" onPress={handleSubmit} loading={submitting}>
+          {submitting ? busyLabel : submitLabel}
         </Button>
       </View>
     </KeyboardAvoidingView>
-  )
-}
-
-export function ListForm({
-  variant = 'edit',
-  initialValues,
-  submitLabel,
-  submitting,
-  onSubmit,
-}: Props): JSX.Element {
-  if (variant === 'create') {
-    return (
-      <CreateListForm submitLabel={submitLabel} submitting={submitting} onSubmit={onSubmit} />
-    )
-  }
-  return (
-    <EditListForm
-      initialValues={initialValues}
-      submitLabel={submitLabel}
-      submitting={submitting}
-      onSubmit={onSubmit}
-    />
   )
 }

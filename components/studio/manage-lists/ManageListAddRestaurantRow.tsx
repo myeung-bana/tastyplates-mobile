@@ -26,11 +26,7 @@ export function ManageListAddRestaurantRow({ onPress }: ManageListAddRestaurantR
         <Text className="font-neusans text-[15px] font-medium text-[#31343F]" numberOfLines={1}>
           Add Restaurant
         </Text>
-        <Text className="font-neusans text-[13px] text-[#6b7280]" numberOfLines={1}>
-          Search or pick a place nearby
-        </Text>
       </View>
-
       <AppIcon name="chevron-right" size={14} color="#e5e7eb" />
     </Pressable>
   )

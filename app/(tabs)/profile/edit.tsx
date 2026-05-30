@@ -45,7 +45,7 @@ import {
   normalizeLegacyProfileAvatar,
   updateRestaurantUserProfile,
 } from '@/services/restaurantUserService'
-import { uploadPhoto } from '@/services/uploadService'
+import { uploadImageToS3 } from '@/services/uploadService'
 import { toast } from '@/utils/toast'
 
 const AVATAR_SIZE = 112
@@ -202,12 +202,12 @@ export default function EditProfileScreen(): JSX.Element {
     try {
       let profileImageUrl: string | undefined
       if (pendingPhoto) {
-        const { url } = await uploadPhoto({
+        const { fileUrl } = await uploadImageToS3({
           uri: pendingPhoto.uri,
           name: pendingPhoto.fileName,
           type: pendingPhoto.mimeType,
         })
-        profileImageUrl = url
+        profileImageUrl = fileUrl
       }
 
       const payload: Parameters<typeof updateRestaurantUserProfile>[0] = {

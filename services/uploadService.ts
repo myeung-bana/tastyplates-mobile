@@ -1,8 +1,9 @@
+import { getNhostFunctionsBase, unwrapEnvelope, type Envelope } from '@/lib/tastyplatesFetch'
 import { nhost } from '@/lib/nhost'
 
-export interface UploadResult {
-  fileId: string
-  url: string
+export interface S3UploadResult {
+  fileUrl: string
+  filePath: string
 }
 
 export interface UploadProgress {
@@ -19,58 +20,76 @@ export type UploadableFile =
       type: string
     }
 
-function extractFileId(metadata: unknown): string | null {
-  if (!metadata || typeof metadata !== 'object') return null
-  const m = metadata as Record<string, unknown>
-  if (typeof m.id === 'string') return m.id
-  const processed = m.processedFiles
-  if (Array.isArray(processed) && processed[0] && typeof processed[0] === 'object') {
-    const id = (processed[0] as Record<string, unknown>).id
-    if (typeof id === 'string') return id
+function toFormDataFile(file: UploadableFile): Blob | { uri: string; name: string; type: string } {
+  if (file instanceof File) return file
+  return {
+    uri: file.uri,
+    name: file.name,
+    type: file.type,
   }
-  return null
 }
 
 /**
- * Upload a photo to Nhost Storage (web `File` or React Native `{ uri, name, type }`).
+ * Upload an image via Nhost Functions `POST upload/image` (multipart → S3).
+ * Returns the public HTTPS URL to store on entities (reviews, profile, list display_pic).
  */
-export async function uploadPhoto(
-  file: UploadableFile,
-  options?: {
-    bucketId?: string
-    onProgress?: (progress: UploadProgress) => void
-  },
-): Promise<UploadResult> {
-  const { fileMetadata, error } = await nhost.storage.upload({
-    file: file as never,
-    bucketId: options?.bucketId,
+export async function uploadImageToS3(file: UploadableFile): Promise<S3UploadResult> {
+  const base = getNhostFunctionsBase()
+  if (!base) {
+    throw new Error('EXPO_PUBLIC_NHOST_FUNCTIONS_URL is not set')
+  }
+
+  const token = nhost.auth.getAccessToken() ?? nhost.auth.getSession()?.accessToken ?? null
+  if (!token) {
+    throw new Error('You must be signed in to upload images')
+  }
+
+  const form = new FormData()
+  const payload = toFormDataFile(file)
+  if (payload instanceof File) {
+    form.append('file', payload)
+  } else {
+    form.append('file', payload as unknown as Blob)
+  }
+
+  const res = await fetch(`${base}/upload/image`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}` },
+    body: form,
   })
 
-  if (error) {
-    throw new Error(error.message)
+  const text = await res.text()
+  let envelope: Envelope<S3UploadResult>
+  try {
+    envelope = JSON.parse(text) as Envelope<S3UploadResult>
+  } catch {
+    throw new Error(
+      res.ok ? 'Invalid JSON response from upload server' : `HTTP ${res.status}: ${text.slice(0, 200)}`,
+    )
   }
 
-  const fileId = extractFileId(fileMetadata)
-  if (!fileId) {
-    throw new Error('Upload failed: no file metadata returned')
+  if (!res.ok && envelope.ok === false) {
+    throw new Error(envelope.error)
   }
 
-  const url = nhost.storage.getPublicUrl({ fileId })
+  const data = unwrapEnvelope(envelope)
+  if (!data?.fileUrl || typeof data.fileUrl !== 'string') {
+    throw new Error('Upload failed: no file URL returned')
+  }
 
   return {
-    fileId,
-    url,
+    fileUrl: data.fileUrl,
+    filePath: typeof data.filePath === 'string' ? data.filePath : '',
   }
 }
 
-export async function deletePhoto(fileId: string): Promise<void> {
-  const { error } = await nhost.storage.delete({ fileId })
-  if (error) {
-    throw new Error(error.message)
-  }
+/** @deprecated Use {@link uploadImageToS3} — kept for gradual migration; maps to S3 result shape. */
+export async function uploadPhoto(file: UploadableFile): Promise<{ fileId: string; url: string }> {
+  const { fileUrl, filePath } = await uploadImageToS3(file)
+  return { fileId: filePath, url: fileUrl }
 }
 
 export const uploadService = {
+  uploadImageToS3,
   uploadPhoto,
-  deletePhoto,
 }

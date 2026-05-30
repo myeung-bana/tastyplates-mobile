@@ -176,6 +176,20 @@ export function formatRestaurantCardAddress(
   return null
 }
 
+/**
+ * Short subtitle for list rows from Google `formatted_address` (street + city).
+ */
+export function formatShortFormattedAddress(
+  formatted: string | null | undefined,
+): string | null {
+  const raw = formatted?.trim()
+  if (!raw) return null
+  const parts = raw.split(',').map((p) => p.trim()).filter(Boolean)
+  if (parts.length === 0) return null
+  if (parts.length <= 2) return parts.join(', ')
+  return `${parts[0]}, ${parts[parts.length - 2]}`
+}
+
 /** @deprecated Prefer `formatRestaurantCardAddress` for list/detail subtitle lines. */
 export function formatRestaurantListSubtitle(
   listingStreet: string | null | undefined,

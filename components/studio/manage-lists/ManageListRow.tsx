@@ -18,10 +18,11 @@ interface Props {
 export function ManageListRow({ list, swipeableRefs, onDelete }: Props): JSX.Element {
   const swipeRef = useRef<Swipeable>(null)
 
-  const coverUri = list.display_pic?.trim() || list.cover_image_url || null
+  const coverUri = list.display_pic?.trim() || null
+  const count = typeof list.items_count === 'number' ? list.items_count : 0
+  const restaurantLabel = `${count} ${count === 1 ? 'restaurant' : 'restaurants'}`
   const visibilityLabel = list.is_public ? 'Public' : 'Private'
-  const placesLabel = `${list.items_count} ${list.items_count === 1 ? 'place' : 'places'} · ${visibilityLabel}`
-  const subtitle = list.description?.trim() || placesLabel
+  const subtitle = `${restaurantLabel} · ${visibilityLabel}`
 
   function renderRightActions(): JSX.Element {
     return (
@@ -86,7 +87,7 @@ export function ManageListRow({ list, swipeableRefs, onDelete }: Props): JSX.Ele
               resizeMode="cover"
             />
           ) : (
-            <AppIcon name="image" size={24} color="#9ca3af" />
+            <AppIcon name="map-pin" size={24} color="#9ca3af" />
           )}
         </View>
 
@@ -95,11 +96,9 @@ export function ManageListRow({ list, swipeableRefs, onDelete }: Props): JSX.Ele
           <Text className="font-neusans text-[15px] font-medium text-[#31343F]" numberOfLines={1}>
             {list.title}
           </Text>
-          {subtitle ? (
-            <Text className="font-neusans text-[13px] text-[#6b7280]" numberOfLines={1}>
-              {subtitle}
-            </Text>
-          ) : null}
+          <Text className="font-neusans text-[13px] text-[#6b7280]" numberOfLines={1}>
+            {subtitle}
+          </Text>
         </View>
 
         {/* Chevron */}
