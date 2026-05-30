@@ -246,11 +246,6 @@ export default function ArticleDetailScreen() {
                   })}`
                 : ''}
             </Text>
-            {article.author_profile?.displayName ? (
-              <Text className="mt-3 text-sm" style={{ color: TEXT_BODY }}>
-                By {article.author_profile.displayName.trim()}
-              </Text>
-            ) : null}
           </View>
 
           <View className="px-5 pt-4">

@@ -115,21 +115,21 @@ export function ProfileSignedInView() {
     <View>
       <ProfileMenuCard>
         <ProfileMenuRow
-          icon="settings-outline"
+          icon="settings"
           title="Settings"
           subtitle="Account and app preferences"
           topBorder={false}
           onPress={() => router.push(SCREEN_SETTINGS)}
         />
         <ProfileMenuRow
-          icon="list-outline"
+          icon="list"
           title="My reviews"
           subtitle="Published and drafts in TastyStudio"
           topBorder
           onPress={() => router.push(SCREEN_STUDIO_REVIEW_LISTING)}
         />
         <ProfileMenuRow
-          icon="people-outline"
+          icon="users"
           title="Following feed"
           subtitle="Reviews from people you follow"
           topBorder

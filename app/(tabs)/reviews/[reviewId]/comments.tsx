@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { AppIcon } from '@/components/ui/AppIcon'
 import {
   ActivityIndicator,
   Image,
@@ -11,7 +12,6 @@ import {
   View,
 } from 'react-native'
 import { FlashList } from '@shopify/flash-list'
-import { Ionicons } from '@expo/vector-icons'
 import * as Haptics from 'expo-haptics'
 import { Stack, router, useLocalSearchParams } from 'expo-router'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
@@ -343,7 +343,7 @@ export default function ReviewCommentsScreen() {
                     justifyContent: 'center',
                   }}
                 >
-                  <Ionicons name="person" size={16} color={TEXT_MUTED} />
+                  <AppIcon name="user" size={16} color={TEXT_MUTED} />
                 </View>
               )}
 
@@ -379,7 +379,7 @@ export default function ReviewCommentsScreen() {
                 {submitting ? (
                   <ActivityIndicator size="small" color="#3b82f6" />
                 ) : (
-                  <Ionicons name="send" size={20} color={canSend ? '#3b82f6' : '#d1d5db'} />
+                  <AppIcon name="send" size={20} color={canSend ? '#3b82f6' : '#d1d5db'} />
                 )}
               </Pressable>
             </View>

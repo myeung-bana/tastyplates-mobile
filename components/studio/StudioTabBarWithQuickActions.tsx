@@ -4,6 +4,7 @@
  */
 import type { JSX } from 'react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { AppIcon, type AppIconName } from '@/components/ui/AppIcon'
 import {
   BackHandler,
   Dimensions,
@@ -14,7 +15,6 @@ import {
   Text,
   View,
 } from 'react-native'
-import { Ionicons } from '@expo/vector-icons'
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs'
 import { BottomTabBar } from '@react-navigation/bottom-tabs'
 import type { Href } from 'expo-router'
@@ -50,7 +50,7 @@ const SHEET_HIDDEN_Y = SHEET_MAX_H + 24
 const DURATION_MS = 280
 const EASE = Easing.out(Easing.cubic)
 
-/** Match tab bar Ionicons sizing in `app/(tabs)/_layout.tsx`. */
+/** Match tab bar icon sizing in `TabsShell`. */
 const TAB_BAR_ICON_SIZE = 22
 
 const ORB_SIZE = Math.round(TAB_BAR_ICON_SIZE * 2)
@@ -221,25 +221,25 @@ export function StudioTabBarWithQuickActions(props: BottomTabBarProps): JSX.Elem
             importantForAccessibility="yes"
           >
             <QuickActionRow
-              icon="create-outline"
+              icon="edit-3"
               label="Create a Review"
               subtitle="Share a taste note from a recent restaurant you visited"
               onPress={() => queueNavThenClose(SCREEN_STUDIO_ADD_REVIEW)}
             />
             <QuickActionRow
-              icon="list-outline"
+              icon="list"
               label="Manage Reviews"
               subtitle="Manage your previous taste notes"
               onPress={() => queueNavThenClose(SCREEN_STUDIO_REVIEW_LISTING)}
             />
             <QuickActionRow
-              icon="albums-outline"
+              icon="image"
               label="Manage Lists"
               subtitle="Create and edit your restaurant playlists"
               onPress={() => queueNavThenClose(castHref(SCREEN_STUDIO_MANAGE_LISTS))}
             />
             <QuickActionRow
-              icon="bookmark-outline"
+              icon="bookmark"
               label="Dine-In / Check-Ins"
               subtitle="Track your favourite restaurants"
               onPress={() => queueNavThenClose(SCREEN_STUDIO_MY_LISTS)}
@@ -262,7 +262,7 @@ export function StudioTabBarWithQuickActions(props: BottomTabBarProps): JSX.Elem
             ]}
           >
             <Animated.View style={[styles.orbBubble, orbAnimatedStyle]}>
-              <Ionicons name="add" color="#ffffff" size={Math.round(TAB_BAR_ICON_SIZE * 1.05)} />
+              <AppIcon name="plus" color="#ffffff" size={Math.round(TAB_BAR_ICON_SIZE * 1.05)} />
             </Animated.View>
           </Pressable>
         </View>
@@ -277,7 +277,7 @@ function QuickActionRow({
   subtitle,
   onPress,
 }: {
-  icon: React.ComponentProps<typeof Ionicons>['name']
+  icon: AppIconName
   label: string
   subtitle: string
   onPress: () => void
@@ -290,7 +290,7 @@ function QuickActionRow({
       className="mb-1 flex-row items-center gap-4 rounded-xl py-4 pl-3 pr-4 active:bg-gray-50"
     >
       <View className="h-11 w-11 items-center justify-center rounded-full bg-gray-100">
-        <Ionicons name={icon} size={22} color={BRAND_PRIMARY} />
+        <AppIcon name={icon} size="lg" color={BRAND_PRIMARY} />
       </View>
       <View className="min-w-0 flex-1">
         <Text className="text-base font-medium" style={{ color: TEXT_HEADING }}>

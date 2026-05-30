@@ -19,7 +19,12 @@ export const usernameCheckError = 'Error checking username availability'
 export const usernameNotAvailable = 'This username is already taken.'
 
 export const palateRequired = 'Please select at least one palate.'
+export const palateExactLimitMessage = (limit: number) => `Please select exactly ${limit} palates.`
 export const palateMaxLimitMessage = (limit: number) => `You can only select up to ${limit} palates.`
+export const maximumBioLength = (max: number) => `Bio must be ${max} characters or less.`
+export const profileUpdateFailed = 'Could not update your profile. Please try again.'
+export const profileImageSizeError = 'Profile photo must be 5 MB or smaller.'
+export const profileImageTypeError = 'Please choose a JPEG or PNG image.'
 
 export const errorOccurred = 'An Error occurred, Please try again later.'
 export const commentedSuccess = 'Replied successfully!'
@@ -56,6 +61,9 @@ export const listItemRemovedSuccess = 'Removed from list.'
 export const listItemRemoveError = 'Failed to remove item. Please try again.'
 export const listItemDuplicateError = 'Already in this list.'
 export const listItemAddError = 'Failed to add restaurant. Please try again.'
+export const listDetailEmptyTitle = 'No restaurants added yet'
+export const listDetailEmptySubtitle =
+  'Add places you want to try or recommend — they will show up here.'
 
 export function getUsernameErrorMessage(errorKey: string): string {
   switch (errorKey) {

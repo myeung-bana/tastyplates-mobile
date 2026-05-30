@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useRef, useState } from 'react'
+import { AppIcon } from '@/components/ui/AppIcon'
 import {
   Dimensions,
   FlatList,
@@ -12,7 +13,6 @@ import {
   View,
 } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { Ionicons } from '@expo/vector-icons'
 import Svg, { Path } from 'react-native-svg'
 
 const { width: SCREEN_W } = Dimensions.get('window')
@@ -45,7 +45,7 @@ function CircleNavButton({
   style?: object
 }): JSX.Element {
   const name =
-    icon === 'back' ? 'chevron-back' : icon === 'forward' ? 'chevron-forward' : 'close'
+    icon === 'back' ? 'chevron-left' : icon === 'forward' ? 'chevron-right' : 'x'
   return (
     <Pressable
       accessibilityRole="button"
@@ -63,7 +63,7 @@ function CircleNavButton({
         style,
       ]}
     >
-      <Ionicons name={name} size={iconSize} color="#fff" />
+      <AppIcon name={name} size={iconSize} color="#fff" />
     </Pressable>
   )
 }

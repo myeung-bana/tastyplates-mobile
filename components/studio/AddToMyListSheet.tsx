@@ -16,7 +16,6 @@ import {
   TextInput,
   View,
 } from 'react-native'
-import { Ionicons } from '@expo/vector-icons'
 import {
   BottomSheetBackdrop,
   BottomSheetModal,
@@ -24,6 +23,7 @@ import {
 } from '@gorhom/bottom-sheet'
 import type { BottomSheetBackdropProps } from '@gorhom/bottom-sheet'
 import * as Haptics from 'expo-haptics'
+import { AppIcon } from '@/components/ui/AppIcon'
 
 import { SectionTitle } from '@/components/layout/SectionTitle'
 import { BORDER_SUBTLE, BRAND_PRIMARY, mergeTextInputBodyTypography, TEXT_HEADING, TEXT_MUTED } from '@/constants/brand'
@@ -312,7 +312,7 @@ export const AddToMyListSheet = forwardRef<AddToMyListSheetHandle, Props>(functi
                   </Text>
                 ) : null}
               </View>
-              <Ionicons name="checkmark-done-circle" size={28} color={BRAND_PRIMARY} />
+              <AppIcon name="check-circle" size={28} color={BRAND_PRIMARY} />
             </View>
 
             <Pressable

@@ -1,7 +1,10 @@
 import { Tabs } from 'expo-router'
+import { useMemo } from 'react'
 import type { BottomTabBarButtonProps } from '@react-navigation/bottom-tabs'
-import { Ionicons } from '@expo/vector-icons'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
+import { AppIcon, type AppIconName } from '@/components/ui/AppIcon'
+import { getTabBarStyle } from '@/constants/tabBar'
 import { StudioTabAnchorButton } from '@/components/studio/StudioTabAnchorButton'
 import { StudioTabBarWithQuickActions } from '@/components/studio/StudioTabBarWithQuickActions'
 import { studioQuickMenuToggleRef } from '@/contexts/StudioQuickMenuContext'
@@ -9,13 +12,10 @@ import { studioQuickMenuToggleRef } from '@/contexts/StudioQuickMenuContext'
 const BRAND_PRIMARY = '#ff7c0a'
 const TAB_INACTIVE = '#9ca3af'
 
-type IoniconName = React.ComponentProps<typeof Ionicons>['name']
-
 export interface TabConfig {
   name: string
   title: string
-  icon: IoniconName
-  iconFocused: IoniconName
+  icon: AppIconName
 }
 
 type TabsShellProps = {
@@ -25,26 +25,11 @@ type TabsShellProps = {
 }
 
 const TAB_CONFIG_BY_NAME: Record<string, TabConfig> = {
-  index: { name: 'index', title: 'Home', icon: 'home-outline', iconFocused: 'home' },
-  restaurants: {
-    name: 'restaurants',
-    title: 'Restaurants',
-    icon: 'restaurant-outline',
-    iconFocused: 'restaurant',
-  },
-  following: {
-    name: 'following',
-    title: 'Following',
-    icon: 'people-outline',
-    iconFocused: 'people',
-  },
-  studio: { name: 'studio', title: 'Studio', icon: 'add', iconFocused: 'add' },
-  profile: {
-    name: 'profile',
-    title: 'Profile',
-    icon: 'person-outline',
-    iconFocused: 'person',
-  },
+  index: { name: 'index', title: 'Home', icon: 'home' },
+  restaurants: { name: 'restaurants', title: 'Restaurants', icon: 'restaurant' },
+  following: { name: 'following', title: 'Following', icon: 'users' },
+  studio: { name: 'studio', title: 'Studio', icon: 'plus-square' },
+  profile: { name: 'profile', title: 'Profile', icon: 'user' },
 }
 
 const MAIN_TAB_NAMES = ['index', 'restaurants', 'following', 'studio', 'profile'] as const
@@ -59,8 +44,9 @@ function tabBarIcon(config: TabConfig) {
     color: string
     size: number
   }) => (
-    <Ionicons
-      name={focused ? config.iconFocused : config.icon}
+    <AppIcon
+      name={config.icon}
+      active={focused}
       size={size ?? 22}
       color={color}
     />
@@ -72,6 +58,8 @@ function tabBarIcon(config: TabConfig) {
  */
 export function TabsShell({ visibleTabs, useStudioTabBar = false }: TabsShellProps): JSX.Element {
   const visibleNames = new Set(visibleTabs.map((t) => t.name))
+  const insets = useSafeAreaInsets()
+  const tabBarStyle = useMemo(() => getTabBarStyle(insets), [insets.bottom])
 
   return (
     <Tabs
@@ -87,6 +75,7 @@ export function TabsShell({ visibleTabs, useStudioTabBar = false }: TabsShellPro
           fontSize: 11,
           fontWeight: '500',
         },
+        tabBarStyle: useStudioTabBar ? undefined : tabBarStyle,
         headerShown: false,
       }}
     >

@@ -1,6 +1,6 @@
 import { View, Text, Pressable, Image } from 'react-native'
 import * as Haptics from 'expo-haptics'
-import { Ionicons } from '@expo/vector-icons'
+import { AppIcon } from '@/components/ui/AppIcon'
 import { useRouter } from 'expo-router'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
@@ -36,7 +36,7 @@ function ProfileShortcut(): JSX.Element {
     >
       {!isSignedIn ? (
         <View className="h-full w-full items-center justify-center">
-          <Ionicons name="person-outline" size={20} color={TEXT_MUTED} />
+          <AppIcon name="user" size="md" color={TEXT_MUTED} />
         </View>
       ) : avatarUrl ? (
         <Image
@@ -90,7 +90,7 @@ export function AppTopNav(): JSX.Element {
           onPress={() => openSearchCuisines()}
           className="h-9 w-9 items-center justify-center rounded-full active:bg-gray-100"
         >
-          <Ionicons name="search-outline" size={21} color="#374151" />
+          <AppIcon name="search" size={21} color="#374151" />
         </Pressable>
         <ProfileShortcut />
       </View>

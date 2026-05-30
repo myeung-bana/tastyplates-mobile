@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Alert, Pressable, ScrollView, Text, View } from 'react-native'
-import { Ionicons } from '@expo/vector-icons'
 import * as Haptics from 'expo-haptics'
 import { FlashList } from '@shopify/flash-list'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { router } from 'expo-router'
 import { Swipeable } from 'react-native-gesture-handler'
+import { AppIcon } from '@/components/ui/AppIcon'
 
 import {
   ReviewListingFilterChips,
@@ -92,7 +92,7 @@ function ReviewSwipeRow(props: {
           ])
         }
       >
-        <Ionicons name="trash-outline" color="#ffffff" size={22} />
+        <AppIcon name="trash-2" color="#ffffff" size={22} />
       </Pressable>
     </View>
   )
@@ -114,7 +114,7 @@ function ReviewSwipeRow(props: {
           <View className="flex-row rounded-full px-4 py-1" style={{ backgroundColor: '#f3f4f6' }}>
             <Text style={{ fontSize: 11, fontWeight: '700', color: TEXT_MUTED }}>{statusBadge}</Text>
           </View>
-          <Ionicons name="chevron-forward" size={16} color={TEXT_MUTED} />
+          <AppIcon name="chevron-right" size={16} color={TEXT_MUTED} />
         </View>
         <Text className="text-base font-semibold" style={{ color: TEXT_HEADING }} numberOfLines={2}>
           {trimmedTitle.length > 0 ? trimmedTitle : 'Untitled review'}

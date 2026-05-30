@@ -12,7 +12,8 @@ import { useAuthenticated, useChangePassword } from '@nhost/react'
 import { z } from 'zod'
 
 import { AuthHeroLayout } from '@/components/auth/AuthHeroLayout'
-import { BRAND_PRIMARY, mergeTextInputBodyTypography } from '@/constants/brand'
+import { PasswordInput } from '@/components/ui/PasswordInput'
+import { BRAND_PRIMARY } from '@/constants/brand'
 import { SCREEN_HOME, SCREEN_LOGIN } from '@/constants/screens'
 import { toast } from '@/utils/toast'
 
@@ -76,16 +77,13 @@ export default function ResetPasswordScreen() {
               control={control}
               name="password"
               render={({ field: { onChange, onBlur, value } }) => (
-                <TextInput
-                  autoCapitalize="none"
+                <PasswordInput
                   autoComplete="new-password"
                   onBlur={onBlur}
                   onChangeText={onChange}
                   placeholder="At least 8 characters"
                   placeholderTextColor="#797979"
-                  secureTextEntry
                   value={value}
-                  style={mergeTextInputBodyTypography()}
                   className={inputClass}
                 />
               )}
@@ -101,16 +99,13 @@ export default function ResetPasswordScreen() {
               control={control}
               name="confirm"
               render={({ field: { onChange, onBlur, value } }) => (
-                <TextInput
-                  autoCapitalize="none"
+                <PasswordInput
                   autoComplete="new-password"
                   onBlur={onBlur}
                   onChangeText={onChange}
                   placeholder="Repeat new password"
                   placeholderTextColor="#797979"
-                  secureTextEntry
                   value={value}
-                  style={mergeTextInputBodyTypography()}
                   className={inputClass}
                 />
               )}

@@ -1,7 +1,7 @@
 import { Pressable, Text, View } from 'react-native'
-import { Feather, Ionicons } from '@expo/vector-icons'
 import * as Haptics from 'expo-haptics'
 import { router } from 'expo-router'
+import { AppIcon } from '@/components/ui/AppIcon'
 
 import { SCREEN_STUDIO_MANAGE_LISTS_CREATE } from '@/constants/screens'
 import { castHref } from '@/lib/routeParams'
@@ -19,7 +19,7 @@ export function ManageListCreateRow(): JSX.Element {
       className="flex-row items-center gap-3 border-b border-gray-50 bg-white px-4 py-3 active:bg-gray-50"
     >
       <View className="h-14 w-14 flex-shrink-0 items-center justify-center overflow-hidden rounded-xl bg-orange-50">
-        <Ionicons name="add" size={28} color="#ff7c0a" />
+        <AppIcon name="plus" size={28} color="#ff7c0a" />
       </View>
 
       <View className="min-w-0 flex-1" style={{ gap: 2 }}>
@@ -31,7 +31,7 @@ export function ManageListCreateRow(): JSX.Element {
         </Text>
       </View>
 
-      <Feather name="chevron-right" size={14} color="#e5e7eb" />
+      <AppIcon name="chevron-right" size={14} color="#e5e7eb" />
     </Pressable>
   )
 }

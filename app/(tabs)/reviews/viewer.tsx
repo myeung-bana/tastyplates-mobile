@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { AppIcon } from '@/components/ui/AppIcon'
 import {
   ActivityIndicator,
   Image,
@@ -8,10 +9,10 @@ import {
   View,
 } from 'react-native'
 import * as Haptics from 'expo-haptics'
-import { Ionicons } from '@expo/vector-icons'
 import { router, useLocalSearchParams } from 'expo-router'
 
 import { ReplyItem } from '@/components/review/ReplyItem'
+import { ReviewDetailImages } from '@/components/review/ReviewDetailImages'
 import { ReviewDetailTopNav } from '@/components/review/ReviewDetailTopNav'
 import { ReplySkeleton } from '@/components/ui/Skeleton/ReplySkeleton'
 import { RatingDisplay } from '@/components/ui/RatingDisplay'
@@ -26,7 +27,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { useReviewLike } from '@/hooks/useReviewLike'
 import { parseProfilePalates } from '@/lib/profileFormatting'
 import { stripHtml } from '@/lib/restaurantDetailUtils'
-import { firstReviewImageUri, reviewHashtagLabels } from '@/lib/reviewDisplayUtils'
+import { reviewHashtagLabels, reviewImageUris } from '@/lib/reviewDisplayUtils'
 import { capitalizeWords, formatLikeCount, formatRelativeTime } from '@/lib/utils'
 import { pushLoginScreen } from '@/lib/authRoutes'
 import {
@@ -173,11 +174,16 @@ function ReviewViewerBody({
     [isAuthenticated, promptSignIn, replyLikes, replyUserLiked],
   )
 
-  const coverUri = firstReviewImageUri(review.images, DEFAULT_COVER)
+  const imageUris = reviewImageUris(review.images, 8)
   const title = capitalizeWords(stripHtml(review.title ?? '').trim())
   const body = capitalizeWords(stripHtml(review.content ?? '').trim())
   const hashtags = reviewHashtagLabels(review.hashtags, 12)
-  const palates = parseProfilePalates(review.palates)
+  const palates = useMemo(() => {
+    const fromProfile = author ? parseProfilePalates(author.palates) : []
+    const fromReview = parseProfilePalates(review.palates)
+    const list = fromProfile.length > 0 ? fromProfile : fromReview
+    return list.slice(0, 2)
+  }, [author, review.palates])
   const when = formatRelativeTime(review.published_at ?? review.created_at ?? new Date())
 
   const authorAvatarUrl = author
@@ -207,14 +213,7 @@ function ReviewViewerBody({
       contentContainerStyle={{ paddingBottom: 32 }}
       showsVerticalScrollIndicator={false}
     >
-      <View className="aspect-[16/11] w-full overflow-hidden bg-gray-100">
-        <Image
-          accessibilityIgnoresInvertColors
-          source={{ uri: coverUri }}
-          className="h-full w-full"
-          resizeMode="cover"
-        />
-      </View>
+      <ReviewDetailImages images={imageUris} fallbackUri={DEFAULT_COVER} />
 
       <View className="border-b px-5 py-5" style={{ borderBottomColor: BORDER_SUBTLE }}>
         <View className="mb-3 flex-row items-center gap-3">
@@ -244,7 +243,7 @@ function ReviewViewerBody({
                 className="items-center justify-center rounded-full bg-gray-100"
                 style={{ width: 44, height: 44 }}
               >
-                <Ionicons name="person" size={22} color={TEXT_MUTED} />
+                <AppIcon name="user" size={22} color={TEXT_MUTED} />
               </View>
             )}
           </Pressable>
@@ -262,13 +261,26 @@ function ReviewViewerBody({
               disabled={!author}
               className="active:opacity-80"
             >
-              <Text
-                className="text-base font-semibold"
-                style={{ color: TEXT_HEADING }}
-                numberOfLines={1}
-              >
-                {author ? authorDisplayName(author) : 'Member'}
-              </Text>
+              <View className="flex-row flex-wrap items-center gap-1.5">
+                <Text
+                  className="text-base font-semibold"
+                  style={{ color: TEXT_HEADING }}
+                  numberOfLines={1}
+                >
+                  {author ? authorDisplayName(author) : 'Member'}
+                </Text>
+                {palates.map((label) => (
+                  <View
+                    key={label}
+                    className="rounded-full px-2 py-0.5"
+                    style={{ backgroundColor: '#f3f4f6' }}
+                  >
+                    <Text className="font-neusans text-[11px]" style={{ color: TEXT_BODY }}>
+                      {label}
+                    </Text>
+                  </View>
+                ))}
+              </View>
               <Text className="mt-0.5 text-sm" style={{ color: TEXT_MUTED }} numberOfLines={1}>
                 {metaBits.join(' · ')}
               </Text>
@@ -296,7 +308,7 @@ function ReviewViewerBody({
             disabled={!restaurantBrief.slug}
             className="mb-3 flex-row items-center gap-1 self-start active:opacity-80"
           >
-            <Ionicons name="restaurant-outline" size={18} color={TEXT_MUTED} />
+            <AppIcon name="restaurant" size={18} color={TEXT_MUTED} />
             <Text
               className="text-[15px] font-medium underline"
               style={{ color: TEXT_MUTED }}
@@ -305,7 +317,7 @@ function ReviewViewerBody({
               {restaurantBrief.title}
             </Text>
             {restaurantBrief.slug ? (
-              <Ionicons name="chevron-forward" size={16} color={TEXT_MUTED} />
+              <AppIcon name="chevron-right" size={16} color={TEXT_MUTED} />
             ) : null}
           </Pressable>
         ) : null}
@@ -362,27 +374,6 @@ function ReviewViewerBody({
           </View>
         ) : null}
 
-        {palates.length > 0 ? (
-          <View className="mt-4 border-t pt-4" style={{ borderTopColor: BORDER_SUBTLE }}>
-            <Text className="mb-2 text-xs font-medium uppercase tracking-wide" style={{ color: TEXT_MUTED }}>
-              Palates
-            </Text>
-            <View className="flex-row flex-wrap gap-2">
-              {palates.map((p) => (
-                <View
-                  key={p}
-                  className="rounded-full px-3 py-1"
-                  style={{ backgroundColor: '#f3f4f6' }}
-                >
-                  <Text className="text-sm" style={{ color: TEXT_BODY }}>
-                    {p}
-                  </Text>
-                </View>
-              ))}
-            </View>
-          </View>
-        ) : null}
-
         <View
           className="mt-5 flex-row items-center gap-2 border-t pt-4"
           style={{ borderTopColor: BORDER_SUBTLE }}
@@ -397,8 +388,9 @@ function ReviewViewerBody({
             accessibilityLabel={isLiked ? 'Unlike review' : 'Like review'}
             className="flex-row items-center gap-1.5 active:opacity-80"
           >
-            <Ionicons
-              name={isLiked ? 'heart' : 'heart-outline'}
+            <AppIcon
+              name="heart"
+              active={isLiked}
               size={24}
               color={isLiked ? BRAND_PRIMARY : '#31343F'}
             />

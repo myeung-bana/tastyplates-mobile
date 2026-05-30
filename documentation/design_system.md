@@ -686,6 +686,8 @@ Star icon:          16×16px (desktop), 12×12px (mobile)
 - UI icons: `color: #6b7280` (muted gray)
 - Search button icon: `color: white` (on orange bg)
 
+**Mobile app (`tastyplates-mobile`):** Use `AppIcon` (`components/ui/AppIcon.tsx`) everywhere instead of importing `@expo/vector-icons` directly. Default set is **Feather** (aligned with web `react-icons/fi`). Size tokens live in `constants/icons.ts`. Exceptions stay inside `AppIcon`: **restaurant** tab cutlery (Ionicons), **logo-google**, **star-half**, and filled **star** / **heart** via the `active` prop. Do not add a separate `feather-icons` package.
+
 ### 6.2 Image Handling
 
 ```tsx

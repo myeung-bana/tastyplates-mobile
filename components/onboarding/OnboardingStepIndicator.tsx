@@ -1,6 +1,6 @@
 import { Fragment } from 'react'
 import { Text, View } from 'react-native'
-import { Ionicons } from '@expo/vector-icons'
+import { AppIcon } from '@/components/ui/AppIcon'
 
 const STEPS: { id: 1 | 2 | 3; label: string }[] = [
   { id: 1, label: 'Username' },
@@ -34,7 +34,7 @@ export function OnboardingStepIndicator({ currentStep }: Props): JSX.Element {
                 }}
               >
                 {complete ? (
-                  <Ionicons name="checkmark" size={20} color="#fff" />
+                  <AppIcon name="check" size={20} color="#fff" />
                 ) : (
                   <Text className="text-sm font-semibold" style={{ color: active ? '#fff' : '#9ca3af' }}>
                     {step.id}

@@ -1,5 +1,5 @@
 import { Image, Pressable, Text, View } from 'react-native'
-import { Feather, Ionicons } from '@expo/vector-icons'
+import { AppIcon } from '@/components/ui/AppIcon'
 
 import { STAR_FILLED } from '@/constants/images'
 import { googlePlacePhotoUrl, type NearbyPlaceRow, type PlacesAutocompletePrediction } from '@/lib/googlePlaces'
@@ -35,7 +35,7 @@ export function NearbyRestaurantRow({ row, onPress }: NearbyProps): JSX.Element 
         />
       ) : (
         <View className="h-10 w-10 items-center justify-center rounded-[10px] bg-gray-100">
-          <Ionicons name="location-outline" size={18} color="#9ca3af" />
+          <AppIcon name="map-pin" size={18} color="#9ca3af" />
         </View>
       )}
       <View className="min-w-0 flex-1">
@@ -49,7 +49,7 @@ export function NearbyRestaurantRow({ row, onPress }: NearbyProps): JSX.Element 
         ) : null}
         {typeof row.google_rating === 'number' ? <StarRating value={row.google_rating} /> : null}
       </View>
-      <Feather name="chevron-right" size={16} color="#e5e7eb" />
+      <AppIcon name="chevron-right" size={16} color="#e5e7eb" />
     </Pressable>
   )
 }
@@ -70,7 +70,7 @@ export function SearchPredictionRow({ prediction, onPress }: PredictionProps): J
       className="flex-row items-center gap-3 border-b border-gray-50 px-4 py-3 active:bg-gray-50"
     >
       <View className="h-10 w-10 items-center justify-center rounded-[10px] bg-gray-100">
-        <Feather name="map-pin" size={18} color="#9ca3af" />
+        <AppIcon name="map-pin" size={18} color="#9ca3af" />
       </View>
       <View className="min-w-0 flex-1">
         <Text className="font-neusans text-[15px] font-medium text-[#31343F]" numberOfLines={1}>
@@ -82,7 +82,7 @@ export function SearchPredictionRow({ prediction, onPress }: PredictionProps): J
           </Text>
         ) : null}
       </View>
-      <Feather name="chevron-right" size={16} color="#e5e7eb" />
+      <AppIcon name="chevron-right" size={16} color="#e5e7eb" />
     </Pressable>
   )
 }
@@ -107,7 +107,7 @@ export function NearbyEmptyState(): JSX.Element {
   return (
     <View className="items-center px-6 py-10">
       <View className="mb-3 h-12 w-12 items-center justify-center rounded-full bg-orange-50">
-        <Feather name="map-pin" size={20} color="#ff7c0a" />
+        <AppIcon name="map-pin" size={20} color="#ff7c0a" />
       </View>
       <Text className="font-neusans text-sm font-medium text-gray-700">No nearby restaurants found</Text>
       <Text className="mt-1 text-center font-neusans text-xs text-gray-500">
@@ -121,7 +121,7 @@ export function SearchEmptyState(): JSX.Element {
   return (
     <View className="items-center px-6 py-10">
       <View className="mb-3 h-12 w-12 items-center justify-center rounded-full bg-gray-100">
-        <Feather name="search" size={20} color="#9ca3af" />
+        <AppIcon name="search" size={20} color="#9ca3af" />
       </View>
       <Text className="font-neusans text-sm font-medium text-gray-700">No results found</Text>
       <Text className="mt-1 text-center font-neusans text-xs text-gray-500">

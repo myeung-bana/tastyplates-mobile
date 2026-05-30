@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { AppIcon } from '@/components/ui/AppIcon'
 import {
   ActivityIndicator,
   Alert,
@@ -8,7 +9,6 @@ import {
   TextInput,
   View,
 } from 'react-native'
-import { Ionicons } from '@expo/vector-icons'
 import * as Haptics from 'expo-haptics'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { router, useLocalSearchParams } from 'expo-router'
@@ -171,7 +171,7 @@ export default function EditReviewScreen(): JSX.Element {
             const filled = stars >= tier
             return (
               <Pressable key={tier} accessibilityRole="button" onPress={() => setStars(tier)}>
-                <Ionicons name={filled ? 'star' : 'star-outline'} color={filled ? BRAND_PRIMARY : TEXT_MUTED} size={38} />
+                <AppIcon name="star" active={filled} color={filled ? BRAND_PRIMARY : TEXT_MUTED} size={38} />
               </Pressable>
             )
           })}

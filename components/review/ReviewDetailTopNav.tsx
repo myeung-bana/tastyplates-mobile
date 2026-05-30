@@ -1,8 +1,8 @@
 import { View, Text, Pressable } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import * as Haptics from 'expo-haptics'
-import { Ionicons } from '@expo/vector-icons'
 import { useRouter } from 'expo-router'
+import { AppIcon } from '@/components/ui/AppIcon'
 
 import { TEXT_HEADING } from '@/constants/brand'
 import { SCREEN_HOME } from '@/constants/screens'
@@ -38,7 +38,7 @@ export function ReviewDetailTopNav({ title = 'Review' }: ReviewDetailTopNavProps
           onPress={goBack}
           className="h-10 w-11 items-center justify-center active:opacity-70"
         >
-          <Ionicons name="chevron-back" size={28} color={TEXT_HEADING} />
+          <AppIcon name="chevron-left" size={28} color={TEXT_HEADING} />
         </Pressable>
         <Text
           className="min-w-0 flex-1 text-center text-base font-semibold"

@@ -8,7 +8,8 @@ import {
   TextInput,
   View,
 } from 'react-native'
-import { Ionicons } from '@expo/vector-icons'
+import { AppIcon } from '@/components/ui/AppIcon'
+import { PasswordInput } from '@/components/ui/PasswordInput'
 import { Link } from 'expo-router'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Controller, useForm } from 'react-hook-form'
@@ -163,17 +164,14 @@ export function LoginForm({
         control={control}
         name="password"
         render={({ field: { onChange, onBlur, value } }) => (
-          <TextInput
-            autoCapitalize="none"
+          <PasswordInput
             autoComplete="password"
             onBlur={onBlur}
             onChangeText={onChange}
             placeholder="••••••••"
             placeholderTextColor="#797979"
-            secureTextEntry
             value={value}
             className={inputClass}
-            style={mergeTextInputBodyTypography()}
           />
         )}
       />
@@ -201,7 +199,7 @@ export function LoginForm({
         {busy ? (
           <ActivityIndicator color="#fff" />
         ) : (
-          <Text className="text-base font-semibold text-white">Log in</Text>
+          <Text className="text-base font-semibold text-white">Continue</Text>
         )}
       </Pressable>
 
@@ -227,7 +225,7 @@ export function LoginForm({
               <ActivityIndicator color={TEXT_HEADING} />
             ) : (
               <>
-                <Ionicons name="logo-google" size={22} color="#4285F4" />
+                <AppIcon name="logo-google" size={22} color="#4285F4" />
                 <Text className="text-base font-semibold" style={{ color: TEXT_HEADING }}>
                   Continue with Google
                 </Text>

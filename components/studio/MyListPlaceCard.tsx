@@ -1,8 +1,8 @@
-import { Ionicons } from '@expo/vector-icons'
 import * as Haptics from 'expo-haptics'
 import { Image, Pressable, Text, View } from 'react-native'
 import { Swipeable } from 'react-native-gesture-handler'
 import { router } from 'expo-router'
+import { AppIcon } from '@/components/ui/AppIcon'
 
 import { BORDER_SUBTLE, TEXT_HEADING, TEXT_MUTED } from '@/constants/brand'
 import type { MyListPlaceRow } from '@/hooks/useMyList'
@@ -33,7 +33,7 @@ export function MyListPlaceCard({ row, onRemove }: MyListPlaceCardProps): JSX.El
         }}
         className="h-full items-center justify-center rounded-2xl bg-red-600 px-5 py-6 active:bg-red-700"
       >
-        <Ionicons name="trash-outline" color="#ffffff" size={22} />
+        <AppIcon name="trash-2" color="#ffffff" size={22} />
         <Text className="mt-1 text-[11px] font-semibold text-white">Remove</Text>
       </Pressable>
     </View>
@@ -56,7 +56,7 @@ export function MyListPlaceCard({ row, onRemove }: MyListPlaceCardProps): JSX.El
           />
         ) : (
           <View className="mr-4 h-16 w-16 items-center justify-center rounded-xl bg-gray-50">
-            <Ionicons name="restaurant-outline" size={24} color={TEXT_MUTED} />
+            <AppIcon name="restaurant" size={24} color={TEXT_MUTED} />
           </View>
         )}
         <View className="flex-1">
@@ -78,7 +78,7 @@ export function MyListPlaceCard({ row, onRemove }: MyListPlaceCardProps): JSX.El
             </Text>
           )}
         </View>
-        <Ionicons style={{ alignSelf: 'center' }} name="chevron-forward" size={18} color={TEXT_MUTED} />
+        <AppIcon style={{ alignSelf: 'center' }} name="chevron-right" size={18} color={TEXT_MUTED} />
       </Pressable>
     </Swipeable>
   )

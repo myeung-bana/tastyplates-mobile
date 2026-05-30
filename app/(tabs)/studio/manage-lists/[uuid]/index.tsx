@@ -4,10 +4,11 @@ import * as Haptics from 'expo-haptics'
 import { FlashList } from '@shopify/flash-list'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { router, useLocalSearchParams, useNavigation } from 'expo-router'
-import { Feather, Ionicons } from '@expo/vector-icons'
 import type { Swipeable } from 'react-native-gesture-handler'
+import { AppIcon } from '@/components/ui/AppIcon'
 
-import { Button } from '@/components/ui/Button'
+import { ListDetailEmptyState } from '@/components/studio/manage-lists/ListDetailEmptyState'
+import { ManageListAddRestaurantRow } from '@/components/studio/manage-lists/ManageListAddRestaurantRow'
 import { ManageListItemRow } from '@/components/studio/manage-lists/ManageListItemRow'
 import { RestaurantListSkeletonList } from '@/components/ui/Skeleton/RestaurantListSkeleton'
 import { BRAND_PRIMARY } from '@/constants/brand'
@@ -178,9 +179,15 @@ export default function ListDetailScreen(): JSX.Element {
     )
   }, [list])
 
-  const itemCount = list?.items.length ?? 0
+  const items = list?.items ?? []
+  const itemCount = items.length
+  const isEmpty = itemCount === 0
   const visibilityLabel = list?.is_public ? 'Public' : 'Private'
   const updatedLabel = list ? formatRelativeTime(list.updated_at) : ''
+
+  const openAddRestaurant = useCallback(() => {
+    router.push(castHref(studioManageListAddPath(uuid)))
+  }, [uuid])
 
   const coverUri =
     list?.display_pic?.trim() ||
@@ -200,7 +207,7 @@ export default function ListDetailScreen(): JSX.Element {
   return (
     <SafeAreaView className="flex-1 bg-white" edges={['left', 'right', 'bottom']}>
       <FlashList
-        data={list?.items ?? []}
+        data={items}
         keyExtractor={(item) => String(item.id)}
         renderItem={({ item }) => (
           <ManageListItemRow
@@ -232,7 +239,7 @@ export default function ListDetailScreen(): JSX.Element {
                     resizeMode="cover"
                   />
                 ) : (
-                  <Ionicons name="albums-outline" size={72} color="#9ca3af" />
+                  <AppIcon name="image" size={72} color="#9ca3af" />
                 )}
               </View>
             </View>
@@ -255,7 +262,7 @@ export default function ListDetailScreen(): JSX.Element {
                   onPress={handleShare}
                   className="flex-row items-center gap-2 rounded-[50px] border border-gray-300 bg-white px-4 py-2"
                 >
-                  <Feather name="share-2" size={14} color="#374151" />
+                  <AppIcon name="share-2" size={14} color="#374151" />
                   <Text className="font-neusans text-sm text-[#374151]">Share Link</Text>
                 </Pressable>
 
@@ -266,7 +273,7 @@ export default function ListDetailScreen(): JSX.Element {
                     disabled={makingPublic}
                     className="flex-row items-center gap-2 rounded-[50px] border border-gray-300 bg-white px-4 py-2"
                   >
-                    <Feather name="globe" size={14} color="#374151" />
+                    <AppIcon name="globe" size={14} color="#374151" />
                     <Text className="font-neusans text-sm text-[#374151]">
                       {makingPublic ? 'Saving…' : 'Make Public'}
                     </Text>
@@ -288,7 +295,7 @@ export default function ListDetailScreen(): JSX.Element {
                   }}
                   className="flex-row items-center gap-2 rounded-[50px] border border-gray-300 bg-white px-4 py-2"
                 >
-                  <Feather name="edit-2" size={14} color="#374151" />
+                  <AppIcon name="edit-2" size={14} color="#374151" />
                   <Text className="font-neusans text-sm text-[#374151]">Edit</Text>
                 </Pressable>
 
@@ -297,38 +304,17 @@ export default function ListDetailScreen(): JSX.Element {
                   onPress={handleDelete}
                   className="flex-row items-center gap-2 rounded-[50px] border border-red-200 bg-white px-4 py-2"
                 >
-                  <Feather name="trash-2" size={14} color="#ef4444" />
+                  <AppIcon name="trash-2" size={14} color="#ef4444" />
                   <Text className="font-neusans text-sm text-red-500">Delete</Text>
                 </Pressable>
               </View>
             </View>
 
-            {/* Add restaurant CTA */}
-            <View className="border-b border-gray-100 px-4 py-3">
-              <Button
-                variant="primary"
-                onPress={() => {
-                  void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
-                  router.push(castHref(studioManageListAddPath(uuid)))
-                }}
-              >
-                + Add Restaurant
-              </Button>
-            </View>
-
-            {/* Empty items state */}
-            {fetched && (list?.items ?? []).length === 0 ? (
-              <View className="items-center px-8 py-12">
-                <Feather name="search" size={28} color="#ff7c0a" style={{ marginBottom: 12 }} />
-                <Text className="mb-2 text-center font-neusans text-base font-medium text-gray-900">
-                  Nothing in this list yet
-                </Text>
-                <Text className="text-center font-neusans text-sm text-gray-500">
-                  Start adding restaurants to build your list
-                </Text>
-              </View>
-            ) : null}
+            <ManageListAddRestaurantRow onPress={openAddRestaurant} />
           </View>
+        }
+        ListEmptyComponent={
+          isEmpty ? <ListDetailEmptyState onAddRestaurant={openAddRestaurant} /> : null
         }
         refreshControl={
           <RefreshControl
@@ -337,7 +323,10 @@ export default function ListDetailScreen(): JSX.Element {
             tintColor={BRAND_PRIMARY}
           />
         }
-        contentContainerStyle={{ paddingBottom: 32 }}
+        contentContainerStyle={{
+          paddingBottom: 32,
+          flexGrow: isEmpty ? 1 : undefined,
+        }}
       />
     </SafeAreaView>
   )

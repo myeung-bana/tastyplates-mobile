@@ -1,6 +1,6 @@
 import { Text, View } from 'react-native'
-import { Feather } from '@expo/vector-icons'
 import { router } from 'expo-router'
+import { AppIcon } from '@/components/ui/AppIcon'
 
 import { Button } from '@/components/ui/Button'
 import type { MyListsTab } from '@/components/studio/my-lists/MyListsTabBar'
@@ -15,9 +15,9 @@ export function MyListsEmptyState({ tab }: Props): JSX.Element {
   return (
     <View className="flex-1 items-center justify-center px-8 py-16">
       <View className="mb-4 h-16 w-16 items-center justify-center rounded-full bg-orange-50">
-        <Feather
+        <AppIcon
           name={isToDine ? 'bookmark' : 'map-pin'}
-          size={28}
+          size="xl"
           color="#ff7c0a"
         />
       </View>

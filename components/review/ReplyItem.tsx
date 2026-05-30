@@ -1,7 +1,7 @@
 import { Image, Pressable, Text, View } from 'react-native'
-import { Ionicons } from '@expo/vector-icons'
 import { router } from 'expo-router'
 import * as Haptics from 'expo-haptics'
+import { AppIcon } from '@/components/ui/AppIcon'
 
 import { TEXT_MUTED } from '@/constants/brand'
 import { SCREEN_PUBLIC_PROFILE } from '@/constants/screens'
@@ -118,7 +118,7 @@ export function ReplyItem({
                 justifyContent: 'center',
               }}
             >
-              <Ionicons name="person" size={16} color={TEXT_MUTED} />
+              <AppIcon name="user" size={16} color={TEXT_MUTED} />
             </View>
           )}
         </Pressable>
@@ -160,8 +160,9 @@ export function ReplyItem({
               accessibilityRole="button"
               accessibilityLabel={liked ? 'Unlike comment' : 'Like comment'}
             >
-              <Ionicons
-                name={liked ? 'heart' : 'heart-outline'}
+              <AppIcon
+                name="heart"
+                active={liked}
                 size={16}
                 color={liked ? LIKED_COLOR : TEXT_PRIMARY}
               />

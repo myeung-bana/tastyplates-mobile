@@ -8,6 +8,7 @@
  * Linked to add-review/index.tsx — keep in sync if search infra changes.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { AppIcon } from '@/components/ui/AppIcon'
 import {
   ActivityIndicator,
   Pressable,
@@ -17,26 +18,23 @@ import {
   View,
 } from 'react-native'
 import * as Haptics from 'expo-haptics'
-import { Feather } from '@expo/vector-icons'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { router, useLocalSearchParams } from 'expo-router'
 
 import { CuisineFilterPills } from '@/components/studio/add-review/CuisineFilterPills'
 import {
   NearbyEmptyState,
-  NearbyRestaurantRow,
   NearbySkeletonList,
   SearchEmptyState,
-  SearchPredictionRow,
   SectionHeader,
 } from '@/components/studio/add-review/RestaurantSearchRows'
+import {
+  ListPickerNearbyRow,
+  ListPickerSearchRow,
+} from '@/components/studio/manage-lists/ListPickerRestaurantRow'
 import { ReviewSearchHelpFooter } from '@/components/reviews/RestaurantMatchInlineMobile'
 import { BRAND_PRIMARY, mergeTextInputBodyTypography } from '@/constants/brand'
-import {
-  listItemAddedSuccess,
-  listItemAddError,
-  listItemDuplicateError,
-} from '@/constants/messages'
+import { listItemAddedSuccess } from '@/constants/messages'
 import { useLocation } from '@/contexts/LocationContext'
 import { matchRestaurantForPlace } from '@/lib/findTastyPlatesMatch'
 import {
@@ -46,6 +44,7 @@ import {
   type NearbyPlaceRow,
   type PlacesAutocompletePrediction,
 } from '@/lib/googlePlaces'
+import { listItemAddErrorMessage } from '@/lib/listItemAddErrorMessage'
 import { firstSegmentParam } from '@/lib/routeParams'
 import { addListItem } from '@/services/restaurantListService'
 import { formatLocationDisplay } from '@/utils/locationUtils'
@@ -93,18 +92,25 @@ export default function AddRestaurantToListScreen(): JSX.Element {
   const [nearbyPlaces, setNearbyPlaces] = useState<NearbyPlaceRow[]>([])
   const [nearbyLoading, setNearbyLoading] = useState(false)
   const [activeCuisineFilter, setActiveCuisineFilter] = useState<string | null>(null)
-  const [adding, setAdding] = useState(false)
+  const [addingPlaceId, setAddingPlaceId] = useState<string | null>(null)
 
   const debouncingRef = useRef<ReturnType<typeof globalThis.setTimeout> | undefined>(undefined)
   const selectSeqRef = useRef(0)
 
   const hasQuery = query.trim().length > 0
-  const idleSearch = !hasQuery && !adding
+  const isAdding = addingPlaceId !== null
+  const idleSearch = !hasQuery && !isAdding
 
   const filteredNearby = useMemo(
     () => filterNearbyByCuisine(nearbyPlaces, activeCuisineFilter),
     [nearbyPlaces, activeCuisineFilter],
   )
+
+  useEffect(() => {
+    if (listUuid) return
+    toast.error('This list could not be opened.')
+    router.back()
+  }, [listUuid])
 
   // Load nearby on mount
   useEffect(() => {
@@ -125,8 +131,9 @@ export default function AddRestaurantToListScreen(): JSX.Element {
 
   // Debounced autocomplete
   useEffect(() => {
-    if (!hasQuery || adding) {
+    if (!hasQuery || isAdding) {
       setSearchingPlaces(false)
+      if (isAdding) return
       setPredictions([])
       return
     }
@@ -147,15 +154,18 @@ export default function AddRestaurantToListScreen(): JSX.Element {
     return () => {
       if (debouncingRef.current) clearTimeout(debouncingRef.current)
     }
-  }, [hasQuery, location.coordinates, query, adding])
+  }, [hasQuery, location.coordinates, query, isAdding])
 
   const handlePlaceSelect = useCallback(
     async (placeId: string, name: string) => {
+      if (!listUuid) {
+        toast.error('This list could not be opened.')
+        return
+      }
+
       const seq = ++selectSeqRef.current
       void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
-      setQuery(name)
-      setPredictions([])
-      setAdding(true)
+      setAddingPlaceId(placeId)
 
       try {
         const placeData = await fetchGooglePlaceDetails(placeId)
@@ -186,14 +196,9 @@ export default function AddRestaurantToListScreen(): JSX.Element {
         router.back()
       } catch (err) {
         if (seq !== selectSeqRef.current) return
-        const msg = err instanceof Error ? err.message : ''
-        if (msg.includes('409') || msg.toLowerCase().includes('already in list')) {
-          toast.error(listItemDuplicateError)
-        } else {
-          toast.error(listItemAddError)
-        }
+        toast.error(listItemAddErrorMessage(err))
       } finally {
-        if (seq === selectSeqRef.current) setAdding(false)
+        if (seq === selectSeqRef.current) setAddingPlaceId(null)
       }
     },
     [listUuid],
@@ -203,15 +208,23 @@ export default function AddRestaurantToListScreen(): JSX.Element {
     selectSeqRef.current += 1
     setQuery('')
     setPredictions([])
-    setAdding(false)
+    setAddingPlaceId(null)
   }, [])
+
+  if (!listUuid) {
+    return (
+      <SafeAreaView className="flex-1 items-center justify-center bg-white">
+        <ActivityIndicator color={BRAND_PRIMARY} />
+      </SafeAreaView>
+    )
+  }
 
   return (
     <SafeAreaView className="flex-1 bg-white" edges={['top', 'left', 'right', 'bottom']}>
       {/* Search bar */}
       <View className="border-b border-gray-100 bg-white">
         <View className="mx-4 my-3 flex-row items-center gap-2.5 rounded-xl bg-gray-100 px-3.5 py-2.5">
-          <Feather name="search" size={18} color="#9ca3af" />
+          <AppIcon name="search" size={18} color="#9ca3af" />
           <TextInput
             value={query}
             onChangeText={setQuery}
@@ -222,12 +235,12 @@ export default function AddRestaurantToListScreen(): JSX.Element {
             autoFocus
             className="flex-1 font-neusans text-[15px] text-[#31343F]"
             style={mergeTextInputBodyTypography({ fontSize: 16 })}
-            editable={!adding}
+            editable={!isAdding}
           />
           {searchingPlaces ? <ActivityIndicator size="small" color={BRAND_PRIMARY} /> : null}
           {hasQuery && !searchingPlaces ? (
             <Pressable accessibilityRole="button" onPress={clearSearch} hitSlop={8}>
-              <Feather name="x" size={16} color="#9ca3af" />
+              <AppIcon name="x" size={16} color="#9ca3af" />
             </Pressable>
           ) : null}
         </View>
@@ -249,13 +262,6 @@ export default function AddRestaurantToListScreen(): JSX.Element {
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={{ flexGrow: 0, paddingBottom: 24 }}
       >
-        {adding ? (
-          <View className="items-center py-8">
-            <ActivityIndicator color={BRAND_PRIMARY} />
-            <Text className="mt-3 font-neusans text-sm text-[#6b7280]">Adding to list…</Text>
-          </View>
-        ) : null}
-
         {idleSearch ? (
           <>
             <SectionHeader title="Nearby" />
@@ -265,19 +271,21 @@ export default function AddRestaurantToListScreen(): JSX.Element {
               <NearbyEmptyState />
             ) : (
               filteredNearby.map((row) => (
-                <NearbyRestaurantRow
+                <ListPickerNearbyRow
                   key={row.place_id}
                   row={row}
-                  onPress={() => {
+                  onAdd={() => {
                     if (row.place_id) void handlePlaceSelect(row.place_id, row.name)
                   }}
+                  adding={addingPlaceId === row.place_id}
+                  disabled={isAdding && addingPlaceId !== row.place_id}
                 />
               ))
             )}
           </>
         ) : null}
 
-        {hasQuery && !adding ? (
+        {hasQuery ? (
           <>
             {searchingPlaces ? (
               <View className="flex-row items-center gap-2 px-4 py-3">
@@ -289,22 +297,24 @@ export default function AddRestaurantToListScreen(): JSX.Element {
             {!searchingPlaces && predictions.length === 0 ? <SearchEmptyState /> : null}
             {!searchingPlaces
               ? predictions.map((p) => (
-                  <SearchPredictionRow
+                  <ListPickerSearchRow
                     key={p.place_id}
                     prediction={p}
-                    onPress={() =>
+                    onAdd={() =>
                       void handlePlaceSelect(
                         p.place_id,
                         p.structured_formatting?.main_text ?? p.description,
                       )
                     }
+                    adding={addingPlaceId === p.place_id}
+                    disabled={isAdding && addingPlaceId !== p.place_id}
                   />
                 ))
               : null}
           </>
         ) : null}
 
-        {!adding ? <ReviewSearchHelpFooter /> : null}
+        {!isAdding ? <ReviewSearchHelpFooter /> : null}
       </ScrollView>
     </SafeAreaView>
   )

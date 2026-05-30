@@ -13,6 +13,7 @@ import type { User } from '@nhost/nhost-js'
 import { useSignUpEmailPassword } from '@nhost/react'
 import { z } from 'zod'
 
+import { PasswordInput } from '@/components/ui/PasswordInput'
 import {
   BRAND_PRIMARY,
   mergeTextInputBodyTypography,
@@ -27,6 +28,9 @@ import {
 } from '@/constants/screens'
 import { loginScreenHref } from '@/lib/authRoutes'
 import { toast } from '@/utils/toast'
+
+const inputClass =
+  'mb-1 rounded-[10px] border border-[#797979] bg-white px-4 py-3 text-base text-gray-900'
 
 const registerSchema = z
   .object({
@@ -140,17 +144,14 @@ export function RegisterEmailForm({
         control={control}
         name="password"
         render={({ field: { onChange, onBlur, value } }) => (
-          <TextInput
-            autoCapitalize="none"
+          <PasswordInput
             autoComplete="new-password"
             onBlur={onBlur}
             onChangeText={onChange}
             placeholder="At least 8 characters"
             placeholderTextColor="#9ca3af"
-            secureTextEntry
             value={value}
-            className="mb-1 rounded-[10px] border border-[#797979] bg-white px-4 py-3 text-base text-gray-900"
-            style={mergeTextInputBodyTypography()}
+            className={inputClass}
           />
         )}
       />
@@ -167,17 +168,14 @@ export function RegisterEmailForm({
         control={control}
         name="confirmPassword"
         render={({ field: { onChange, onBlur, value } }) => (
-          <TextInput
-            autoCapitalize="none"
+          <PasswordInput
             autoComplete="new-password"
             onBlur={onBlur}
             onChangeText={onChange}
             placeholder="Repeat password"
             placeholderTextColor="#9ca3af"
-            secureTextEntry
             value={value}
-            className="mb-1 rounded-[10px] border border-[#797979] bg-white px-4 py-3 text-base text-gray-900"
-            style={mergeTextInputBodyTypography()}
+            className={inputClass}
           />
         )}
       />

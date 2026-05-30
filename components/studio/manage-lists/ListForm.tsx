@@ -3,6 +3,7 @@
  * Create uses a centered Spotify-style layout; edit uses the compact field form.
  */
 import { useState } from 'react'
+import { AppIcon } from '@/components/ui/AppIcon'
 import {
   KeyboardAvoidingView,
   Platform,
@@ -12,7 +13,6 @@ import {
   TextInput,
   View,
 } from 'react-native'
-import { Feather, Ionicons } from '@expo/vector-icons'
 import * as Haptics from 'expo-haptics'
 
 import { Button } from '@/components/ui/Button'
@@ -68,7 +68,7 @@ function VisibilityPills({
                 borderColor: isActive ? '#31343F' : '#e5e7eb',
               }}
             >
-              <Feather
+              <AppIcon
                 name={opt.icon}
                 size={14}
                 color={isActive ? '#ffffff' : '#31343F'}
@@ -129,7 +129,7 @@ function CreateListForm({
           className="mb-8 items-center justify-center rounded-2xl bg-gray-100"
           style={{ width: 200, height: 200 }}
         >
-          <Ionicons name="albums-outline" size={72} color="#9ca3af" />
+          <AppIcon name="image" size={72} color="#9ca3af" />
         </View>
 
         <TextInput

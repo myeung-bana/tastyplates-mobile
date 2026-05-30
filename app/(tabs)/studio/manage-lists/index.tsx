@@ -4,7 +4,6 @@ import * as Haptics from 'expo-haptics'
 import { FlashList } from '@shopify/flash-list'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { router, useNavigation } from 'expo-router'
-import { Ionicons } from '@expo/vector-icons'
 import type { Swipeable } from 'react-native-gesture-handler'
 import { ManageListCreateRow } from '@/components/studio/manage-lists/ManageListCreateRow'
 import { ManageListsEmptyState } from '@/components/studio/manage-lists/ManageListsEmptyState'
@@ -19,6 +18,7 @@ import { castHref } from '@/lib/routeParams'
 import { deleteList, getMyLists } from '@/services/restaurantListService'
 import type { RestaurantListSummary } from '@/types/restaurantList'
 import { toast } from '@/utils/toast'
+import { AppIcon } from '@/components/ui/AppIcon'
 
 function filterListsByTab(lists: RestaurantListSummary[], tab: ManageListsTab): RestaurantListSummary[] {
   if (tab === 'all') return lists
@@ -92,7 +92,7 @@ export default function ManageListsScreen(): JSX.Element {
           }}
           className="mr-1 h-9 w-9 items-center justify-center rounded-full bg-orange-50"
         >
-          <Ionicons name="add" size={22} color="#ff7c0a" />
+          <AppIcon name="plus" size={22} color="#ff7c0a" />
         </Pressable>
       ),
     })

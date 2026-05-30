@@ -1,5 +1,5 @@
 import { Pressable, Text, View } from 'react-native'
-import { Ionicons } from '@expo/vector-icons'
+import { AppIcon } from '@/components/ui/AppIcon'
 
 import { BRAND_PRIMARY } from '@/constants/brand'
 import { labelForPalateKey } from '@/lib/palateLabels'
@@ -54,7 +54,7 @@ function FilterChip({ label, onDismiss }: { label: string; onDismiss: () => void
         onPress={onDismiss}
         className="ml-1 rounded-full p-1 active:opacity-70"
       >
-        <Ionicons name="close-circle" size={18} color={BRAND_PRIMARY} />
+        <AppIcon name="x-circle" size={18} color={BRAND_PRIMARY} />
       </Pressable>
     </View>
   )

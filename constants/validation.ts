@@ -3,6 +3,7 @@
 export const userNameMinLimit = 3
 export const userNameMaxLimit = 20
 export const palateLimit = 2
+export const aboutMeMaxLimit = 250
 export const reviewDescriptionDisplayLimit = 300
 
 export const imageMBLimit = 5

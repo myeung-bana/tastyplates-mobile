@@ -1,5 +1,5 @@
 import { ActivityIndicator, Pressable, Text, View } from 'react-native'
-import { Ionicons } from '@expo/vector-icons'
+import { AppIcon } from '@/components/ui/AppIcon'
 
 import { BRAND_PRIMARY, TEXT_HEADING } from '@/constants/brand'
 
@@ -45,7 +45,7 @@ export function AuthMethodChooser({
           <ActivityIndicator color={TEXT_HEADING} />
         ) : (
           <>
-            <Ionicons name="logo-google" size={22} color="#4285F4" />
+            <AppIcon name="logo-google" size={22} color="#4285F4" />
             <Text className="text-base font-semibold" style={{ color: TEXT_HEADING }}>
               Continue with Google
             </Text>

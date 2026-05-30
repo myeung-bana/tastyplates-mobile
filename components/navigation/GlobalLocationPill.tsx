@@ -1,6 +1,6 @@
 import { Image, Pressable, Text, View } from 'react-native'
-import { Ionicons } from '@expo/vector-icons'
 import * as Haptics from 'expo-haptics'
+import { AppIcon } from '@/components/ui/AppIcon'
 
 import { BORDER_SUBTLE } from '@/constants/brand'
 import { useLocation } from '@/contexts/LocationContext'
@@ -40,7 +40,7 @@ export function GlobalLocationPill({ maxWidth = 200 }: Props): JSX.Element {
       >
         {line}
       </Text>
-      <Ionicons name="chevron-down-outline" size={13} color="#494D5D" />
+      <AppIcon name="chevron-down" size={13} color="#494D5D" />
     </Pressable>
   )
 }

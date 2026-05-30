@@ -3,7 +3,7 @@ import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-nati
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { Redirect, useRouter } from 'expo-router'
 import { useNhostClient } from '@nhost/react'
-import { Ionicons } from '@expo/vector-icons'
+import { AppIcon } from '@/components/ui/AppIcon'
 
 import { OnboardingLogo } from '@/components/onboarding/OnboardingLogo'
 import { OnboardingStepIndicator } from '@/components/onboarding/OnboardingStepIndicator'
@@ -144,7 +144,7 @@ export default function OnboardingStep3(): JSX.Element {
             hitSlop={8}
             className="mr-2 rounded-full p-1 active:bg-gray-100"
           >
-            <Ionicons name="chevron-back" size={24} color="#374151" />
+            <AppIcon name="chevron-left" size={24} color="#374151" />
           </Pressable>
           <Text className="text-base font-medium text-gray-800">Back</Text>
         </View>

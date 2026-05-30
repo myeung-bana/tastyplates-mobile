@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { AppIcon } from '@/components/ui/AppIcon'
 import {
   ActivityIndicator,
   Pressable,
@@ -8,7 +9,6 @@ import {
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { Redirect, useRouter } from 'expo-router'
-import { Ionicons } from '@expo/vector-icons'
 
 import {
   LocationPickerSheet,
@@ -131,7 +131,7 @@ export default function OnboardingStep2(): JSX.Element {
             hitSlop={8}
             className="mr-2 rounded-full p-1 active:bg-gray-100"
           >
-            <Ionicons name="chevron-back" size={24} color="#374151" />
+            <AppIcon name="chevron-left" size={24} color="#374151" />
           </Pressable>
           <Text className="text-base font-medium text-gray-800">Back</Text>
         </View>
@@ -202,7 +202,7 @@ export default function OnboardingStep2(): JSX.Element {
               }}
               className="mb-8 flex-row items-center justify-center rounded-xl border border-gray-200 py-3 active:bg-gray-50"
             >
-              <Ionicons name="globe-outline" size={20} color="#374151" />
+              <AppIcon name="globe" size={20} color="#374151" />
               <Text className="ml-2 text-base font-semibold text-gray-800">Browse all regions</Text>
             </Pressable>
 

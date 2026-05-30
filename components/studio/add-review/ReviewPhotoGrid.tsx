@@ -1,6 +1,6 @@
 import { ActionSheetIOS, Alert, Image, Platform, Pressable, Text, View } from 'react-native'
-import { Feather } from '@expo/vector-icons'
 import * as ImagePicker from 'expo-image-picker'
+import { AppIcon } from '@/components/ui/AppIcon'
 
 import { maximumImage } from '@/constants/validation'
 import type { PendingReviewPhoto } from '@/lib/uploadReviewPhotos'
@@ -120,7 +120,7 @@ export function ReviewPhotoGrid({ previewUris, pending, onChange, error }: Props
               onPress={() => removeAt(index)}
               className="absolute right-1 top-1 h-5 w-5 items-center justify-center rounded-full bg-black/60"
             >
-              <Feather name="x" size={12} color="#ffffff" />
+              <AppIcon name="x" size={12} color="#ffffff" />
             </Pressable>
           </View>
         ))}
@@ -131,7 +131,7 @@ export function ReviewPhotoGrid({ previewUris, pending, onChange, error }: Props
             className="items-center justify-center rounded-xl border-2 border-dashed border-[#e5e7eb]"
             style={{ width: TILE, height: TILE }}
           >
-            <Feather name="plus" size={24} color="#9ca3af" />
+            <AppIcon name="plus" size={24} color="#9ca3af" />
             <Text className="mt-1 text-center font-neusans text-[10px] text-[#9ca3af]">
               Add{'\n'}Photo
             </Text>

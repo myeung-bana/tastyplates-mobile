@@ -9,7 +9,7 @@ import {
   type ElementRef,
 } from 'react'
 import { View, Text, Pressable, StyleSheet } from 'react-native'
-import { Ionicons } from '@expo/vector-icons'
+import { AppIcon } from '@/components/ui/AppIcon'
 import {
   BottomSheetBackdrop,
   BottomSheetFooter,
@@ -137,7 +137,7 @@ export function SearchCuisinesSheetProvider({ children }: PropsWithChildren) {
             className="flex-row items-center justify-center gap-2 rounded-2xl py-3.5 active:opacity-90"
             style={{ backgroundColor: BRAND_PRIMARY }}
           >
-            <Ionicons name="search" size={20} color="#fff" />
+            <AppIcon name="search" size={20} color="#fff" />
             <Text className="text-base font-semibold text-white">Search</Text>
           </Pressable>
           <Pressable
@@ -179,7 +179,7 @@ export function SearchCuisinesSheetProvider({ children }: PropsWithChildren) {
               onPress={dismissSheet}
               className="rounded-full p-1 active:opacity-70"
             >
-              <Ionicons name="close" size={26} color="#6b7280" />
+              <AppIcon name="x" size={26} color="#6b7280" />
             </Pressable>
           </View>
 

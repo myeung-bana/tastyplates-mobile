@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
+import { AppIcon } from '@/components/ui/AppIcon'
 import {
   Animated,
   Image,
@@ -9,7 +10,6 @@ import {
   type StyleProp,
   type ViewStyle,
 } from 'react-native'
-import { Ionicons } from '@expo/vector-icons'
 import * as Haptics from 'expo-haptics'
 import { usePathname, useRouter } from 'expo-router'
 
@@ -348,15 +348,16 @@ export function RestaurantBrowseCard({
                   }}
                 />
               ) : (
-                <Ionicons
-                  name={saved ? 'bookmark' : 'bookmark-outline'}
+                <AppIcon
+                  name="bookmark"
+                  active={Boolean(saved)}
                   size={iconSize}
                   color={saved ? BRAND_PRIMARY : TEXT_COLOR}
                 />
               )}
             </ActionCircle>
             <ActionCircle onPress={onCommentButtonPress}>
-              <Ionicons name="chatbubble-outline" size={iconSize} color={TEXT_COLOR} />
+              <AppIcon name="message-circle" size={iconSize} color={TEXT_COLOR} />
             </ActionCircle>
           </View>
         ) : null}
@@ -395,7 +396,7 @@ export function RestaurantBrowseCard({
 
             {showRating ? (
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, flexShrink: 0 }}>
-                <Ionicons name="star" size={16} color={TEXT_COLOR} />
+                <AppIcon name="star" size={16} color={TEXT_COLOR} />
                 <Text
                   style={{
                     fontFamily: NEUSANS,

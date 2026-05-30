@@ -1,6 +1,6 @@
 import { ActivityIndicator, Image, Linking, Pressable, Text, View } from 'react-native'
-import { Feather } from '@expo/vector-icons'
 import * as Haptics from 'expo-haptics'
+import { AppIcon } from '@/components/ui/AppIcon'
 
 import { Button } from '@/components/ui/Button'
 import { BRAND_PRIMARY } from '@/constants/brand'
@@ -55,7 +55,7 @@ export function RestaurantMatchInlineMobile({
         onPress={onClear}
         className="absolute right-3 top-3 z-10 p-1"
       >
-        <Feather name="x" size={16} color="#9ca3af" />
+        <AppIcon name="x" size={16} color="#9ca3af" />
       </Pressable>
 
       {existingRestaurant ? (

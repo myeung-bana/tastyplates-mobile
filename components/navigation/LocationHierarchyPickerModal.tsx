@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useState, type RefObject } from 'react'
 import { Image, Pressable, Text, TextInput, View } from 'react-native'
-import { Ionicons } from '@expo/vector-icons'
+import { AppIcon } from '@/components/ui/AppIcon'
 import {
   BottomSheetBackdrop,
   BottomSheetModal,
@@ -105,7 +105,7 @@ export function LocationHierarchyPickerModal({
               sheetRef.current?.dismiss()
             }}
           >
-            <Ionicons name="close" size={22} color={TEXT_MUTED} />
+            <AppIcon name="x" size={22} color={TEXT_MUTED} />
           </Pressable>
         </View>
 
@@ -113,7 +113,7 @@ export function LocationHierarchyPickerModal({
           className="flex-row items-center gap-2 rounded-xl px-3 py-2.5"
           style={{ backgroundColor: '#f3f4f6' }}
         >
-          <Ionicons name="search" size={16} color="#9ca3af" />
+          <AppIcon name="search" size={16} color="#9ca3af" />
           <TextInput
             value={search}
             onChangeText={setSearch}
@@ -171,7 +171,7 @@ export function LocationHierarchyPickerModal({
                       <Text className={`text-base ${isOn ? 'font-semibold text-[#ff7c0a]' : 'text-[#494D5D]'}`}>
                         {city.label}
                       </Text>
-                      {isOn ? <Ionicons name="checkmark-circle" size={22} color="#ff7c0a" /> : null}
+                      {isOn ? <AppIcon name="check-circle" size={22} color="#ff7c0a" /> : null}
                     </Pressable>
                   )
                 })}

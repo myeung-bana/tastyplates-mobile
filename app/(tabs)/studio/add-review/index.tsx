@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { AppIcon } from '@/components/ui/AppIcon'
 import {
   ActivityIndicator,
   Pressable,
@@ -8,7 +9,6 @@ import {
   View,
 } from 'react-native'
 import * as Haptics from 'expo-haptics'
-import { Feather } from '@expo/vector-icons'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { router } from 'expo-router'
 
@@ -215,7 +215,7 @@ export default function AddReviewSearchScreen(): JSX.Element {
     <SafeAreaView className="flex-1 bg-white" edges={['top', 'left', 'right', 'bottom']}>
       <View className="border-b border-gray-100 bg-white">
         <View className="mx-4 my-3 flex-row items-center gap-2.5 rounded-xl bg-gray-100 px-3.5 py-2.5">
-          <Feather name="search" size={18} color="#9ca3af" />
+          <AppIcon name="search" size={18} color="#9ca3af" />
           <TextInput
             value={query}
             onChangeText={setQuery}
@@ -231,7 +231,7 @@ export default function AddReviewSearchScreen(): JSX.Element {
           {searchingPlaces ? <ActivityIndicator size="small" color={BRAND_PRIMARY} /> : null}
           {hasQuery && !searchingPlaces ? (
             <Pressable accessibilityRole="button" onPress={clearSearch} hitSlop={8}>
-              <Feather name="x" size={16} color="#9ca3af" />
+              <AppIcon name="x" size={16} color="#9ca3af" />
             </Pressable>
           ) : null}
         </View>

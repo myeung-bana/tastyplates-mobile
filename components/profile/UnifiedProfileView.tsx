@@ -1,4 +1,5 @@
 import { type ComponentProps, type ReactNode } from 'react'
+import { AppIcon, type AppIconName } from '@/components/ui/AppIcon'
 import {
   ActivityIndicator,
   Image,
@@ -11,7 +12,6 @@ import {
 } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import * as Haptics from 'expo-haptics'
-import { Ionicons } from '@expo/vector-icons'
 import { useRouter } from 'expo-router'
 
 import { SectionTitle } from '@/components/layout/SectionTitle'
@@ -258,7 +258,7 @@ export function UnifiedProfileView({
               className="flex-row items-center gap-2 rounded-full border bg-white px-6 py-2.5 active:bg-gray-50"
               style={{ borderColor: '#d1d5db', borderWidth: 1 }}
             >
-              <Ionicons name="share-social-outline" size={18} color={TEXT_HEADING} />
+              <AppIcon name="share-2" size={18} color={TEXT_HEADING} />
               <Text className="text-sm font-semibold" style={{ color: TEXT_HEADING }}>
                 Share profile
               </Text>
@@ -378,7 +378,7 @@ function ProfileFollowButton(props: {
   )
 }
 
-export type ProfileMenuRowIcon = ComponentProps<typeof Ionicons>['name']
+export type ProfileMenuRowIcon = AppIconName
 
 export function ProfileMenuCard({
   children,
@@ -417,7 +417,7 @@ export function ProfileMenuRow({
           : undefined
       }
     >
-      <Ionicons name={icon} size={22} color={TEXT_BODY} />
+      <AppIcon name={icon} size="lg" color={TEXT_BODY} />
       <View className="min-w-0 flex-1">
         <Text className="text-base font-normal" style={{ color: TEXT_HEADING }}>
           {title}
@@ -428,7 +428,7 @@ export function ProfileMenuRow({
           </Text>
         ) : null}
       </View>
-      <Ionicons name="chevron-forward" size={18} color={TEXT_MUTED} importantForAccessibility="no" />
+      <AppIcon name="chevron-right" size={18} color={TEXT_MUTED} />
     </Pressable>
   )
 }

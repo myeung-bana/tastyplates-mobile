@@ -1,5 +1,5 @@
 import { ActivityIndicator, Image, Pressable, Text, View } from 'react-native'
-import { Ionicons } from '@expo/vector-icons'
+import { AppIcon } from '@/components/ui/AppIcon'
 
 import { BRAND_PRIMARY, BORDER_SUBTLE, TEXT_HEADING, TEXT_MUTED } from '@/constants/brand'
 import { useFollowTarget } from '@/hooks/useFollowTarget'
@@ -49,7 +49,7 @@ export function SuggestedUserRow({ user, viewerId, onFollowed }: SuggestedUserRo
           className="items-center justify-center rounded-full bg-gray-100"
           style={{ width: 72, height: 72 }}
         >
-          <Ionicons name="person" size={32} color={TEXT_MUTED} />
+          <AppIcon name="user" size={32} color={TEXT_MUTED} />
         </View>
       )}
       <Text

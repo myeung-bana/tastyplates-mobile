@@ -1,5 +1,5 @@
 import { Keyboard, Pressable, Text, TextInput, View } from 'react-native'
-import { Ionicons } from '@expo/vector-icons'
+import { AppIcon } from '@/components/ui/AppIcon'
 
 import { BRAND_PRIMARY, mergeTextInputBodyTypography } from '@/constants/brand'
 import { labelForPalateKey } from '@/lib/palateLabels'
@@ -81,7 +81,7 @@ export function PalateSearchBar({
           onPress={toggleMode}
           className="h-10 w-10 items-center justify-center rounded-full active:bg-gray-200"
         >
-          <Ionicons name="options-outline" size={22} color="#4b5563" />
+          <AppIcon name="sliders" size={22} color="#4b5563" />
         </Pressable>
         <Pressable
           accessibilityRole="button"
@@ -93,7 +93,7 @@ export function PalateSearchBar({
             backgroundColor: searchDisabled ? '#d1d5db' : BRAND_PRIMARY,
           }}
         >
-          <Ionicons name="search" size={20} color="#fff" />
+          <AppIcon name="search" size={20} color="#fff" />
         </Pressable>
       </View>
     </View>

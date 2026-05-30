@@ -1,6 +1,6 @@
 import type { JSX } from 'react'
 import { Image, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
-import { Ionicons } from '@expo/vector-icons'
+import { AppIcon } from '@/components/ui/AppIcon'
 
 import { BORDER_SUBTLE, RATING_STAR, TEXT_BODY, TEXT_HEADING, TEXT_MUTED } from '@/constants/brand'
 import { coerceRatingNumber } from '@/lib/ratingDisplayUtils'
@@ -60,11 +60,11 @@ function StarRow({ rating }: { rating: number | null | undefined }) {
   return (
     <View style={styles.starRow}>
       {Array.from({ length: full }, (_, i) => (
-        <Ionicons key={`f${i}`} name="star" size={13} color={RATING_STAR} />
+        <AppIcon key={`f${i}`} name="star" active size={13} color={RATING_STAR} />
       ))}
-      {half && <Ionicons name="star-half" size={13} color={RATING_STAR} />}
+      {half && <AppIcon name="star-half" size={13} color={RATING_STAR} />}
       {Array.from({ length: empty }, (_, i) => (
-        <Ionicons key={`e${i}`} name="star-outline" size={13} color={RATING_STAR} />
+        <AppIcon key={`e${i}`} name="star" size={13} color={RATING_STAR} />
       ))}
       <Text style={styles.starScore}>{n.toFixed(1)}</Text>
     </View>
@@ -114,7 +114,7 @@ export function FollowingFeedReviewCard({
             />
           ) : (
             <View style={[styles.avatar, styles.avatarFallback]}>
-              <Ionicons name="person" size={20} color={TEXT_MUTED} />
+              <AppIcon name="user" size={20} color={TEXT_MUTED} />
             </View>
           )}
         </Pressable>
@@ -186,7 +186,7 @@ export function FollowingFeedReviewCard({
           accessibilityRole="button"
           accessibilityLabel={`${likesCount} likes`}
         >
-          <Ionicons name="heart-outline" size={17} color={TEXT_MUTED} />
+          <AppIcon name="heart" size={17} color={TEXT_MUTED} />
           <Text style={styles.actionCount}>{formatLikeCount(likesCount)}</Text>
         </Pressable>
         <Pressable
@@ -195,7 +195,7 @@ export function FollowingFeedReviewCard({
           accessibilityRole="button"
           accessibilityLabel={`${repliesCount} comments`}
         >
-          <Ionicons name="chatbubble-outline" size={16} color={TEXT_MUTED} />
+          <AppIcon name="message-circle" size={16} color={TEXT_MUTED} />
           <Text style={styles.actionCount}>{formatLikeCount(repliesCount)}</Text>
         </Pressable>
       </View>

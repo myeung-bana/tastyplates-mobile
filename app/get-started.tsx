@@ -8,7 +8,7 @@ import {
   Text,
   View,
 } from 'react-native'
-import { Ionicons } from '@expo/vector-icons'
+import { AppIcon, type AppIconName } from '@/components/ui/AppIcon'
 import { Stack, useRouter } from 'expo-router'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
@@ -24,7 +24,7 @@ type Slide = {
   id: string
   title: string
   body: string
-  icon: React.ComponentProps<typeof Ionicons>['name']
+  icon: AppIconName
 }
 
 const SLIDES: Slide[] = [
@@ -32,19 +32,19 @@ const SLIDES: Slide[] = [
     id: '1',
     title: 'Discover great food',
     body: 'Browse restaurants and cuisines tailored to your taste. Placeholder copy — replace anytime.',
-    icon: 'restaurant-outline',
+    icon: 'restaurant',
   },
   {
     id: '2',
     title: 'Share your plates',
     body: 'Post reviews and photos so others can find their next favorite meal.',
-    icon: 'camera-outline',
+    icon: 'camera',
   },
   {
     id: '3',
     title: 'Join the community',
     body: 'Follow reviewers, save spots, and grow your food journey with Tastyplates.',
-    icon: 'people-outline',
+    icon: 'users',
   },
 ]
 
@@ -98,7 +98,7 @@ export default function GetStartedScreen(): JSX.Element {
                   className="mb-6 h-28 w-28 items-center justify-center rounded-full"
                   style={{ backgroundColor: `${BRAND_PRIMARY}18` }}
                 >
-                  <Ionicons name={slide.icon} size={56} color={BRAND_PRIMARY} />
+                  <AppIcon name={slide.icon} active size={56} color={BRAND_PRIMARY} />
                 </View>
                 <Text className="mb-3 text-center text-2xl font-semibold" style={{ color: TEXT_HEADING }}>
                   {slide.title}

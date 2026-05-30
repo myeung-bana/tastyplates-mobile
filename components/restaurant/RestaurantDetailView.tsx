@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { AppIcon, type AppIconName } from '@/components/ui/AppIcon'
 import {
   Animated,
   Linking,
@@ -13,7 +14,6 @@ import {
 } from 'react-native'
 import MapView, { Marker } from 'react-native-maps'
 import * as Haptics from 'expo-haptics'
-import { Ionicons } from '@expo/vector-icons'
 import {
   BottomSheetBackdrop,
   BottomSheetModal,
@@ -68,7 +68,7 @@ function ActionPill({
   disabled = false,
 }: {
   label: string
-  icon: keyof typeof Ionicons.glyphMap
+  icon: AppIconName
   onPress?: () => void
   disabled?: boolean
 }): JSX.Element {
@@ -81,7 +81,7 @@ function ActionPill({
         disabled ? 'border-gray-200 bg-gray-50 opacity-50' : 'border-gray-300 bg-white'
       }`}
     >
-      <Ionicons name={icon} size={16} color={disabled ? '#9ca3af' : '#6b7280'} />
+      <AppIcon name={icon} size="sm" color={disabled ? '#9ca3af' : '#6b7280'} />
       <Text
         className={`font-neusans text-sm font-normal ${disabled ? 'text-gray-400' : 'text-gray-900'}`}
       >
@@ -117,7 +117,7 @@ function OpeningHoursRow({ openingHours }: { openingHours: string | object | nul
   if (grouped.length === 0) {
     return (
       <View className="flex-row items-start gap-3">
-        <Ionicons name="time-outline" size={20} color="#6b7280" />
+        <AppIcon name="clock" size={20} color="#6b7280" />
         <View>
           <Text className="font-neusans text-sm text-gray-500">Opening Hours</Text>
           <Text className="font-neusans text-sm text-gray-700">Not available</Text>
@@ -128,7 +128,7 @@ function OpeningHoursRow({ openingHours }: { openingHours: string | object | nul
 
   return (
     <View className="flex-row items-start gap-3">
-      <Ionicons name="time-outline" size={20} color="#6b7280" style={{ marginTop: 2 }} />
+      <AppIcon name="clock" size={20} color="#6b7280" style={{ marginTop: 2 }} />
       <View className="min-w-0 flex-1">
         <Pressable
           accessibilityRole="button"
@@ -147,7 +147,7 @@ function OpeningHoursRow({ openingHours }: { openingHours: string | object | nul
             </Text>
           </View>
           <Animated.View style={{ transform: [{ rotate: chevronRotate }] }}>
-            <Ionicons name="chevron-down" size={16} color="#9ca3af" />
+            <AppIcon name="chevron-down" size={16} color="#9ca3af" />
           </Animated.View>
         </Pressable>
 
@@ -365,21 +365,22 @@ export function RestaurantDetailView({
       <View className="mx-4 mt-6 flex-row flex-wrap gap-2">
         <ActionPill
           label="Website"
-          icon="globe-outline"
+          icon="globe"
           disabled={!websiteUrl}
           onPress={websiteUrl ? openWebsite : undefined}
         />
-        <ActionPill label="Call" icon="call-outline" disabled={!phone} onPress={phone ? openCall : undefined} />
-        <ActionPill label="Directions" icon="navigate-outline" onPress={openDirections} />
+        <ActionPill label="Call" icon="phone" disabled={!phone} onPress={phone ? openCall : undefined} />
+        <ActionPill label="Directions" icon="navigation" onPress={openDirections} />
         <Pressable
           accessibilityRole="button"
           disabled={engageBusy}
           onPress={() => void onToggleSave()}
           className="flex-row items-center gap-2 rounded-[50px] border border-gray-300 bg-white px-4 py-2 active:opacity-90"
         >
-          <Ionicons
-            name={saved ? 'bookmark' : 'bookmark-outline'}
-            size={16}
+          <AppIcon
+            name="bookmark"
+            active={Boolean(saved)}
+            size="sm"
             color={saved ? SAVE_FILLED : ACTION_INK}
           />
           <Text className="font-neusans text-sm font-normal text-gray-900">Save</Text>
@@ -390,9 +391,10 @@ export function RestaurantDetailView({
           onPress={() => void onToggleCheckin()}
           className="flex-row items-center gap-2 rounded-[50px] border border-gray-300 bg-white px-4 py-2 active:opacity-90"
         >
-          <Ionicons
-            name={checkedIn ? 'location' : 'location-outline'}
-            size={16}
+          <AppIcon
+            name="map-pin"
+            active={Boolean(checkedIn)}
+            size="sm"
             color={checkedIn ? CHECKIN_FILLED : ACTION_INK}
           />
           <Text className="font-neusans text-sm font-normal text-gray-900">Check-in</Text>
@@ -403,7 +405,7 @@ export function RestaurantDetailView({
           onPress={() => void onShare()}
           className="h-9 w-9 items-center justify-center rounded-full border border-gray-300 bg-white active:opacity-90"
         >
-          <Ionicons name="share-social-outline" size={16} color="#6b7280" />
+          <AppIcon name="share-2" size={16} color="#6b7280" />
         </Pressable>
       </View>
 
@@ -445,18 +447,18 @@ export function RestaurantDetailView({
           </View>
         ) : (
           <View className="mb-2 h-40 flex-row items-center justify-center rounded-xl bg-gray-100">
-            <Ionicons name="location-outline" size={20} color="#9ca3af" />
+            <AppIcon name="map-pin" size={20} color="#9ca3af" />
             <Text className="ml-2 font-neusans text-gray-500">Map location not available</Text>
           </View>
         )}
 
         {address ? (
           <View className="flex-row items-center gap-3 pt-2">
-            <Ionicons name="location-outline" size={18} color="#6b7280" />
+            <AppIcon name="map-pin" size={18} color="#6b7280" />
             <Text className="min-w-0 flex-1 font-neusans text-sm font-normal text-gray-700">{address}</Text>
             {googleMapsUrl ? (
               <Pressable accessibilityRole="button" onPress={openMaps} hitSlop={8}>
-                <Ionicons name="open-outline" size={16} color={BRAND_PRIMARY} />
+                <AppIcon name="external-link" size={16} color={BRAND_PRIMARY} />
               </Pressable>
             ) : null}
           </View>
@@ -485,7 +487,7 @@ export function RestaurantDetailView({
           <OpeningHoursRow openingHours={restaurant.opening_hours as string | object | null | undefined} />
 
           <View className="flex-row items-center gap-3">
-            <Ionicons name="call-outline" size={20} color="#6b7280" />
+            <AppIcon name="phone" size={20} color="#6b7280" />
             <View className="min-w-0 flex-1">
               <Text className="font-neusans text-sm text-gray-500">Phone</Text>
               {phone ? (
@@ -499,7 +501,7 @@ export function RestaurantDetailView({
           </View>
 
           <View className="flex-row items-center gap-3">
-            <Ionicons name="cash-outline" size={20} color="#6b7280" />
+            <AppIcon name="dollar-sign" size={20} color="#6b7280" />
             <View>
               <Text className="font-neusans text-sm text-gray-500">Price Range</Text>
               <Text className="font-neusans text-sm font-normal text-gray-700">{priceDisplay}</Text>

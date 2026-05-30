@@ -3,7 +3,7 @@ import type { EdgeInsets } from 'react-native-safe-area-context'
 
 export const TAB_BAR_BG = '#ffffff'
 export const TAB_BAR_BORDER = '#f3f4f6'
-export const TAB_BAR_PADDING_TOP = 6
+export const TAB_BAR_PADDING_TOP = 11
 /** Previous 10px + requested 10px extra (safe-area added separately). */
 export const TAB_BAR_PADDING_BOTTOM_BASE = 20
 export const TAB_BAR_PADDING_HORIZONTAL = 4

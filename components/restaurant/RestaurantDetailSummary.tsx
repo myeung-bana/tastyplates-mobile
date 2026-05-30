@@ -1,6 +1,6 @@
 import { Pressable, Text, View } from 'react-native'
-import { Ionicons } from '@expo/vector-icons'
 import { useRouter } from 'expo-router'
+import { AppIcon } from '@/components/ui/AppIcon'
 
 import { RestaurantImageCarousel } from '@/components/restaurant/RestaurantImageCarousel'
 import { BRAND_PRIMARY, TEXT_HEADING } from '@/constants/brand'
@@ -75,7 +75,7 @@ export function RestaurantDetailSummary({ restaurant }: RestaurantDetailSummaryP
         </View>
 
         <View className="mb-2 flex-row items-center gap-1.5">
-          <Ionicons name="location-outline" size={16} color="#4b5563" />
+          <AppIcon name="map-pin" size={16} color="#4b5563" />
           <Text className="flex-1 font-neusans text-sm font-medium text-gray-600">{locationLine}</Text>
         </View>
 

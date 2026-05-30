@@ -70,6 +70,37 @@ export async function fetchRestaurantUserById(id: string): Promise<RestaurantUse
   return unwrapEnvelope(envelope).user
 }
 
+export interface UpdateRestaurantUserProfileParams {
+  about_me?: string
+  profile_image?: string
+  palates?: string[]
+  display_name?: string
+}
+
+interface UpdateRestaurantUserResponse {
+  user: RestaurantUserRow
+}
+
+export async function updateRestaurantUserProfile(
+  params: UpdateRestaurantUserProfileParams,
+): Promise<RestaurantUserRow> {
+  const body: Record<string, unknown> = {}
+  if (params.about_me !== undefined) body.about_me = params.about_me
+  if (params.profile_image !== undefined) body.profile_image = params.profile_image
+  if (params.palates !== undefined) body.palates = params.palates
+  if (params.display_name !== undefined) body.display_name = params.display_name
+
+  const envelope = await tastyplatesFetch<UpdateRestaurantUserResponse>(
+    'restaurant-users/update-restaurant-user',
+    {
+      method: 'POST',
+      withAuth: true,
+      body: JSON.stringify(body),
+    },
+  )
+  return unwrapEnvelope(envelope).user
+}
+
 // ─── Wishlist / Check-ins ──────────────────────────────────────────────────
 
 export interface ListMeta {

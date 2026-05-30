@@ -1,11 +1,11 @@
 import { View, Text, Pressable, Image, useWindowDimensions } from 'react-native'
 import { router } from 'expo-router'
-import { Ionicons } from '@expo/vector-icons'
 import { HomeSectionCard } from '@/components/home/HomeSectionCard'
 import { QUICK_FINDS } from '@/constants/quickFinds'
 import { getCuisineIconSource } from '@/lib/cuisineIconAssets'
 import { SCREEN_RESTAURANTS } from '@/constants/screens'
 import { BRAND_PRIMARY } from '@/constants/brand'
+import { AppIcon } from '@/components/ui/AppIcon'
 
 /** 10 cuisines → 5 per row × 2 rows */
 const COLS = 5
@@ -51,7 +51,7 @@ export function HomeQuickFinds() {
                     <Image source={localSource} className="h-full w-full" resizeMode="contain" />
                   ) : (
                     <View className="h-full w-full items-center justify-center">
-                      <Ionicons name="fast-food-outline" size={14} color={BRAND_PRIMARY} />
+                      <AppIcon name="coffee" size={14} color={BRAND_PRIMARY} />
                     </View>
                   )}
                 </View>

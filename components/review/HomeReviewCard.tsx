@@ -1,5 +1,5 @@
 import { Image, Pressable, Text, View } from 'react-native'
-import { Ionicons } from '@expo/vector-icons'
+import { AppIcon } from '@/components/ui/AppIcon'
 
 import { RatingDisplay } from '@/components/ui/RatingDisplay'
 import { BORDER_SUBTLE, TEXT_BODY, TEXT_HEADING, TEXT_MUTED } from '@/constants/brand'
@@ -85,7 +85,7 @@ export function HomeReviewCard({
                 className="items-center justify-center rounded-full bg-gray-100"
                 style={{ width: 28, height: 28 }}
               >
-                <Ionicons name="person" size={16} color={TEXT_MUTED} />
+                <AppIcon name="user" size={16} color={TEXT_MUTED} />
               </View>
             )}
           </Pressable>

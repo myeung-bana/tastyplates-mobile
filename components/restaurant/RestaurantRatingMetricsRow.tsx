@@ -1,5 +1,5 @@
 import { ScrollView, Text, View } from 'react-native'
-import { Ionicons } from '@expo/vector-icons'
+import { AppIcon } from '@/components/ui/AppIcon'
 
 import { BRAND_PRIMARY, TEXT_HEADING, TEXT_MUTED } from '@/constants/brand'
 import { isNoPalateFilter } from '@/lib/palateSearch'
@@ -124,7 +124,7 @@ function MetricColumn({
       <View className="items-center">
         <View className="relative mb-1 items-center justify-center" style={{ minHeight: 32 }}>
           {locked ? (
-            <Ionicons name="lock-closed-outline" size={24} color="#9ca3af" />
+            <AppIcon name="lock" size={24} color="#9ca3af" />
           ) : (
             <>
               <Text className="text-2xl font-bold" style={{ color: TEXT_HEADING }}>

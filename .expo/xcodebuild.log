@@ -1119,9 +1119,9 @@ CreateBuildDescription
 
 ExecuteExternalTool /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -v -E -dM -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.5.sdk -x c -c /dev/null
 
-ExecuteExternalTool /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -v -E -dM -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.5.sdk -x c++ -c /dev/null
-
 ExecuteExternalTool /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -v -E -dM -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.5.sdk -x objective-c -c /dev/null
+
+ExecuteExternalTool /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -v -E -dM -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.5.sdk -x c++ -c /dev/null
 
 ExecuteExternalTool /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -v -E -dM -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.5.sdk -x objective-c++ -c /dev/null
 
@@ -1139,8 +1139,8 @@ ExecuteExternalTool /Applications/Xcode.app/Contents/Developer/usr/bin/actool --
 
 ExecuteExternalTool /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/ld -version_details
 
-Build description signature: 1278bc378b9b0e433d9033e09906918a
-Build description path: /Users/museryeung/Library/Developer/Xcode/DerivedData/exporoutertemplate-ddfyynufzpeumfbhrbymyhdyauil/Build/Intermediates.noindex/XCBuildData/1278bc378b9b0e433d9033e09906918a.xcbuilddata
+Build description signature: 391c104b6dc2018d2f64610238cf2297
+Build description path: /Users/museryeung/Library/Developer/Xcode/DerivedData/exporoutertemplate-ddfyynufzpeumfbhrbymyhdyauil/Build/Intermediates.noindex/XCBuildData/391c104b6dc2018d2f64610238cf2297.xcbuilddata
 ClangStatCache /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang-stat-cache /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.5.sdk /Users/museryeung/Library/Developer/Xcode/DerivedData/SDKStatCaches.noindex/iphonesimulator26.5-23F73-6cfe768891a92b912361537c460fe42b.sdkstatcache
     cd /Users/museryeung/Documents/dev/Tastyplates-project/tastyplates-mobile/ios
     /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang-stat-cache /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.5.sdk -o /Users/museryeung/Library/Developer/Xcode/DerivedData/SDKStatCaches.noindex/iphonesimulator26.5-23F73-6cfe768891a92b912361537c460fe42b.sdkstatcache
@@ -5737,14 +5737,14 @@ PhaseScriptExecution [CP]\ Copy\ Pods\ Resources /Users/museryeung/Library/Devel
 Transfer starting: 182 files
 EXConstants.bundle/app.config
 
-sent 19720 bytes  received 42 bytes  1956633 bytes/sec
+sent 19720 bytes  received 42 bytes  1508549 bytes/sec
 total size is 188956  speedup is 9.56
 
 ExtractAppIntentsMetadata (in target 'exporoutertemplate' from project 'exporoutertemplate')
     cd /Users/museryeung/Documents/dev/Tastyplates-project/tastyplates-mobile/ios
     /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/appintentsmetadataprocessor --toolchain-dir /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain --module-name TastyPlates --sdk-root /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.5.sdk --xcode-version 17F42 --platform-family iOS --deployment-target 15.1 --bundle-identifier com.toyama.rodrigo.expo-router-template --output /Users/museryeung/Library/Developer/Xcode/DerivedData/exporoutertemplate-ddfyynufzpeumfbhrbymyhdyauil/Build/Products/Debug-iphonesimulator/TastyPlates.app --target-triple arm64-apple-ios15.1-simulator --binary-file /Users/museryeung/Library/Developer/Xcode/DerivedData/exporoutertemplate-ddfyynufzpeumfbhrbymyhdyauil/Build/Products/Debug-iphonesimulator/TastyPlates.app/TastyPlates --dependency-file /Users/museryeung/Library/Developer/Xcode/DerivedData/exporoutertemplate-ddfyynufzpeumfbhrbymyhdyauil/Build/Intermediates.noindex/exporoutertemplate.build/Debug-iphonesimulator/exporoutertemplate.build/Objects-normal/arm64/TastyPlates_dependency_info.dat --stringsdata-file /Users/museryeung/Library/Developer/Xcode/DerivedData/exporoutertemplate-ddfyynufzpeumfbhrbymyhdyauil/Build/Intermediates.noindex/exporoutertemplate.build/Debug-iphonesimulator/exporoutertemplate.build/Objects-normal/arm64/ExtractedAppShortcutsMetadata.stringsdata --source-file-list /Users/museryeung/Library/Developer/Xcode/DerivedData/exporoutertemplate-ddfyynufzpeumfbhrbymyhdyauil/Build/Intermediates.noindex/exporoutertemplate.build/Debug-iphonesimulator/exporoutertemplate.build/Objects-normal/arm64/TastyPlates.SwiftFileList --metadata-file-list /Users/museryeung/Library/Developer/Xcode/DerivedData/exporoutertemplate-ddfyynufzpeumfbhrbymyhdyauil/Build/Intermediates.noindex/exporoutertemplate.build/Debug-iphonesimulator/exporoutertemplate.build/TastyPlates.DependencyMetadataFileList --static-metadata-file-list /Users/museryeung/Library/Developer/Xcode/DerivedData/exporoutertemplate-ddfyynufzpeumfbhrbymyhdyauil/Build/Intermediates.noindex/exporoutertemplate.build/Debug-iphonesimulator/exporoutertemplate.build/TastyPlates.DependencyStaticMetadataFileList --swift-const-vals-list /Users/museryeung/Library/Developer/Xcode/DerivedData/exporoutertemplate-ddfyynufzpeumfbhrbymyhdyauil/Build/Intermediates.noindex/exporoutertemplate.build/Debug-iphonesimulator/exporoutertemplate.build/Objects-normal/arm64/TastyPlates.SwiftConstValuesFileList --compile-time-extraction --deployment-aware-processing --validate-assistant-intents --no-app-shortcuts-localization
-2026-05-28 09:57:43.496 appintentsmetadataprocessor[73701:45123557] Starting appintentsmetadataprocessor export
-2026-05-28 09:57:43.504 appintentsmetadataprocessor[73701:45123557] warning: Metadata extraction skipped. No AppIntents.framework dependency found.
+2026-05-30 09:13:36.178 appintentsmetadataprocessor[50731:48081838] Starting appintentsmetadataprocessor export
+2026-05-30 09:13:36.189 appintentsmetadataprocessor[50731:48081838] warning: Metadata extraction skipped. No AppIntents.framework dependency found.
 
 CodeSign /Users/museryeung/Library/Developer/Xcode/DerivedData/exporoutertemplate-ddfyynufzpeumfbhrbymyhdyauil/Build/Products/Debug-iphonesimulator/TastyPlates.app/TastyPlates.debug.dylib (in target 'exporoutertemplate' from project 'exporoutertemplate')
     cd /Users/museryeung/Documents/dev/Tastyplates-project/tastyplates-mobile/ios

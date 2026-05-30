@@ -116,6 +116,7 @@ export const SCREEN_LISTING_DRAFT = '/listing/draft' as const
 
 export const SCREEN_OWN_PROFILE = '/(tabs)/profile' as const
 export const SCREEN_EDIT_PROFILE = '/(tabs)/profile/edit' as const
+export const SCREEN_EDIT_PROFILE_PALATES = '/(tabs)/profile/edit-palates' as const
 export const SCREEN_PUBLIC_PROFILE = '/(tabs)/profile/[userId]' as const
 export const SCREEN_PUBLIC_PROFILE_FOLLOWERS =
   '/(tabs)/profile/[userId]/followers' as const

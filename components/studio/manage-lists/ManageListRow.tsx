@@ -1,9 +1,9 @@
 import { useRef } from 'react'
 import { Image, Pressable, Text, View } from 'react-native'
-import { Feather, Ionicons } from '@expo/vector-icons'
 import * as Haptics from 'expo-haptics'
 import { Swipeable } from 'react-native-gesture-handler'
 import { router } from 'expo-router'
+import { AppIcon } from '@/components/ui/AppIcon'
 
 import { castHref } from '@/lib/routeParams'
 import { studioManageListDetailPath } from '@/constants/screens'
@@ -36,7 +36,7 @@ export function ManageListRow({ list, swipeableRefs, onDelete }: Props): JSX.Ele
           }}
           className="h-full w-full items-center justify-center gap-1.5"
         >
-          <Feather name="trash-2" size={22} color="white" />
+          <AppIcon name="trash-2" size={22} color="white" />
           <Text className="font-neusans text-[11px] font-medium text-white">Delete</Text>
         </Pressable>
       </View>
@@ -86,7 +86,7 @@ export function ManageListRow({ list, swipeableRefs, onDelete }: Props): JSX.Ele
               resizeMode="cover"
             />
           ) : (
-            <Ionicons name="albums-outline" size={24} color="#9ca3af" />
+            <AppIcon name="image" size={24} color="#9ca3af" />
           )}
         </View>
 
@@ -103,7 +103,7 @@ export function ManageListRow({ list, swipeableRefs, onDelete }: Props): JSX.Ele
         </View>
 
         {/* Chevron */}
-        <Feather name="chevron-right" size={14} color="#e5e7eb" />
+        <AppIcon name="chevron-right" size={14} color="#e5e7eb" />
       </Pressable>
     </Swipeable>
   )

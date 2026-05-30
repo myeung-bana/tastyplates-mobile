@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useState } from 'react'
 import { ActivityIndicator, Pressable, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { Ionicons } from '@expo/vector-icons'
 import { router, useLocalSearchParams, useNavigation } from 'expo-router'
+import { AppIcon } from '@/components/ui/AppIcon'
 
 import { RestaurantDetailView } from '@/components/restaurant/RestaurantDetailView'
 import { BRAND_PRIMARY, TEXT_HEADING, TEXT_MUTED } from '@/constants/brand'
@@ -132,7 +132,7 @@ export default function RestaurantDetailScreen() {
           }}
           className="ml-1 rounded-full p-1 active:opacity-70"
         >
-          <Ionicons name="chevron-back" size={28} color={TEXT_HEADING} />
+          <AppIcon name="chevron-left" size={28} color={TEXT_HEADING} />
         </Pressable>
       ),
     })
