@@ -13,7 +13,9 @@ import { Stack, useRouter } from 'expo-router'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
 import { BRAND_PRIMARY, TEXT_BODY, TEXT_HEADING } from '@/constants/brand'
+import { SCREEN_HOME } from '@/constants/screens'
 import { loginScreenHref } from '@/lib/authRoutes'
+import { enterGuestBrowseMode } from '@/lib/guestBrowse'
 import { setGetStartedCompleted } from '@/lib/getStartedIntro'
 
 const { width: WINDOW_WIDTH } = Dimensions.get('window')
@@ -64,6 +66,11 @@ export default function GetStartedScreen(): JSX.Element {
   const goSignIn = useCallback(async () => {
     await setGetStartedCompleted()
     router.replace(loginScreenHref({ mode: 'signin' }))
+  }, [router])
+
+  const goBrowse = useCallback(async () => {
+    await enterGuestBrowseMode()
+    router.replace(SCREEN_HOME)
   }, [router])
 
   return (
@@ -125,6 +132,14 @@ export default function GetStartedScreen(): JSX.Element {
             style={{ backgroundColor: BRAND_PRIMARY }}
           >
             <Text className="text-base font-semibold text-white">Get Started</Text>
+          </Pressable>
+
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => void goBrowse()}
+            className="mb-4 w-full items-center py-2 active:opacity-70"
+          >
+            <Text className="text-sm font-medium text-gray-500">Browse without signing in</Text>
           </Pressable>
 
           <View className="flex-row flex-wrap items-center justify-center pb-6">

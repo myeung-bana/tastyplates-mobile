@@ -52,8 +52,6 @@ export interface RestaurantBrowseCardProps {
   onPress: () => void
   /** Opens reviews / detail; defaults to `onPress` when omitted. */
   onCommentPress?: () => void
-  /** Compact tile for horizontal carousels — hides action buttons, smaller type. */
-  compact?: boolean
   containerStyle?: StyleProp<ViewStyle>
 }
 
@@ -79,12 +77,12 @@ function buildAccessibilityLabel(
   return parts.join(', ')
 }
 
-function CuisinePill({ label, compact }: { label: string; compact: boolean }): JSX.Element {
+function CuisinePill({ label }: { label: string }): JSX.Element {
   return (
     <View
       style={{
-        paddingHorizontal: compact ? 8 : 10,
-        paddingVertical: compact ? 3 : 4,
+        paddingHorizontal: 10,
+        paddingVertical: 4,
         borderRadius: 20,
         backgroundColor: CUISINE_PILL_BG,
       }}
@@ -92,7 +90,7 @@ function CuisinePill({ label, compact }: { label: string; compact: boolean }): J
       <Text
         style={{
           fontFamily: NEUSANS,
-          fontSize: compact ? 11 : 13,
+          fontSize: 13,
           fontWeight: '400',
           color: '#fff',
         }}
@@ -147,7 +145,6 @@ export function RestaurantBrowseCard({
   onWishlistChange,
   onPress,
   onCommentPress,
-  compact = false,
   containerStyle,
 }: RestaurantBrowseCardProps) {
   const uri = (imageUrl && imageUrl.trim()) || DEFAULT_IMAGE
@@ -182,11 +179,12 @@ export function RestaurantBrowseCard({
   const visibleCuisines = cuisineList.slice(0, 2)
   const cuisineOverflow = Math.max(0, cuisineList.length - 2)
 
-  const iconSize = compact ? 12 : isNarrow ? 12 : 16
-  const nameSize = compact ? 12 : isNarrow ? 14 : 16
-  const ratingSize = compact ? 12 : 14
-  const addressSize = compact ? 10 : isNarrow ? 12 : 10
-  const categorySize = compact ? 11 : 13
+  const iconSize = isNarrow ? 12 : 16
+  const nameSize = isNarrow ? 14 : 16
+  const ratingSize = 14
+  const addressSize = isNarrow ? 12 : 10
+  const categorySize = 13
+  const titleMaxWidth = 220
 
   useEffect(() => {
     if (typeof initialSavedStatus === 'boolean') {
@@ -288,11 +286,7 @@ export function RestaurantBrowseCard({
         style={{
           position: 'relative',
           width: '100%',
-          ...(compact
-            ? { aspectRatio: 4 / 3 }
-            : isNarrow
-              ? { aspectRatio: 16 / 9 }
-              : { height: 222 }),
+          ...(isNarrow ? { aspectRatio: 16 / 9 } : { height: 222 }),
         }}
       >
         <Pressable
@@ -325,15 +319,15 @@ export function RestaurantBrowseCard({
             }}
           >
             {visibleCuisines.map((cuisine) => (
-              <CuisinePill key={cuisine.slug || String(cuisine.id)} label={cuisine.name} compact={compact} />
+              <CuisinePill key={cuisine.slug || String(cuisine.id)} label={cuisine.name} />
             ))}
             {cuisineOverflow > 0 ? (
-              <CuisinePill label={`+${cuisineOverflow}`} compact={compact} />
+              <CuisinePill label={`+${cuisineOverflow}`} />
             ) : null}
           </View>
         ) : null}
 
-        {!compact && slug ? (
+        {slug ? (
           <View
             style={{
               position: 'absolute',
@@ -376,7 +370,7 @@ export function RestaurantBrowseCard({
         onPressOut={onPressOut}
         style={{ backgroundColor: 'transparent' }}
       >
-        <View style={{ paddingTop: compact ? 8 : isNarrow ? 12 : 16 }}>
+        <View style={{ paddingTop: isNarrow ? 12 : 16 }}>
           <View
             style={{
               flexDirection: 'row',
@@ -388,7 +382,7 @@ export function RestaurantBrowseCard({
             <Text
               style={{
                 flexShrink: 1,
-                maxWidth: compact ? 120 : 220,
+                maxWidth: titleMaxWidth,
                 fontFamily: NEUSANS,
                 fontSize: nameSize,
                 fontWeight: '500',

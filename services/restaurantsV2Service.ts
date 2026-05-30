@@ -138,9 +138,10 @@ export async function getRestaurants(params: GetRestaurantsParams = {}): Promise
     `restaurants-v2/get-restaurants?${query}`,
   )
   const data = unwrapEnvelope(envelope)
+  const rows = Array.isArray(data.restaurants) ? data.restaurants : []
   return {
     ...data,
-    restaurants: data.restaurants.map(normalizeRestaurantListRow),
+    restaurants: rows.map(normalizeRestaurantListRow),
   }
 }
 
@@ -158,7 +159,7 @@ function streetEndsWithCity(street: string, city: string): boolean {
  */
 export function formatRestaurantCardAddress(
   listingStreet: string | null | undefined,
-  address: RestaurantAddressFields,
+  address?: RestaurantAddressFields | null,
 ): string | null {
   const city = address?.city?.trim()
   const street =

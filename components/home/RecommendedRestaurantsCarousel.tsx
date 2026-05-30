@@ -1,22 +1,22 @@
-import { useEffect, useState, useCallback } from 'react'
-import { View, Text, ScrollView, ActivityIndicator } from 'react-native'
-import { router } from 'expo-router'
+import { useEffect, useState, useCallback, useMemo } from 'react'
+import { View, Text, ScrollView, ActivityIndicator, useWindowDimensions } from 'react-native'
 
-import { RestaurantBrowseCard } from '@/components/restaurant/RestaurantBrowseCard'
+import {
+  RestaurantBrowseCardItem,
+  getHomeCarouselRestaurantCardWidth,
+  getRestaurantBrowseCardWidth,
+  restaurantBrowseCardItemFromFeatured,
+} from '@/components/restaurant/RestaurantBrowseCardItem'
 import {
   BORDER_SUBTLE,
   BRAND_PRIMARY,
   TEXT_HEADING,
   TEXT_MUTED,
 } from '@/constants/brand'
-import { SCREEN_RESTAURANT_DETAIL } from '@/constants/screens'
 import {
   fetchFeaturedRestaurants,
   type FeaturedRestaurantApi,
 } from '@/lib/homeContentApi'
-import { formatRestaurantCardAddress } from '@/services/restaurantsV2Service'
-
-const CARD_W = 148
 
 export interface RecommendedRestaurantsCarouselProps {
   /** Section title (`design_system` §3.3). */
@@ -42,7 +42,7 @@ export interface RecommendedRestaurantsCarouselProps {
 
 /**
  * Global featured / recommended picks — same source as home (`recommend-articles.md`).
- * `RestaurantBrowseCard` strip — `design_system.md` §5.3 Card.
+ * Uses {@link RestaurantBrowseCardItem} (same tile as Restaurants tab).
  */
 export function RecommendedRestaurantsCarousel({
   heading = 'Recommended',
@@ -54,6 +54,14 @@ export function RecommendedRestaurantsCarousel({
   locationKey,
   hideSectionHeader = false,
 }: RecommendedRestaurantsCarouselProps) {
+  const { width: screenWidth } = useWindowDimensions()
+  /** Home feed only (`hideSectionHeader`) — carousel cards are 15% narrower for a right-edge peek. */
+  const cardWidth = useMemo(() => {
+    if (screenWidth <= 0) return undefined
+    if (hideSectionHeader) return getHomeCarouselRestaurantCardWidth(screenWidth)
+    return getRestaurantBrowseCardWidth(screenWidth)
+  }, [screenWidth, hideSectionHeader])
+
   const useRemote = staticItems === undefined
   const [items, setItems] = useState<FeaturedRestaurantApi[]>(() => (useRemote ? [] : staticItems))
   const [loading, setLoading] = useState(() => useRemote)
@@ -75,6 +83,14 @@ export function RecommendedRestaurantsCarousel({
   }, [load, staticItems, locationKey])
 
   if (!loading && items.length === 0) return null
+
+  const cardNodes = items.map((row) => (
+    <RestaurantBrowseCardItem
+      key={row.id}
+      {...restaurantBrowseCardItemFromFeatured(row)}
+      containerStyle={layout === 'carousel' ? { width: cardWidth } : undefined}
+    />
+  ))
 
   return (
     <View
@@ -100,36 +116,12 @@ export function RecommendedRestaurantsCarousel({
       ) : null}
 
       {loading ? (
-        <View className="items-center justify-center py-12" style={{ minHeight: 160 }}>
+        <View className="items-center justify-center py-12" style={{ minHeight: 220 }}>
           <ActivityIndicator color={BRAND_PRIMARY} />
         </View>
       ) : layout === 'list' ? (
         <View className="px-5 pt-4 pb-2" style={{ gap: 12 }}>
-          {items.map((row) => {
-            const r = row.restaurant
-            const subtitle = formatRestaurantCardAddress(r.listing_street, r.address)
-            return (
-              <RestaurantBrowseCard
-                key={row.id}
-                compact
-                title={r.title}
-                slug={r.slug?.trim() || undefined}
-                imageUrl={r.featured_image_url}
-                subtitle={subtitle}
-                rating={r.average_rating}
-                reviewCount={r.ratings_count ?? undefined}
-                containerStyle={{ width: CARD_W }}
-                onPress={() => {
-                  const s = r.slug?.trim()
-                  if (!s) return
-                  router.push({
-                    pathname: SCREEN_RESTAURANT_DETAIL,
-                    params: { slug: s },
-                  })
-                }}
-              />
-            )
-          })}
+          {cardNodes}
         </View>
       ) : (
         <ScrollView
@@ -142,31 +134,7 @@ export function RecommendedRestaurantsCarousel({
             paddingBottom: 8,
           }}
         >
-          {items.map((row) => {
-            const r = row.restaurant
-            const subtitle = formatRestaurantCardAddress(r.listing_street, r.address)
-            return (
-              <RestaurantBrowseCard
-                key={row.id}
-                compact
-                title={r.title}
-                slug={r.slug?.trim() || undefined}
-                imageUrl={r.featured_image_url}
-                subtitle={subtitle}
-                rating={r.average_rating}
-                reviewCount={r.ratings_count ?? undefined}
-                containerStyle={{ width: CARD_W }}
-                onPress={() => {
-                  const s = r.slug?.trim()
-                  if (!s) return
-                  router.push({
-                    pathname: SCREEN_RESTAURANT_DETAIL,
-                    params: { slug: s },
-                  })
-                }}
-              />
-            )
-          })}
+          {cardNodes}
         </ScrollView>
       )}
     </View>

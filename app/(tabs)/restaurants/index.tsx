@@ -13,20 +13,22 @@ import { useLocalSearchParams, router } from 'expo-router'
 import { AppTopNav } from '@/components/layout/AppTopNav'
 import { SectionTitle } from '@/components/layout/SectionTitle'
 import { RestaurantBrowseCard } from '@/components/restaurant/RestaurantBrowseCard'
+import { getRestaurantBrowseCardWidth } from '@/components/restaurant/RestaurantBrowseCardItem'
 import { PalateFilterChips } from '@/components/search/PalateFilterChips'
+import { coerceRatingNumber } from '@/lib/ratingDisplayUtils'
 import {
-  getRestaurants,
   formatRestaurantCardAddress,
+  getRestaurants,
+  normalizeCategoryList,
+  normalizeCuisineList,
   type RestaurantListRow,
 } from '@/services/restaurantsV2Service'
 import { BRAND_PRIMARY } from '@/constants/brand'
 import { SCREEN_RESTAURANT_DETAIL } from '@/constants/screens'
 import { useLocation } from '@/contexts/LocationContext'
 import { isNoPalateFilter } from '@/lib/palateSearch'
-import { coerceRatingNumber } from '@/lib/ratingDisplayUtils'
 
 const PAGE_SIZE = 24
-const HORIZONTAL_PAD = 16
 const ROW_GAP = 12
 
 function singleParam(v: string | string[] | undefined): string | undefined {
@@ -42,7 +44,11 @@ export default function RestaurantsScreen() {
   const { location } = useLocation()
   const locationKey = location.key
 
-  const cardWidth = useMemo(() => screenWidth - HORIZONTAL_PAD * 2, [screenWidth])
+  const cardWidth = useMemo(
+    () =>
+      screenWidth > 0 ? getRestaurantBrowseCardWidth(screenWidth) : undefined,
+    [screenWidth],
+  )
 
   const raw = useLocalSearchParams<{
     palate?: string | string[]
@@ -88,7 +94,7 @@ export default function RestaurantsScreen() {
         cursor: null,
         locationKey,
       })
-      setRows(data.restaurants)
+      setRows(data.restaurants ?? [])
       setCursor(data.meta.cursor)
       setHasMore(data.meta.hasMore)
     } catch (e) {
@@ -119,7 +125,7 @@ export default function RestaurantsScreen() {
         cursor,
         locationKey,
       })
-      setRows((prev) => [...prev, ...data.restaurants])
+      setRows((prev) => [...prev, ...(data.restaurants ?? [])])
       setCursor(data.meta.cursor)
       setHasMore(data.meta.hasMore)
     } catch (e) {
@@ -157,19 +163,19 @@ export default function RestaurantsScreen() {
 
   const renderItem = useCallback(
     ({ item }: { item: RestaurantListRow }) => {
-      const overallRating = coerceRatingNumber(item.average_rating)
       const slug = item.slug?.trim() ?? ''
+      const overallRating = coerceRatingNumber(item.average_rating)
       return (
         <RestaurantBrowseCard
           title={item.title}
           slug={slug || undefined}
           imageUrl={item.featured_image_url}
           subtitle={formatRestaurantCardAddress(item.listing_street, item.address)}
-          listingCategories={item.cuisines}
-          categories={item.categories}
+          listingCategories={normalizeCuisineList(item.cuisines)}
+          categories={normalizeCategoryList(item.categories)}
           rating={overallRating}
           reviewCount={item.ratings_count ?? undefined}
-          containerStyle={{ width: cardWidth }}
+          containerStyle={cardWidth != null ? { width: cardWidth } : undefined}
           onPress={() => navigateToRestaurant(slug)}
           onCommentPress={() => navigateToRestaurant(slug)}
         />
@@ -210,8 +216,9 @@ export default function RestaurantsScreen() {
         ) : (
           <FlatList
             className="mt-3 flex-1"
+            style={{ flex: 1 }}
             data={rows}
-            keyExtractor={(item) => item.uuid}
+            keyExtractor={(item) => item.uuid ?? item.slug ?? String(item.id)}
             renderItem={renderItem}
             ItemSeparatorComponent={() => <View style={{ height: ROW_GAP }} />}
             contentContainerStyle={{ paddingBottom: 24 }}

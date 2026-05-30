@@ -1,12 +1,13 @@
 import { useEffect, useState, useCallback } from 'react'
-import { View, Text, Pressable, Image, ActivityIndicator, Linking } from 'react-native'
+import { View, ActivityIndicator, Text } from 'react-native'
 import * as Haptics from 'expo-haptics'
 import { router } from 'expo-router'
+
+import { ArticleListCard } from '@/components/articles/ArticleListCard'
+import { Button } from '@/components/ui/Button'
 import { fetchArticles, type ArticleApi } from '@/lib/homeContentApi'
-import { getMarketingWebOrigin } from '@/lib/webAssets'
-import { SCREEN_ARTICLE_DETAIL } from '@/constants/screens'
-import { ArticleCategoryTag } from '@/components/articles/ArticleCategoryTag'
-import { BORDER_SUBTLE, BRAND_PRIMARY, TEXT_HEADING, TEXT_MUTED } from '@/constants/brand'
+import { SCREEN_ARTICLE_DETAIL, SCREEN_ARTICLES_LIST } from '@/constants/screens'
+import { BRAND_PRIMARY, TEXT_MUTED } from '@/constants/brand'
 import { HomeSectionCard } from '@/components/home/HomeSectionCard'
 import { useLocation } from '@/contexts/LocationContext'
 
@@ -30,10 +31,6 @@ export function HomeArticlesSection() {
     void load(location.key)
   }, [load, location.key])
 
-  if (!loading && articles.length === 0) return null
-
-  const origin = getMarketingWebOrigin()
-
   const navigateToArticle = (a: ArticleApi) => {
     const segment = a.slug?.trim() || String(a.id)
     router.push({
@@ -42,77 +39,44 @@ export function HomeArticlesSection() {
     })
   }
 
-  const openAll = () => {
-    if (!origin) return
+  const viewAllArticles = () => {
     void Haptics.selectionAsync()
-    void Linking.openURL(`${origin}/articles`)
+    router.push(SCREEN_ARTICLES_LIST)
   }
 
   return (
-    <HomeSectionCard
-      title="Articles"
-      headerRight={
-        origin ? (
-          <Pressable onPress={openAll} hitSlop={8} accessibilityRole="button">
-            <Text className="text-sm font-semibold" style={{ color: BRAND_PRIMARY }}>
-              See all
-            </Text>
-          </Pressable>
-        ) : null
-      }
-      className="pb-8"
-    >
+    <HomeSectionCard title="Articles" className="pb-8">
       {loading ? (
         <View className="items-center py-12">
           <ActivityIndicator color={BRAND_PRIMARY} />
         </View>
       ) : (
-        <View className="gap-4">
-          {articles.map((article) => (
-            <Pressable
-              key={String(article.id)}
-              onPress={() => {
-                void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
-                navigateToArticle(article)
-              }}
-              accessibilityRole="button"
-              accessibilityLabel={article.title}
-              className="overflow-hidden rounded-2xl border bg-white active:opacity-90"
-              style={{ borderColor: BORDER_SUBTLE }}
+        <>
+          {articles.length > 0 ? (
+            <View className="gap-4">
+              {articles.map((article) => (
+                <ArticleListCard
+                  key={String(article.id)}
+                  article={article}
+                  onPress={() => navigateToArticle(article)}
+                />
+              ))}
+            </View>
+          ) : (
+            <Text className="py-4 text-center text-sm" style={{ color: TEXT_MUTED }}>
+              No featured articles for this location yet. Browse all stories below.
+            </Text>
+          )}
+          <View className={articles.length > 0 ? 'mt-5 items-center' : 'mt-2 items-center'}>
+            <Button
+              variant="primary"
+              onPress={viewAllArticles}
+              className="w-full max-w-sm"
             >
-              <View className="aspect-video w-full overflow-hidden bg-gray-100">
-                <Image
-                  source={{
-                    uri:
-                      article.cover_image_url?.trim() ||
-                      'https://images.unsplash.com/photo-1493770348161-369fae157b4b?w=800&q=80',
-                  }}
-                  className="h-full w-full"
-                  resizeMode="cover"
-                />
-                <ArticleCategoryTag
-                  category={article.category}
-                  variant="overlay"
-                  className="absolute bottom-2 left-2"
-                />
-              </View>
-              <View className="p-3">
-                <Text
-                  className="text-base font-semibold leading-snug"
-                  style={{ color: TEXT_HEADING }}
-                  numberOfLines={2}
-                >
-                  {article.title}
-                </Text>
-                <Text className="mt-1 text-xs" style={{ color: TEXT_MUTED }}>
-                  {article.reading_time_minutes != null
-                    ? `${article.reading_time_minutes} min read`
-                    : ''}
-                </Text>
-              </View>
-            </Pressable>
-          ))}
-        </View>
+              View Articles
+            </Button>
+          </View>
+        </>
       )}
     </HomeSectionCard>
   )

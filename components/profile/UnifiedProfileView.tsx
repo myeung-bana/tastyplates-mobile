@@ -170,12 +170,6 @@ export function UnifiedProfileView({
           {headlineHandle}
         </Text>
 
-        {displayNameSubtitle ? (
-          <Text className="mt-1 text-center text-sm" style={{ color: TEXT_BODY }} numberOfLines={2}>
-            {displayNameSubtitle}
-          </Text>
-        ) : null}
-
         {memberSinceLabel ? (
           <Text className="mt-2 text-center text-xs" style={{ color: TEXT_MUTED }}>
             {memberSinceLabel}
@@ -208,10 +202,7 @@ export function UnifiedProfileView({
         </Text>
       </View>
 
-      <View
-        className="mt-8 flex-row items-start justify-between border-t px-1 pt-6"
-        style={{ borderTopWidth: 1, borderTopColor: STATS_BORDER }}
-      >
+      <View className="mt-6 flex-row items-start justify-between px-1">
         <ProfileStatColumn
           label="Posts"
           value={stats.posts}
@@ -292,7 +283,6 @@ export function UnifiedProfileView({
       >
         <View className="mb-3 flex-row items-center gap-2">
           <SectionTitle style={{ letterSpacing: -0.3 }}>Reviews</SectionTitle>
-          <Text style={{ fontSize: 13, color: RATING_STAR }}>★</Text>
         </View>
         {!isOwnProfile && otherUserReviews ? (
           <ProfileOtherUserReviewsPreview {...otherUserReviews} />

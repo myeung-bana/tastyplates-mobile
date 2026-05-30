@@ -24,7 +24,7 @@ export default function UserVerificationScreen() {
   useEffect(() => {
     if (!isReady || authLoading || !isAuthenticated || !user) return
     if (user.emailVerified) {
-      navigateAfterAuth(router, { needsEmailVerification: false, user })
+      void navigateAfterAuth(router, { needsEmailVerification: false, user })
     }
   }, [isReady, authLoading, isAuthenticated, user, router])
 
@@ -48,7 +48,7 @@ export default function UserVerificationScreen() {
       await nhost.auth.refreshSession()
       const u = nhost.auth.getUser()
       if (u?.emailVerified) {
-        navigateAfterAuth(router, { needsEmailVerification: false, user: u })
+        void navigateAfterAuth(router, { needsEmailVerification: false, user: u })
       } else {
         toast.info('Email is not verified yet. Check your inbox and spam folder.')
       }

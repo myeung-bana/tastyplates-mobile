@@ -6,27 +6,12 @@
  * - `EXPO_PUBLIC_NHOST_FUNCTIONS_URL` — used when web API missing or returns no rows (via `tastyplatesFetch`).
  */
 import { tastyplatesFetch, unwrapEnvelope } from '@/lib/tastyplatesFetch'
+import type { FeaturedRestaurantApi } from '@/types/featuredRestaurant'
+
+export type { FeaturedRestaurantApi } from '@/types/featuredRestaurant'
 
 export function getWebApiBase(): string {
   return (process.env.EXPO_PUBLIC_WEB_API_URL ?? '').replace(/\/$/, '')
-}
-
-export interface FeaturedRestaurantApi {
-  id: number
-  restaurant: {
-    id: number
-    slug: string
-    title: string
-    featured_image_url: string | null
-    listing_street: string | null
-    address: {
-      city?: string
-      country_short?: string
-      street_address?: string
-    } | null
-    average_rating: number | null
-    ratings_count: number | null
-  }
 }
 
 export interface ArticleApi {
@@ -113,25 +98,47 @@ async function fetchFeaturedRestaurantsNhost(locationSlug?: string): Promise<Fea
   }
 }
 
-async function fetchArticlesNhost(limit: number): Promise<ArticleApi[]> {
-  const q = new URLSearchParams({ limit: String(limit), offset: '0' })
+function mapNhostArticleRows(
+  rows: NhostArticlesPayload['articles'],
+): ArticleApi[] {
+  return rows.map((a) => ({
+    id: a.id,
+    slug: a.slug,
+    title: a.title,
+    cover_image_url: a.featured_image_url ?? null,
+    featured_image_alt: a.featured_image_alt ?? null,
+    category: a.category ?? null,
+    reading_time_minutes: a.reading_time_minutes ?? null,
+  }))
+}
+
+export type ArticlesPageResult = {
+  articles: ArticleApi[]
+  hasMore: boolean
+}
+
+async function fetchArticlesPageNhost(
+  locationSlug: string,
+  limit: number,
+  offset: number,
+): Promise<ArticlesPageResult> {
+  const q = new URLSearchParams({
+    limit: String(limit),
+    offset: String(offset),
+  })
+  if (locationSlug.trim()) q.set('location_slug', locationSlug.trim())
   const envelope = await tastyplatesFetch<NhostArticlesPayload>(
     `articles/get-articles?${q.toString()}`,
   )
-  if (!envelope.ok) return []
+  if (!envelope.ok) return { articles: [], hasMore: false }
   try {
-    const { articles } = unwrapEnvelope(envelope)
-    return articles.map((a) => ({
-      id: a.id,
-      slug: a.slug,
-      title: a.title,
-      cover_image_url: a.featured_image_url ?? null,
-      featured_image_alt: a.featured_image_alt ?? null,
-      category: a.category ?? null,
-      reading_time_minutes: a.reading_time_minutes ?? null,
-    }))
+    const { articles, meta } = unwrapEnvelope(envelope)
+    return {
+      articles: mapNhostArticleRows(articles),
+      hasMore: meta?.hasMore ?? false,
+    }
   } catch {
-    return []
+    return { articles: [], hasMore: false }
   }
 }
 
@@ -193,12 +200,17 @@ export async function fetchFeaturedRestaurants(locationSlug?: string): Promise<F
   return fetchFeaturedRestaurantsNhost(locationSlug)
 }
 
-export async function fetchArticles(locationSlug: string, limit = 8): Promise<ArticleApi[]> {
+export async function fetchArticlesPage(
+  locationSlug: string,
+  limit: number,
+  offset: number,
+): Promise<ArticlesPageResult> {
   const base = getWebApiBase()
   if (base) {
     try {
       const params = new URLSearchParams({
         limit: String(limit),
+        offset: String(offset),
         location_slug: locationSlug,
       })
       const res = await fetch(`${base}/api/v1/articles/get-articles?${params.toString()}`, {
@@ -207,15 +219,28 @@ export async function fetchArticles(locationSlug: string, limit = 8): Promise<Ar
       if (res.ok) {
         const json = (await res.json()) as {
           success?: boolean
-          data?: unknown[]
+          data?: unknown[] | { articles?: unknown[]; meta?: { hasMore?: boolean } }
         }
-        if (json.success && Array.isArray(json.data) && json.data.length > 0) {
+        if (json.success && json.data != null) {
+          const rawList = Array.isArray(json.data)
+            ? json.data
+            : Array.isArray((json.data as { articles?: unknown[] }).articles)
+              ? (json.data as { articles: unknown[] }).articles
+              : []
           const out: ArticleApi[] = []
-          for (const row of json.data) {
+          for (const row of rawList) {
             const n = normalizeWebArticle(row)
             if (n) out.push(n)
           }
-          if (out.length > 0) return out
+          if (out.length > 0) {
+            const meta = !Array.isArray(json.data)
+              ? (json.data as { meta?: { hasMore?: boolean } }).meta
+              : undefined
+            return {
+              articles: out,
+              hasMore: meta?.hasMore ?? out.length >= limit,
+            }
+          }
         }
       }
     } catch {
@@ -223,7 +248,24 @@ export async function fetchArticles(locationSlug: string, limit = 8): Promise<Ar
     }
   }
 
-  return fetchArticlesNhost(limit)
+  let result = await fetchArticlesPageNhost(locationSlug, limit, offset)
+
+  // Home preview used to fall back to unfiltered Nhost articles when the web API
+  // missed; location-only queries can be empty while global articles exist.
+  if (
+    result.articles.length === 0 &&
+    offset === 0 &&
+    locationSlug.trim().length > 0
+  ) {
+    result = await fetchArticlesPageNhost('', limit, offset)
+  }
+
+  return result
+}
+
+export async function fetchArticles(locationSlug: string, limit = 8): Promise<ArticleApi[]> {
+  const page = await fetchArticlesPage(locationSlug, limit, 0)
+  return page.articles
 }
 
 export { displayAddress as formatFeaturedRestaurantAddress }

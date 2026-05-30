@@ -54,6 +54,7 @@ export function reviewCommentsPath(reviewId: string): string {
 
 // ─── Articles (editorial) ────────────────────────────────────────────────────
 
+export const SCREEN_ARTICLES_LIST = '/articles' as const
 export const SCREEN_ARTICLE_DETAIL = '/articles/[slug]' as const
 
 /** In-app article detail; `segment` is slug **or** numeric id string. */

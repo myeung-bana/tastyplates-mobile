@@ -7,6 +7,7 @@ type AuthMethodChooserProps = {
   onSignUpFree: () => void
   onContinueWithEmail: () => void
   onContinueWithGoogle: () => void
+  onSkipLogin?: () => void
   googleBusy?: boolean
 }
 
@@ -17,6 +18,7 @@ export function AuthMethodChooser({
   onSignUpFree,
   onContinueWithEmail,
   onContinueWithGoogle,
+  onSkipLogin,
   googleBusy = false,
 }: AuthMethodChooserProps): JSX.Element {
   return (
@@ -62,6 +64,18 @@ export function AuthMethodChooser({
           Continue with Email
         </Text>
       </Pressable>
+
+      {onSkipLogin ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Browse without signing in"
+          onPress={onSkipLogin}
+          disabled={googleBusy}
+          className="mt-6 w-full max-w-sm items-center py-2 active:opacity-70 disabled:opacity-50"
+        >
+          <Text className="text-sm font-medium text-gray-500">Skip login for now</Text>
+        </Pressable>
+      ) : null}
     </View>
   )
 }

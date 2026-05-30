@@ -6,11 +6,13 @@ import { AuthHeroLayout } from '@/components/auth/AuthHeroLayout'
 import { AuthMethodChooser } from '@/components/auth/AuthMethodChooser'
 import { LoginForm } from '@/components/auth/LoginForm'
 import { RegisterEmailForm } from '@/components/auth/RegisterEmailForm'
+import { SCREEN_HOME } from '@/constants/screens'
 import { useAuth } from '@/hooks/useAuth'
 import { useGoogleSignIn } from '@/hooks/useGoogleSignIn'
 import { useSession } from '@/hooks/useSession'
 import { navigateAfterAuth } from '@/lib/authNavigation'
 import { coerceResumeHref, loginScreenHref, type AuthScreenMode } from '@/lib/authRoutes'
+import { enterGuestBrowseMode } from '@/lib/guestBrowse'
 
 function firstParam(value: string | string[] | undefined): string | undefined {
   if (value == null) return undefined
@@ -53,7 +55,7 @@ export default function LoginScreen() {
 
   useEffect(() => {
     if (!isReady || authLoading || !isAuthenticated || !user) return
-    navigateAfterAuth(router, { needsEmailVerification: false, user }, resumeForNav)
+    void navigateAfterAuth(router, { needsEmailVerification: false, user }, resumeForNav)
   }, [isReady, authLoading, isAuthenticated, user, router, resumeForNav])
 
   const goChooser = useCallback(() => {
@@ -67,6 +69,11 @@ export default function LoginScreen() {
   const goSignUp = useCallback(() => {
     router.replace(loginScreenHref({ mode: 'signup', resume }))
   }, [router, resume])
+
+  const onSkipLogin = useCallback(async () => {
+    await enterGuestBrowseMode()
+    router.replace(SCREEN_HOME)
+  }, [router])
 
   const title =
     view === 'chooser'
@@ -94,6 +101,7 @@ export default function LoginScreen() {
             onSignUpFree={goSignUp}
             onContinueWithEmail={goSignIn}
             onContinueWithGoogle={() => void continueWithGoogle()}
+            onSkipLogin={view === 'chooser' && !resume ? () => void onSkipLogin() : undefined}
             googleBusy={googleBusy}
           />
         ) : null}
