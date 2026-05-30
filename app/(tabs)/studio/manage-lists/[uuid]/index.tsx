@@ -15,6 +15,7 @@ import { BRAND_PRIMARY } from '@/constants/brand'
 import {
   listDeletedSuccess,
   listDeleteError,
+  listDetailLoadError,
   listItemRemovedSuccess,
   listItemRemoveError,
   listUpdatedSuccess,
@@ -29,6 +30,7 @@ import { firstSegmentParam } from '@/lib/routeParams'
 import {
   deleteList,
   getListBySlug,
+  getListByUuid,
   removeListItem,
   updateList,
 } from '@/services/restaurantListService'
@@ -66,9 +68,9 @@ export default function ListDetailScreen(): JSX.Element {
 
   const fetchDetail = useCallback(
     async (refresh = false) => {
-      // slug is passed from create / hub navigation; fall back to uuid-based cache
       const slugToFetch = list?.slug ?? slugParam
-      if (!slugToFetch) return
+      const uuidToFetch = list?.uuid ?? uuid
+      if (!slugToFetch && !uuidToFetch) return
 
       if (refresh) {
         setRefreshing(true)
@@ -77,18 +79,23 @@ export default function ListDetailScreen(): JSX.Element {
       }
 
       try {
-        const detail = await getListBySlug(slugToFetch)
+        const detail = slugToFetch
+          ? await getListBySlug(slugToFetch)
+          : await getListByUuid(uuidToFetch!)
         setList(detail)
         setFetched(true)
         navigation.setOptions({ title: detail.title })
       } catch {
-        // Show what we have or empty
+        if (!refresh && !fetched) {
+          setList(null)
+        }
+        toast.error(listDetailLoadError)
       } finally {
         setLoading(false)
         setRefreshing(false)
       }
     },
-    [slugParam, fetched, list?.slug, navigation],
+    [slugParam, uuid, fetched, list?.slug, list?.uuid, navigation],
   )
 
   useEffect(() => {
@@ -186,8 +193,14 @@ export default function ListDetailScreen(): JSX.Element {
   const updatedLabel = list ? formatRelativeTime(list.updated_at) : ''
 
   const openAddRestaurant = useCallback(() => {
-    router.push(castHref(studioManageListAddPath(uuid)))
-  }, [uuid])
+    router.push({
+      pathname: castHref(studioManageListAddPath(uuid)) as never,
+      params: {
+        slug: list?.slug ?? slugParam ?? '',
+        title: list?.title ?? titleParam ?? '',
+      },
+    })
+  }, [uuid, list?.slug, list?.title, slugParam, titleParam])
 
   const coverUri =
     list?.display_pic?.trim() ||

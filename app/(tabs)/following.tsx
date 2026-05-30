@@ -194,7 +194,7 @@ export default function FollowingScreen() {
         onFollowed={() => void loadData('refresh')}
       />
       <View className="mt-3 px-4 pb-2">
-        <SectionTitle>Follower Reviews</SectionTitle>
+        <SectionTitle>Follower Activity</SectionTitle>
       </View>
     </View>
   )
@@ -210,7 +210,7 @@ export default function FollowingScreen() {
             <View className="mt-3 h-28 rounded-2xl bg-neutral-100" />
           </View>
           <View className="mt-3 px-4 pb-2">
-            <SectionTitle>Follower Reviews</SectionTitle>
+            <SectionTitle>Follower Activity</SectionTitle>
           </View>
           <View className="px-4">
             {[0, 1, 2].map((i) => (

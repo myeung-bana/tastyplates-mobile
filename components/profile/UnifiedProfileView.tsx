@@ -106,8 +106,12 @@ export function UnifiedProfileView({
 
   const runShare = () => {
     void Haptics.selectionAsync()
+    const handle = headlineHandle.startsWith('@') ? headlineHandle : `@${headlineHandle}`
+    const pathKey = headlineHandle.replace(/^@/, '').trim() || routeUserId
+    const url = `https://tastyplates.co/profile/${encodeURIComponent(pathKey)}`
     void Share.share({
-      message: `${headlineHandle} — Tastyplates`,
+      message: `Check out ${handle} on Tastyplates`,
+      url,
     })
   }
 
@@ -251,30 +255,24 @@ export function UnifiedProfileView({
             >
               <Text className="text-sm font-medium text-white">Edit profile</Text>
             </Pressable>
-            <Pressable
-              onPress={() => runShare()}
-              accessibilityRole="button"
-              accessibilityLabel="Share profile"
-              className="flex-row items-center gap-2 rounded-full border bg-white px-6 py-2.5 active:bg-gray-50"
-              style={{ borderColor: '#d1d5db', borderWidth: 1 }}
-            >
-              <AppIcon name="share-2" size={18} color={TEXT_HEADING} />
-              <Text className="text-sm font-semibold" style={{ color: TEXT_HEADING }}>
-                Share profile
-              </Text>
-            </Pressable>
+            <ProfileShareButton onPress={runShare} />
           </>
-        ) : followButton ? (
-          <ProfileFollowButton
-            isFollowing={followButton.isFollowing}
-            loading={followButton.loading}
-            onToggle={followButton.onToggle}
-          />
-        ) : showFollowPlaceholder ? (
-          <Text className="text-center text-xs leading-relaxed" style={{ color: TEXT_MUTED }}>
-            Sign in to follow this creator.
-          </Text>
-        ) : null}
+        ) : (
+          <>
+            {followButton ? (
+              <ProfileFollowButton
+                isFollowing={followButton.isFollowing}
+                loading={followButton.loading}
+                onToggle={followButton.onToggle}
+              />
+            ) : showFollowPlaceholder ? (
+              <Text className="text-center text-sm leading-relaxed" style={{ color: TEXT_MUTED }}>
+                Sign in to follow this creator.
+              </Text>
+            ) : null}
+            <ProfileShareButton onPress={runShare} />
+          </>
+        )}
       </View>
 
       <View
@@ -337,15 +335,30 @@ function ProfileStatColumn(props: {
   return <View className="min-w-[88px] items-center px-1">{inner}</View>
 }
 
+function ProfileShareButton({ onPress }: { onPress: () => void }): JSX.Element {
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel="Share profile"
+      className="flex-row items-center gap-2 rounded-full border bg-white px-6 py-2.5 active:bg-gray-50"
+      style={{ borderColor: '#d1d5db', borderWidth: 1 }}
+    >
+      <AppIcon name="share-2" size={18} color={TEXT_HEADING} />
+      <Text className="text-sm font-semibold" style={{ color: TEXT_HEADING }}>
+        Share profile
+      </Text>
+    </Pressable>
+  )
+}
+
 function ProfileFollowButton(props: {
   isFollowing: boolean
   loading: boolean
   onToggle: () => void | Promise<void>
-}) {
+}): JSX.Element {
   const { isFollowing, loading, onToggle } = props
 
-  const base =
-    'min-w-[100px] items-center justify-center rounded-full border px-5 py-2 active:opacity-90'
   const styleFollow = !isFollowing
     ? {
         borderColor: BRAND_PRIMARY,
@@ -364,13 +377,16 @@ function ProfileFollowButton(props: {
         void Haptics.selectionAsync()
         void onToggle()
       }}
-      className={base}
+      className="items-center justify-center rounded-full border px-6 py-2.5 active:opacity-90"
       style={[styleFollow, loading ? { opacity: 0.55 } : null]}
     >
       {loading ? (
         <ActivityIndicator color={isFollowing ? TEXT_HEADING : '#fff'} size="small" />
       ) : (
-        <Text className="text-xs font-normal" style={{ color: textColor }}>
+        <Text
+          className={`text-sm ${isFollowing ? 'font-medium' : 'font-semibold'}`}
+          style={{ color: textColor }}
+        >
           {isFollowing ? 'Following' : 'Follow'}
         </Text>
       )}

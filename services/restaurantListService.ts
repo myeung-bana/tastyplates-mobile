@@ -126,6 +126,16 @@ export async function getListBySlug(slug: string): Promise<RestaurantListDetail>
   return data.list
 }
 
+/** Same payload as {@link getListBySlug} — for routes that only have list uuid. */
+export async function getListByUuid(listUuid: string): Promise<RestaurantListDetail> {
+  const env = await tastyplatesFetch<{ list: RestaurantListDetail }>(
+    `restaurant-lists/get-list-by-uuid?uuid=${encodeURIComponent(listUuid)}`,
+    { withAuth: true },
+  )
+  const data = unwrapEnvelope(env)
+  return data.list
+}
+
 /** Adds a restaurant to a list. Throws with HTTP 409 text when already present. */
 export async function addListItem(body: AddItemBody): Promise<{ item: unknown }> {
   return authPost<{ item: unknown }>('restaurant-lists/add-item', body)

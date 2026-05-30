@@ -26,9 +26,6 @@ export function ManageListCreateRow(): JSX.Element {
         <Text className="font-neusans text-[15px] font-medium text-[#31343F]" numberOfLines={1}>
           Create Restaurant List
         </Text>
-        <Text className="font-neusans text-[13px] text-[#6b7280]" numberOfLines={1}>
-          Name your list and add places
-        </Text>
       </View>
 
       <AppIcon name="chevron-right" size={14} color="#e5e7eb" />

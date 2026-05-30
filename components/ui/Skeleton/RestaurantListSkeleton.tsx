@@ -11,7 +11,7 @@ import { FlashList } from '@shopify/flash-list'
 
 const SKELETON_DATA = Array.from({ length: 8 }, (_, i) => i)
 
-function useSkeletonPulse() {
+export function useSkeletonPulse() {
   const opacity = useSharedValue(1)
 
   useEffect(() => {
@@ -27,7 +27,7 @@ function useSkeletonPulse() {
   return opacity
 }
 
-function SkeletonBlock({
+export function SkeletonBlock({
   opacity,
   style,
 }: {

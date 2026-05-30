@@ -27,7 +27,7 @@ type TabsShellProps = {
 const TAB_CONFIG_BY_NAME: Record<string, TabConfig> = {
   index: { name: 'index', title: 'Home', icon: 'home' },
   restaurants: { name: 'restaurants', title: 'Restaurants', icon: 'restaurant' },
-  following: { name: 'following', title: 'Following', icon: 'users' },
+  following: { name: 'following', title: 'Activity', icon: 'activity' },
   studio: { name: 'studio', title: 'Studio', icon: 'plus-square' },
   profile: { name: 'profile', title: 'Profile', icon: 'user' },
 }
@@ -127,7 +127,7 @@ export function TabsShell({ visibleTabs, useStudioTabBar = false }: TabsShellPro
   )
 }
 
-/** Signed-in bottom nav: Home, Restaurants, Following, Studio (+). Profile via header avatar. */
+/** Signed-in bottom nav: Home, Restaurants, Activity, Studio (+). Profile via header avatar. */
 export const AUTH_VISIBLE_TABS: TabConfig[] = [
   TAB_CONFIG_BY_NAME.index,
   TAB_CONFIG_BY_NAME.restaurants,

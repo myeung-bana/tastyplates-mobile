@@ -5,7 +5,6 @@ import {
   FlatList,
   RefreshControl,
   Pressable,
-  ActivityIndicator,
   useWindowDimensions,
 } from 'react-native'
 import { useLocalSearchParams, router } from 'expo-router'
@@ -23,6 +22,10 @@ import {
   normalizeCuisineList,
   type RestaurantListRow,
 } from '@/services/restaurantsV2Service'
+import {
+  RestaurantBrowseCardSkeleton,
+  RestaurantBrowseSkeletonList,
+} from '@/components/ui/Skeleton/RestaurantBrowseCardSkeleton'
 import { BRAND_PRIMARY } from '@/constants/brand'
 import { SCREEN_RESTAURANT_DETAIL } from '@/constants/screens'
 import { useLocation } from '@/contexts/LocationContext'
@@ -199,9 +202,7 @@ export default function RestaurantsScreen() {
         />
 
         {loading && rows.length === 0 ? (
-          <View className="flex-1 items-center justify-center py-16">
-            <ActivityIndicator size="large" color={BRAND_PRIMARY} />
-          </View>
+          <RestaurantBrowseSkeletonList cardWidth={cardWidth} />
         ) : error && rows.length === 0 ? (
           <View className="mt-8 items-center px-4">
             <Text className="text-center text-sm text-red-600">{error}</Text>
@@ -241,8 +242,8 @@ export default function RestaurantsScreen() {
             }
             ListFooterComponent={
               loadingMore ? (
-                <View className="w-full items-center py-4">
-                  <ActivityIndicator color={BRAND_PRIMARY} />
+                <View className="w-full pt-2 pb-4">
+                  <RestaurantBrowseCardSkeleton width={cardWidth} />
                 </View>
               ) : null
             }

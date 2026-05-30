@@ -7,6 +7,7 @@ import { router } from 'expo-router'
 import { Swipeable } from 'react-native-gesture-handler'
 import { AppIcon } from '@/components/ui/AppIcon'
 
+import { ReviewListingCreateRow } from '@/components/studio/ReviewListingCreateRow'
 import {
   ReviewListingFilterChips,
   type ReviewListingFilter,
@@ -208,6 +209,7 @@ export default function ReviewListingScreen(): JSX.Element {
           contentContainerStyle={{ paddingBottom: 24 }}
           showsVerticalScrollIndicator={false}
         >
+          <ReviewListingCreateRow />
           {Array.from({ length: 5 }).map((_, index) => (
             <ReviewListRowSkeleton key={index} />
           ))}
@@ -217,6 +219,7 @@ export default function ReviewListingScreen(): JSX.Element {
           data={filtered}
           style={{ flex: 1, marginTop: 24 }}
           keyExtractor={(review) => review.id}
+          ListHeaderComponent={<ReviewListingCreateRow />}
           ListEmptyComponent={
             <Text className="mt-24 text-center text-sm" style={{ color: TEXT_MUTED }}>
               {emptyStateMessage(chip)}
