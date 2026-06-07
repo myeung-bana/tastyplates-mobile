@@ -10,7 +10,7 @@ import {
 } from 'react-native'
 import * as Haptics from 'expo-haptics'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { router } from 'expo-router'
+import { router, useLocalSearchParams } from 'expo-router'
 
 import { CuisineFilterPills } from '@/components/studio/add-review/CuisineFilterPills'
 import {
@@ -37,7 +37,7 @@ import {
   type NearbyPlaceRow,
   type PlacesAutocompletePrediction,
 } from '@/lib/googlePlaces'
-import { castHref } from '@/lib/routeParams'
+import { castHref, firstSegmentParam } from '@/lib/routeParams'
 import { formatLocationDisplay } from '@/utils/locationUtils'
 import { toast } from '@/utils/toast'
 
@@ -73,6 +73,14 @@ function filterNearbyByCuisine(rows: NearbyPlaceRow[], slug: string | null): Nea
 
 export default function AddReviewSearchScreen(): JSX.Element {
   useRequireAuthOnMount()
+
+  const prefillRaw = useLocalSearchParams<{
+    prefill_place_id?: string | string[]
+    prefill_name?: string | string[]
+  }>()
+  const prefillPlaceId = firstSegmentParam(prefillRaw.prefill_place_id)
+  const prefillName = firstSegmentParam(prefillRaw.prefill_name)
+  const prefillHandledRef = useRef(false)
 
   const { location, hierarchy } = useLocation()
   const hierarchyCountries = hierarchy?.hierarchy.countries ?? null
@@ -195,6 +203,13 @@ export default function AddReviewSearchScreen(): JSX.Element {
       }
     }
   }, [])
+
+  useEffect(() => {
+    if (prefillHandledRef.current) return
+    if (!prefillPlaceId || !prefillName) return
+    prefillHandledRef.current = true
+    void handlePlaceSelect(prefillPlaceId, prefillName)
+  }, [handlePlaceSelect, prefillName, prefillPlaceId])
 
   const onPickNearby = useCallback(
     (row: NearbyPlaceRow) => {

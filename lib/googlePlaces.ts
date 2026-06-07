@@ -4,6 +4,7 @@
  */
 
 import type { LocationCoordinates } from '@/constants/locations'
+import { CITY_SEARCH_RADIUS_METERS } from '@/lib/geoUtils'
 
 const GEOCODE_BASE = 'https://maps.googleapis.com/maps/api/place'
 
@@ -76,7 +77,7 @@ export async function autocompletePlacesEstablishments(
 
   if (bias?.latitude != null && bias.longitude != null) {
     params.set('location', `${bias.latitude},${bias.longitude}`)
-    params.set('radius', '42000')
+    params.set('radius', String(CITY_SEARCH_RADIUS_METERS))
   }
 
   const url = `${GEOCODE_BASE}/autocomplete/json?${params.toString()}`

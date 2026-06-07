@@ -63,6 +63,9 @@ export interface GetRestaurantsParams {
   cursor?: string | null
   order_by?: string
   locationKey?: string
+  latitude?: number
+  longitude?: number
+  radiusKm?: number
 }
 
 function parseJsonbField(value: unknown): unknown {
@@ -126,6 +129,15 @@ function buildQuery(params: GetRestaurantsParams): string {
   if (params.cursor) qs.set('cursor', params.cursor)
   if (params.order_by) qs.set('order_by', params.order_by)
   if (params.locationKey?.trim()) qs.set('location_key', params.locationKey.trim())
+  if (params.latitude != null && Number.isFinite(params.latitude)) {
+    qs.set('latitude', String(params.latitude))
+  }
+  if (params.longitude != null && Number.isFinite(params.longitude)) {
+    qs.set('longitude', String(params.longitude))
+  }
+  if (params.radiusKm != null && Number.isFinite(params.radiusKm)) {
+    qs.set('radius_km', String(params.radiusKm))
+  }
   return qs.toString()
 }
 
