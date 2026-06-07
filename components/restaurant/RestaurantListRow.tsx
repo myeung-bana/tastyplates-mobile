@@ -5,7 +5,7 @@ import { BRAND_PRIMARY } from '@/constants/brand'
 import { coerceRatingNumber } from '@/lib/ratingDisplayUtils'
 import { formatRestaurantCardAddress } from '@/services/restaurantsV2Service'
 import type { RestaurantSearchResult } from '@/types/restaurantSearchResult'
-import { isGoogleResult, isTPResult } from '@/types/restaurantSearchResult'
+import { isTPResult } from '@/types/restaurantSearchResult'
 
 const DEFAULT_IMAGE = 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400&q=80'
 
@@ -20,7 +20,6 @@ export function RestaurantListRow({
   isSelected = false,
   onPress,
 }: RestaurantListRowProps): JSX.Element {
-  const isGoogle = isGoogleResult(result)
   const title = result.title
   const imageUrl = result.featured_image_url ?? DEFAULT_IMAGE
   const address = isTPResult(result)
@@ -50,27 +49,13 @@ export function RestaurantListRow({
       />
 
       <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-          <Text
-            className="font-neusans text-[15px] font-medium text-[#31343F]"
-            style={{ flex: 1 }}
-            numberOfLines={1}
-          >
-            {title}
-          </Text>
-          {isGoogle ? (
-            <View
-              style={{
-                paddingHorizontal: 6,
-                paddingVertical: 2,
-                backgroundColor: '#f3f4f6',
-                borderRadius: 50,
-              }}
-            >
-              <Text className="font-neusans text-[9px] text-[#9ca3af]">Google</Text>
-            </View>
-          ) : null}
-        </View>
+        <Text
+          className="font-neusans text-[15px] font-medium text-[#31343F]"
+          style={{ flex: 1 }}
+          numberOfLines={1}
+        >
+          {title}
+        </Text>
 
         {address ? (
           <Text className="font-neusans text-xs text-[#6b7280]" numberOfLines={1}>
@@ -100,7 +85,7 @@ export function RestaurantListRow({
       <View style={{ alignItems: 'flex-end', gap: 2 }}>
         {rating != null ? (
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
-            <AppIcon name="star" size={12} color={isGoogle ? '#f59e0b' : BRAND_PRIMARY} />
+            <AppIcon name="star" size={12} color={BRAND_PRIMARY} active />
             <Text className="font-neusans text-[13px] text-[#31343F]">{rating.toFixed(1)}</Text>
           </View>
         ) : null}

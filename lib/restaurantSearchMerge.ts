@@ -12,6 +12,8 @@ import type {
 } from '@/types/restaurantSearchResult'
 
 function extractGooglePlaceId(row: RestaurantListRow): string | null {
+  const column = row.google_place_id?.trim()
+  if (column && column.length > 0) return column
   const addr = row.address as { place_id?: string } | null | undefined
   const pid = addr?.place_id?.trim()
   return pid && pid.length > 0 ? pid : null
@@ -31,7 +33,7 @@ function toTPResult(row: RestaurantListRow): TPRestaurantResult {
     ratings_count: row.ratings_count,
     cuisines: normalizeCuisineList(row.cuisines),
     categories: normalizeCategoryList(row.categories),
-    google_place_id: extractGooglePlaceId(row),
+    google_place_id: row.google_place_id?.trim() || extractGooglePlaceId(row),
     latitude: row.latitude ?? null,
     longitude: row.longitude ?? null,
     _distance: row._distance ?? null,

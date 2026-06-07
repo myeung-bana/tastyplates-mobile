@@ -7,7 +7,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { GlobalLocationPill } from '@/components/navigation/GlobalLocationPill'
 import { TEXT_HEADING, TEXT_MUTED } from '@/constants/brand'
 import { SCREEN_PROFILE } from '@/constants/screens'
-import { useSearchCuisinesSheet } from '@/contexts/SearchCuisinesSheetContext'
+import { useSearchOverlay } from '@/contexts/SearchOverlayContext'
+import { FULL_SCREEN_OVERLAY_INNER_PAD } from '@/hooks/useFullScreenOverlayInsets'
 import { useOwnProfilePresentation } from '@/hooks/useOwnProfilePresentation'
 import { initialsFromName } from '@/lib/profileFormatting'
 
@@ -60,12 +61,12 @@ function ProfileShortcut(): JSX.Element {
   )
 }
 
-const APP_TOP_NAV_INNER_PAD = 12
+const APP_TOP_NAV_INNER_PAD = FULL_SCREEN_OVERLAY_INNER_PAD
 
 /** Location pill (left) | cuisine search + profile (right). */
 export function AppTopNav(): JSX.Element {
   const insets = useSafeAreaInsets()
-  const { openSearchCuisines } = useSearchCuisinesSheet()
+  const { openSearch } = useSearchOverlay()
 
   return (
     <View
@@ -85,9 +86,12 @@ export function AppTopNav(): JSX.Element {
       <View className="flex-shrink-0 flex-row items-center gap-2">
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Search cuisines"
+          accessibilityLabel="Search restaurants"
           hitSlop={12}
-          onPress={() => openSearchCuisines()}
+          onPress={() => {
+            void Haptics.selectionAsync()
+            openSearch()
+          }}
           className="h-9 w-9 items-center justify-center rounded-full active:bg-gray-100"
         >
           <AppIcon name="search" size={21} color="#374151" />

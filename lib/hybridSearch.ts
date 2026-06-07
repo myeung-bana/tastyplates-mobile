@@ -1,12 +1,24 @@
 import type { LocationCoordinates } from '@/constants/locations'
-import { geoQueryFromCityCenter } from '@/lib/geoUtils'
-import { autocompletePlacesEstablishments } from '@/lib/googlePlaces'
+import { geoQueryFromCityCenter, isWithinRadiusKm, CITY_SEARCH_RADIUS_KM } from '@/lib/geoUtils'
+import {
+  autocompletePlacesEstablishments,
+  fetchGooglePlaceDetails,
+} from '@/lib/googlePlaces'
 import type { NearbyPlaceRow } from '@/lib/googlePlaces'
 import { mergeRestaurantResults } from '@/lib/restaurantSearchMerge'
+import { splitDiscoveryResults } from '@/lib/restaurantDiscoveryHelpers'
+import {
+  limitForHybridSearchMode,
+  MERGE_GOOGLE_LIMIT_SEARCH,
+  MERGE_SUPPRESS_TP_COUNT_SEARCH,
+  type HybridSearchGeoMode,
+  type HybridSearchMode,
+} from '@/lib/restaurantSearchConfig'
 import { getRestaurants } from '@/services/restaurantsV2Service'
 import type { RestaurantSearchResult } from '@/types/restaurantSearchResult'
 
 const GASTRONOMY_TYPES = ['restaurant', 'food', 'meal', 'cafe', 'bakery', 'bar']
+const AUTOCOMPLETE_CAP = 8
 
 function gastronomyScore(types: string[] | undefined): number {
   if (!types?.length) return 0
@@ -28,6 +40,126 @@ function filterEstablishmentPredictions(
   return filtered.sort((a, b) => gastronomyScore(b.types) - gastronomyScore(a.types))
 }
 
+function predictionsToCandidates(
+  predictions: Awaited<ReturnType<typeof autocompletePlacesEstablishments>>,
+): NearbyPlaceRow[] {
+  const googleCandidates: NearbyPlaceRow[] = []
+
+  for (const pred of filterEstablishmentPredictions(predictions).slice(0, AUTOCOMPLETE_CAP)) {
+    const name = pred.structured_formatting?.main_text ?? pred.description
+    const address = pred.structured_formatting?.secondary_text ?? ''
+
+    if (googleCandidates.some((g) => g.place_id === pred.place_id)) continue
+
+    googleCandidates.push({
+      place_id: pred.place_id,
+      name,
+      address: address || null,
+      latitude: null,
+      longitude: null,
+      photo_reference: null,
+      google_rating: null,
+      types: pred.types ?? null,
+    })
+  }
+
+  return googleCandidates
+}
+
+async function enrichGoogleCandidatesWithDetails(
+  candidates: NearbyPlaceRow[],
+  coordinates: LocationCoordinates | null,
+  maxEnrich: number,
+  signal?: AbortSignal,
+): Promise<NearbyPlaceRow[]> {
+  if (candidates.length === 0 || maxEnrich <= 0) return candidates
+
+  const toEnrich = candidates.slice(0, maxEnrich)
+  const enriched = await Promise.allSettled(
+    toEnrich.map(async (candidate) => {
+      const details = await fetchGooglePlaceDetails(candidate.place_id, signal)
+      if (!details) return candidate
+
+      const lat = details.geometry?.location?.lat ?? null
+      const lng = details.geometry?.location?.lng ?? null
+
+      if (
+        coordinates &&
+        lat != null &&
+        lng != null &&
+        !isWithinRadiusKm(coordinates, lat, lng, CITY_SEARCH_RADIUS_KM)
+      ) {
+        return candidate
+      }
+
+      return {
+        ...candidate,
+        latitude: lat,
+        longitude: lng,
+        google_rating: details.rating ?? candidate.google_rating ?? null,
+        photo_reference: details.photos?.[0]?.photo_reference ?? candidate.photo_reference,
+        address:
+          details.formatted_address ??
+          details.vicinity ??
+          candidate.address,
+        types: details.types ?? candidate.types,
+      } satisfies NearbyPlaceRow
+    }),
+  )
+
+  if (signal?.aborted) return candidates
+
+  const enrichedByPlaceId = new Map<string, NearbyPlaceRow>()
+  toEnrich.forEach((candidate, index) => {
+    const result = enriched[index]
+    if (result.status === 'fulfilled' && result.value) {
+      enrichedByPlaceId.set(candidate.place_id, result.value)
+    }
+  })
+
+  return candidates.map((c) => enrichedByPlaceId.get(c.place_id) ?? c)
+}
+
+function tpGeoParams(
+  coordinates: LocationCoordinates | null,
+  geoMode: HybridSearchGeoMode,
+  hasTextQuery: boolean,
+): {
+  latitude?: number
+  longitude?: number
+  radiusKm?: number
+} {
+  if (geoMode === 'off' || hasTextQuery) return {}
+  return geoQueryFromCityCenter(coordinates)
+}
+
+function errorFromReason(reason: unknown): string {
+  if (reason instanceof Error) return reason.message
+  return 'Request failed'
+}
+
+export interface HybridSearchOptions {
+  palateSlugs?: string[]
+  limit?: number
+  mode?: HybridSearchMode
+  geoMode?: HybridSearchGeoMode
+  cityName?: string
+  palateSlug?: string | null
+  signal?: AbortSignal
+}
+
+export interface HybridSearchResponse {
+  results: RestaurantSearchResult[]
+  tpResults: RestaurantSearchResult[]
+  googleResults: RestaurantSearchResult[]
+  cursor: string | null
+  hasMore: boolean
+  errors: {
+    tp?: string
+    google?: string
+  }
+}
+
 /**
  * Hybrid text search: TP DB + Google Autocomplete, merged and deduped.
  */
@@ -35,60 +167,114 @@ export async function hybridSearch(
   query: string,
   locationKey: string,
   coordinates: LocationCoordinates | null,
-  options: {
-    palateSlugs?: string[]
-    limit?: number
-    palateSlug?: string | null
-  } = {},
-): Promise<{ results: RestaurantSearchResult[]; cursor: string | null; hasMore: boolean }> {
-  const limit = options.limit ?? 24
+  options: HybridSearchOptions = {},
+): Promise<HybridSearchResponse> {
+  const mode = options.mode ?? 'browse'
+  const limit = options.limit ?? limitForHybridSearchMode(mode)
   const trimmed = query.trim()
-  const geo = geoQueryFromCityCenter(coordinates)
+  const hasTextQuery = trimmed.length >= 2
+  const geoMode = options.geoMode ?? (hasTextQuery ? 'off' : 'filter')
+  const geo = tpGeoParams(coordinates, geoMode, hasTextQuery)
+  const signal = options.signal
+  const errors: HybridSearchResponse['errors'] = {}
 
   const [tpResult, googlePredictions] = await Promise.allSettled([
-    getRestaurants({
-      search: trimmed,
-      palateSlugs: options.palateSlugs,
-      limit,
-      locationKey,
-      ...geo,
-    }),
-    trimmed.length >= 2 ? autocompletePlacesEstablishments(trimmed, coordinates) : Promise.resolve([]),
+    hasTextQuery
+      ? getRestaurants({
+          search: trimmed,
+          palateSlugs: options.palateSlugs,
+          limit,
+          locationKey,
+          cityName: options.cityName,
+          ...geo,
+        })
+      : Promise.resolve({ restaurants: [], meta: { cursor: null, hasMore: false } }),
+    hasTextQuery ? autocompletePlacesEstablishments(trimmed, coordinates) : Promise.resolve([]),
   ])
 
-  const tpRows = tpResult.status === 'fulfilled' ? tpResult.value.restaurants : []
-  const cursor = tpResult.status === 'fulfilled' ? tpResult.value.meta.cursor : null
-  const hasMore = tpResult.status === 'fulfilled' ? tpResult.value.meta.hasMore : false
+  if (signal?.aborted) {
+    return {
+      results: [],
+      tpResults: [],
+      googleResults: [],
+      cursor: null,
+      hasMore: false,
+      errors,
+    }
+  }
 
-  const googleCandidates: NearbyPlaceRow[] = []
+  if (tpResult.status === 'rejected') {
+    errors.tp = errorFromReason(tpResult.reason)
+  }
+  if (googlePredictions.status === 'rejected') {
+    errors.google = errorFromReason(googlePredictions.reason)
+  }
+
+  const tpRows = tpResult.status === 'fulfilled' ? tpResult.value.restaurants : []
+  const cursor =
+    tpResult.status === 'fulfilled' ? (tpResult.value.meta?.cursor ?? null) : null
+  const hasMore =
+    tpResult.status === 'fulfilled' ? (tpResult.value.meta?.hasMore ?? false) : false
+
+  let googleCandidates: NearbyPlaceRow[] = []
 
   if (googlePredictions.status === 'fulfilled') {
-    const predictions = filterEstablishmentPredictions(googlePredictions.value).slice(0, 8)
+    googleCandidates = predictionsToCandidates(googlePredictions.value)
+  }
 
-    for (const pred of predictions) {
-      const name = pred.structured_formatting?.main_text ?? pred.description
-      const address = pred.structured_formatting?.secondary_text ?? ''
+  const palateSlug = options.palateSlug ?? null
+  const suppressGoogle =
+    Boolean(palateSlug?.trim()) || tpRows.length >= MERGE_SUPPRESS_TP_COUNT_SEARCH
 
-      if (googleCandidates.some((g) => g.place_id === pred.place_id)) continue
+  if (!suppressGoogle && googleCandidates.length > 0) {
+    googleCandidates = await enrichGoogleCandidatesWithDetails(
+      googleCandidates,
+      coordinates,
+      MERGE_GOOGLE_LIMIT_SEARCH,
+      signal,
+    )
+  }
 
-      googleCandidates.push({
-        place_id: pred.place_id,
-        name,
-        address: address || null,
-        latitude: null,
-        longitude: null,
-        photo_reference: null,
-        google_rating: null,
-        types: pred.types ?? null,
-      })
+  if (signal?.aborted) {
+    return {
+      results: [],
+      tpResults: [],
+      googleResults: [],
+      cursor: null,
+      hasMore: false,
+      errors,
     }
   }
 
   const results = mergeRestaurantResults(tpRows, googleCandidates, {
-    googleLimit: 6,
-    suppressGoogleWhenTPCount: 24,
-    palateSlug: options.palateSlug ?? null,
+    googleLimit: MERGE_GOOGLE_LIMIT_SEARCH,
+    suppressGoogleWhenTPCount: MERGE_SUPPRESS_TP_COUNT_SEARCH,
+    palateSlug,
   })
 
-  return { results, cursor, hasMore }
+  const { tpResults, googleResults } = splitDiscoveryResults(results)
+
+  return { results, tpResults, googleResults, cursor, hasMore, errors }
+}
+
+export async function previewHybridSearch(
+  query: string,
+  locationKey: string,
+  coordinates: LocationCoordinates | null,
+  options: Omit<HybridSearchOptions, 'mode' | 'limit'> = {},
+): Promise<HybridSearchResponse> {
+  return hybridSearch(query, locationKey, coordinates, { ...options, mode: 'preview' })
+}
+
+export async function listPickerHybridSearch(
+  query: string,
+  locationKey: string,
+  coordinates: LocationCoordinates | null,
+  options: Omit<HybridSearchOptions, 'mode' | 'limit' | 'geoMode'> = {},
+): Promise<HybridSearchResponse> {
+  return hybridSearch(query, locationKey, coordinates, {
+    ...options,
+    mode: 'listPicker',
+    geoMode: 'off',
+  })
 }

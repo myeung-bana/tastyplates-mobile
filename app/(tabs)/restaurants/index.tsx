@@ -14,7 +14,6 @@ import * as Haptics from 'expo-haptics'
 import { useLocalSearchParams, router } from 'expo-router'
 
 import { AppTopNav } from '@/components/layout/AppTopNav'
-import { GoogleRestaurantBrowseCard } from '@/components/restaurant/GoogleRestaurantBrowseCard'
 import { RestaurantBrowseCard } from '@/components/restaurant/RestaurantBrowseCard'
 import { getRestaurantBrowseCardWidth } from '@/components/restaurant/RestaurantBrowseCardItem'
 import { RestaurantMapPin } from '@/components/restaurant/RestaurantMapPin'
@@ -36,7 +35,13 @@ import {
   isWithinRadiusKm,
   mapRegionForRadiusKm,
 } from '@/lib/geoUtils'
+import { cityNameFromLocation } from '@/lib/restaurantDiscoveryHelpers'
 import { hybridSearch } from '@/lib/hybridSearch'
+import {
+  MERGE_GOOGLE_LIMIT_IDLE,
+  MERGE_SUPPRESS_TP_COUNT_IDLE,
+  SEARCH_BROWSE_LIMIT,
+} from '@/lib/restaurantSearchConfig'
 import type { NearbyPlaceRow } from '@/lib/googlePlaces'
 import { getNearbyRestaurants } from '@/lib/googlePlaces'
 import { isNoPalateFilter } from '@/lib/palateSearch'
@@ -58,7 +63,7 @@ import {
 import type { RestaurantSearchResult } from '@/types/restaurantSearchResult'
 import { isGoogleResult, isTPResult } from '@/types/restaurantSearchResult'
 
-const PAGE_SIZE = 24
+const PAGE_SIZE = SEARCH_BROWSE_LIMIT
 const ROW_GAP = 12
 const SHEET_PEEK = '42%'
 const SHEET_EXPANDED = '70%'
@@ -94,6 +99,7 @@ export default function RestaurantsScreen() {
   )
 
   const geoParams = useMemo(() => geoQueryFromCityCenter(coordinates), [coordinates])
+  const cityName = useMemo(() => cityNameFromLocation(location), [location.label, location.key])
 
   const cityMapRegion: Region | undefined = useMemo(() => {
     if (!coordinates) return undefined
@@ -137,8 +143,8 @@ export default function RestaurantsScreen() {
 
   const mergeOptions = useMemo(
     () => ({
-      googleLimit: 10,
-      suppressGoogleWhenTPCount: 20,
+      googleLimit: MERGE_GOOGLE_LIMIT_IDLE,
+      suppressGoogleWhenTPCount: MERGE_SUPPRESS_TP_COUNT_IDLE,
       palateSlug: palate ?? null,
     }),
     [palate],
@@ -160,8 +166,9 @@ export default function RestaurantsScreen() {
         if (searchQuery?.trim()) {
           const hybrid = await hybridSearch(searchQuery, locationKey, coordinates, {
             palateSlugs,
-            limit: PAGE_SIZE,
+            mode: 'browse',
             palateSlug: palate ?? null,
+            cityName,
           })
           setRows(dedupeRestaurantSearchResults(hybrid.results))
           setCursor(hybrid.cursor)
@@ -214,7 +221,7 @@ export default function RestaurantsScreen() {
         setRefreshing(false)
       }
     },
-    [searchQuery, palateSlugs, locationKey, coordinates, palate, mergeOptions, geoParams],
+    [searchQuery, palateSlugs, locationKey, coordinates, palate, mergeOptions, geoParams, cityName],
   )
 
   useEffect(() => {
@@ -227,7 +234,7 @@ export default function RestaurantsScreen() {
   }, [cityMapRegion])
 
   const loadMore = useCallback(async () => {
-    if (loadMoreLockRef.current || !hasMore || loadingMore || loading || !cursor || searchQuery?.trim()) {
+    if (loadMoreLockRef.current || !hasMore || loadingMore || loading || !cursor) {
       return
     }
     loadMoreLockRef.current = true
@@ -240,7 +247,8 @@ export default function RestaurantsScreen() {
         limit: PAGE_SIZE,
         cursor,
         locationKey,
-        ...geoParams,
+        cityName: searchQuery?.trim() ? cityName : undefined,
+        ...(searchQuery?.trim() ? {} : geoParams),
       })
       setRows((prev) => {
         const existingIds = new Set(prev.map((r) => restaurantSearchResultId(r)))
@@ -269,6 +277,7 @@ export default function RestaurantsScreen() {
     locationKey,
     mergeOptions,
     geoParams,
+    cityName,
   ])
 
   const onRefresh = useCallback(() => {
@@ -372,29 +381,29 @@ export default function RestaurantsScreen() {
       const selectedStyle =
         isSelected ? { borderWidth: 2, borderColor: BRAND_PRIMARY, borderRadius: 16 } : undefined
 
-      if (isGoogleResult(item)) {
-        return (
-          <View style={selectedStyle}>
-            <GoogleRestaurantBrowseCard
-              place={item}
-              containerStyle={cardWidth != null ? { width: cardWidth } : undefined}
-              onPress={() => handleCardPress(item)}
-            />
-          </View>
-        )
-      }
-      const overallRating = coerceRatingNumber(item.average_rating)
+      const overallRating = isGoogleResult(item)
+        ? coerceRatingNumber(item.google_rating)
+        : coerceRatingNumber(item.average_rating)
+
       return (
         <View style={selectedStyle}>
           <RestaurantBrowseCard
             title={item.title}
-            slug={item.slug}
+            slug={isTPResult(item) ? item.slug : undefined}
             imageUrl={item.featured_image_url}
-            subtitle={formatRestaurantCardAddress(item.listing_street, item.address)}
-            listingCategories={item.cuisines}
-            categories={item.categories}
+            subtitle={
+              isTPResult(item)
+                ? formatRestaurantCardAddress(item.listing_street, item.address)
+                : item.address
+            }
+            listingCategories={isTPResult(item) ? item.cuisines : undefined}
+            categories={isTPResult(item) ? item.categories : undefined}
             rating={overallRating}
-            reviewCount={item.ratings_count ?? undefined}
+            reviewCount={
+              isTPResult(item)
+                ? (item.ratings_count ?? undefined)
+                : (item.google_review_count ?? undefined)
+            }
             containerStyle={cardWidth != null ? { width: cardWidth } : undefined}
             onPress={() => handleCardPress(item)}
             onCommentPress={() => handleCardPress(item)}
@@ -476,7 +485,6 @@ export default function RestaurantsScreen() {
                 >
                   <RestaurantMapPin
                     isSelected={selectedId === id}
-                    isGoogle={isGoogleResult(result)}
                     rating={restaurantSearchResultRating(result)}
                   />
                 </Marker>

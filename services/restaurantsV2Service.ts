@@ -27,10 +27,12 @@ export interface RestaurantListRow {
   longitude: number | null
   latitude: number | null
   featured_image_url: string | null
+  google_place_id?: string | null
   address: {
     city?: string
     country_short?: string
     street_address?: string
+    place_id?: string
   } | null
   cuisines: RestaurantListCuisine[] | unknown
   palates: unknown
@@ -63,6 +65,7 @@ export interface GetRestaurantsParams {
   cursor?: string | null
   order_by?: string
   locationKey?: string
+  cityName?: string
   latitude?: number
   longitude?: number
   radiusKm?: number
@@ -129,6 +132,7 @@ function buildQuery(params: GetRestaurantsParams): string {
   if (params.cursor) qs.set('cursor', params.cursor)
   if (params.order_by) qs.set('order_by', params.order_by)
   if (params.locationKey?.trim()) qs.set('location_key', params.locationKey.trim())
+  if (params.cityName?.trim()) qs.set('city_name', params.cityName.trim())
   if (params.latitude != null && Number.isFinite(params.latitude)) {
     qs.set('latitude', String(params.latitude))
   }

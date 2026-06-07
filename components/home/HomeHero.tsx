@@ -1,40 +1,14 @@
-import { useState, useCallback } from 'react'
-import { View, Text } from 'react-native'
-import { router } from 'expo-router'
+import { View, Text, Pressable } from 'react-native'
+import * as Haptics from 'expo-haptics'
 
-import { PalateSearchBar, type PalateSearchMode } from '@/components/search/PalateSearchBar'
-import { SCREEN_RESTAURANTS } from '@/constants/screens'
-import { useSearchCuisinesSheet } from '@/contexts/SearchCuisinesSheetContext'
+import { AppIcon } from '@/components/ui/AppIcon'
+import { useSearchOverlay } from '@/contexts/SearchOverlayContext'
 
 /**
- * Hero: subtitle + shared {@link PalateSearchBar} → Restaurants tab with query params.
+ * Hero: subtitle + tap-to-open full-screen search overlay.
  */
 export function HomeHero() {
-  const { openSearchCuisines } = useSearchCuisinesSheet()
-  const [searchMode, setSearchMode] = useState<PalateSearchMode>('cuisine')
-  const [keyword, setKeyword] = useState('')
-  const [palateKey, setPalateKey] = useState<string | null>(null)
-
-  const goDiscover = useCallback(() => {
-    if (searchMode === 'keyword') {
-      if (!keyword.trim()) return
-      router.push({
-        pathname: SCREEN_RESTAURANTS,
-        params: { listing: keyword.trim() },
-      })
-      return
-    }
-    const params: Record<string, string> = {}
-    if (palateKey) params.palate = palateKey
-    if (keyword.trim()) params.search = keyword.trim()
-    router.push({ pathname: SCREEN_RESTAURANTS, params })
-  }, [keyword, palateKey, searchMode])
-
-  const onModeChange = (next: PalateSearchMode) => {
-    setSearchMode(next)
-    setKeyword('')
-    setPalateKey(null)
-  }
+  const { openSearch } = useSearchOverlay()
 
   return (
     <View className="overflow-hidden bg-white">
@@ -43,22 +17,21 @@ export function HomeHero() {
           Dine like a Brazilian in Tokyo — or Korean in New York?
         </Text>
 
-        <View className="mt-4">
-          <PalateSearchBar
-            mode={searchMode}
-            onModeChange={onModeChange}
-            palateKey={palateKey}
-            onOpenPalatePicker={() =>
-              openSearchCuisines({
-                initialPalateKey: palateKey,
-                onApply: (key) => setPalateKey(key),
-              })
-            }
-            keyword={keyword}
-            onKeywordChange={setKeyword}
-            onSubmit={goDiscover}
-          />
-        </View>
+        <Pressable
+          onPress={() => {
+            void Haptics.selectionAsync()
+            openSearch()
+          }}
+          accessibilityRole="button"
+          accessibilityLabel="Search restaurants"
+          className="mt-4 flex-row items-center gap-3 rounded-2xl border border-gray-100 bg-gray-50 px-4 py-3 shadow-sm shadow-black/5 active:opacity-80"
+        >
+          <AppIcon name="search" size={18} color="#9ca3af" />
+          <Text className="flex-1 font-neusans text-[15px] text-gray-400">
+            Search restaurants or palate...
+          </Text>
+          <AppIcon name="sliders" size={18} color="#9ca3af" />
+        </Pressable>
       </View>
     </View>
   )

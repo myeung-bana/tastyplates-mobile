@@ -30,6 +30,7 @@ import {
 import { useLocation } from '@/contexts/LocationContext'
 import { useRequireAuthOnMount } from '@/hooks/useRequireAuthOnMount'
 import { matchRestaurantForPlace } from '@/lib/findTastyPlatesMatch'
+import { NEARBY_PICKER_RADIUS_METERS } from '@/lib/restaurantSearchConfig'
 import {
   autocompletePlacesEstablishments,
   fetchGooglePlaceDetails,
@@ -118,7 +119,7 @@ export default function AddReviewSearchScreen(): JSX.Element {
       return
     }
     setNearbyLoading(true)
-    void getNearbyRestaurants(coords, 1500).then((rows) => {
+    void getNearbyRestaurants(coords, NEARBY_PICKER_RADIUS_METERS).then((rows) => {
       if (!cancelled) setNearbyPlaces(rows)
       if (!cancelled) setNearbyLoading(false)
     })

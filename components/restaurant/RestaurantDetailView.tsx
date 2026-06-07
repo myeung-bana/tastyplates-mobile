@@ -25,7 +25,7 @@ import { usePathname, useRouter } from 'expo-router'
 
 import { RatingDisplay } from '@/components/ui/RatingDisplay'
 import { BORDER_SUBTLE, BRAND_PRIMARY, TEXT_BODY, TEXT_HEADING, TEXT_MUTED } from '@/constants/brand'
-import { restaurantDetailPath, SCREEN_REVIEW_VIEWER } from '@/constants/screens'
+import { restaurantDetailPath, SCREEN_REVIEW_VIEWER, SCREEN_STUDIO_ADD_REVIEW } from '@/constants/screens'
 import {
   buildDirectionsUrl,
   buildGoogleMapsPlaceUrl,
@@ -193,6 +193,8 @@ export interface RestaurantDetailViewProps {
   searchCount?: number
   refreshing?: boolean
   onRefresh?: () => void
+  /** Google-only listing — hides TP engagement actions, shows add-review CTA. */
+  googlePlaceListing?: { placeId: string; placeName: string }
 }
 
 export function RestaurantDetailView({
@@ -206,6 +208,7 @@ export function RestaurantDetailView({
   searchCount = 0,
   refreshing = false,
   onRefresh,
+  googlePlaceListing,
 }: RestaurantDetailViewProps): JSX.Element {
   const router = useRouter()
   const pathname = usePathname()
@@ -235,6 +238,11 @@ export function RestaurantDetailView({
   const descriptionSnapPoints = useMemo(() => ['55%', '90%'], [])
 
   const syncEngagement = useCallback(async () => {
+    if (googlePlaceListing || !slug.trim()) {
+      setSaved(null)
+      setCheckedIn(null)
+      return
+    }
     if (!isAuthenticated) {
       setSaved(null)
       setCheckedIn(null)
@@ -248,7 +256,7 @@ export function RestaurantDetailView({
       setSaved(null)
       setCheckedIn(null)
     }
-  }, [isAuthenticated, slug])
+  }, [googlePlaceListing, isAuthenticated, slug])
 
   useEffect(() => {
     void syncEngagement()
@@ -261,13 +269,29 @@ export function RestaurantDetailView({
     [],
   )
 
+  const openWriteReview = () => {
+    if (!googlePlaceListing) return
+    void Haptics.selectionAsync()
+    router.push({
+      pathname: SCREEN_STUDIO_ADD_REVIEW,
+      params: {
+        prefill_place_id: googlePlaceListing.placeId,
+        prefill_name: googlePlaceListing.placeName,
+      },
+    })
+  }
+
   const onShare = async () => {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
-    const url = `${getMarketingWebOrigin()}${restaurantDetailPath(slug)}`
+    const url = googlePlaceListing
+      ? `https://www.google.com/maps/place/?q=place_id:${encodeURIComponent(googlePlaceListing.placeId)}`
+      : `${getMarketingWebOrigin()}${restaurantDetailPath(slug)}`
     try {
       const result = await Share.share({
         title: restaurant.title,
-        message: `Check out ${restaurant.title} on TastyPlates!`,
+        message: googlePlaceListing
+          ? `Check out ${restaurant.title}!`
+          : `Check out ${restaurant.title} on TastyPlates!`,
         url,
       })
       if (Platform.OS === 'android' && result.action === Share.dismissedAction) {
@@ -371,34 +395,48 @@ export function RestaurantDetailView({
         />
         <ActionPill label="Call" icon="phone" disabled={!phone} onPress={phone ? openCall : undefined} />
         <ActionPill label="Directions" icon="navigation" onPress={openDirections} />
-        <Pressable
-          accessibilityRole="button"
-          disabled={engageBusy}
-          onPress={() => void onToggleSave()}
-          className="flex-row items-center gap-2 rounded-[50px] border border-gray-300 bg-white px-4 py-2 active:opacity-90"
-        >
-          <AppIcon
-            name="bookmark"
-            active={Boolean(saved)}
-            size="sm"
-            color={saved ? SAVE_FILLED : ACTION_INK}
-          />
-          <Text className="font-neusans text-sm font-normal text-gray-900">Save</Text>
-        </Pressable>
-        <Pressable
-          accessibilityRole="button"
-          disabled={engageBusy}
-          onPress={() => void onToggleCheckin()}
-          className="flex-row items-center gap-2 rounded-[50px] border border-gray-300 bg-white px-4 py-2 active:opacity-90"
-        >
-          <AppIcon
-            name="map-pin"
-            active={Boolean(checkedIn)}
-            size="sm"
-            color={checkedIn ? CHECKIN_FILLED : ACTION_INK}
-          />
-          <Text className="font-neusans text-sm font-normal text-gray-900">Check-in</Text>
-        </Pressable>
+        {googlePlaceListing ? (
+          <Pressable
+            accessibilityRole="button"
+            onPress={openWriteReview}
+            className="flex-row items-center gap-2 rounded-[50px] px-4 py-2 active:opacity-90"
+            style={{ backgroundColor: BRAND_PRIMARY }}
+          >
+            <AppIcon name="edit-3" size="sm" color="#ffffff" />
+            <Text className="font-neusans text-sm font-normal text-white">Write a Review</Text>
+          </Pressable>
+        ) : (
+          <>
+            <Pressable
+              accessibilityRole="button"
+              disabled={engageBusy}
+              onPress={() => void onToggleSave()}
+              className="flex-row items-center gap-2 rounded-[50px] border border-gray-300 bg-white px-4 py-2 active:opacity-90"
+            >
+              <AppIcon
+                name="bookmark"
+                active={Boolean(saved)}
+                size="sm"
+                color={saved ? SAVE_FILLED : ACTION_INK}
+              />
+              <Text className="font-neusans text-sm font-normal text-gray-900">Save</Text>
+            </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              disabled={engageBusy}
+              onPress={() => void onToggleCheckin()}
+              className="flex-row items-center gap-2 rounded-[50px] border border-gray-300 bg-white px-4 py-2 active:opacity-90"
+            >
+              <AppIcon
+                name="map-pin"
+                active={Boolean(checkedIn)}
+                size="sm"
+                color={checkedIn ? CHECKIN_FILLED : ACTION_INK}
+              />
+              <Text className="font-neusans text-sm font-normal text-gray-900">Check-in</Text>
+            </Pressable>
+          </>
+        )}
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Share restaurant"
@@ -516,9 +554,20 @@ export function RestaurantDetailView({
           Reviews
         </Text>
         {visibleReviews.length === 0 ? (
-          <Text className="text-sm" style={{ color: TEXT_MUTED }}>
-            No reviews yet. Be the first to write one.
-          </Text>
+          <View>
+            <Text className="text-sm" style={{ color: TEXT_MUTED }}>
+              No reviews yet. Be the first to write one.
+            </Text>
+            {googlePlaceListing ? (
+              <Pressable
+                onPress={openWriteReview}
+                className="mt-3 w-full items-center justify-center rounded-xl py-3 active:opacity-90"
+                style={{ backgroundColor: BRAND_PRIMARY }}
+              >
+                <Text className="font-neusans text-sm font-medium text-white">Write a Review</Text>
+              </Pressable>
+            ) : null}
+          </View>
         ) : (
           <>
             <ScrollView horizontal showsHorizontalScrollIndicator={false}>

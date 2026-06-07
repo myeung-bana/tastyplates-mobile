@@ -22,9 +22,9 @@ import {
   listUpdateError,
 } from '@/constants/messages'
 import {
-  studioManageListAddPath,
   studioManageListEditPath,
 } from '@/constants/screens'
+import { useAddRestaurantOverlay } from '@/contexts/AddRestaurantOverlayContext'
 import { castHref } from '@/lib/routeParams'
 import { firstSegmentParam } from '@/lib/routeParams'
 import {
@@ -64,6 +64,8 @@ export default function ListDetailScreen(): JSX.Element {
   const [fetched, setFetched] = useState(false)
   const [makingPublic, setMakingPublic] = useState(false)
 
+  const { openAddRestaurant, isOpen: addOverlayOpen } = useAddRestaurantOverlay()
+  const addOverlayWasOpenRef = useRef(false)
   const swipeableRefs = useRef<Map<string, Swipeable>>(new Map())
 
   const fetchDetail = useCallback(
@@ -110,6 +112,13 @@ export default function ListDetailScreen(): JSX.Element {
       navigation.setOptions({ title: list.title })
     }
   }, [list?.title, navigation])
+
+  useEffect(() => {
+    if (addOverlayWasOpenRef.current && !addOverlayOpen && fetched) {
+      void fetchDetail(true)
+    }
+    addOverlayWasOpenRef.current = addOverlayOpen
+  }, [addOverlayOpen, fetched, fetchDetail])
 
   // Refresh detail when returning from add-restaurant screen
   useEffect(() => {
@@ -192,15 +201,13 @@ export default function ListDetailScreen(): JSX.Element {
   const visibilityLabel = list?.is_public ? 'Public' : 'Private'
   const updatedLabel = list ? formatRelativeTime(list.updated_at) : ''
 
-  const openAddRestaurant = useCallback(() => {
-    router.push({
-      pathname: castHref(studioManageListAddPath(uuid)) as never,
-      params: {
-        slug: list?.slug ?? slugParam ?? '',
-        title: list?.title ?? titleParam ?? '',
-      },
+  const openAddRestaurantHandler = useCallback(() => {
+    if (!uuid) return
+    openAddRestaurant({
+      listUuid: uuid,
+      listTitle: list?.title ?? titleParam ?? undefined,
     })
-  }, [uuid, list?.slug, list?.title, slugParam, titleParam])
+  }, [uuid, list?.title, titleParam, openAddRestaurant])
 
   const coverUri =
     list?.display_pic?.trim() ||
@@ -325,11 +332,11 @@ export default function ListDetailScreen(): JSX.Element {
               </View>
             </View>
 
-            <ManageListAddRestaurantRow onPress={openAddRestaurant} />
+            <ManageListAddRestaurantRow onPress={openAddRestaurantHandler} />
           </View>
         }
         ListEmptyComponent={
-          isEmpty ? <ListDetailEmptyState onAddRestaurant={openAddRestaurant} /> : null
+          isEmpty ? <ListDetailEmptyState onAddRestaurant={openAddRestaurantHandler} /> : null
         }
         refreshControl={
           <RefreshControl

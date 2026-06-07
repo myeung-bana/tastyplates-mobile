@@ -3,23 +3,15 @@ import { AppIcon } from '@/components/ui/AppIcon'
 
 interface RestaurantMapPinProps {
   isSelected: boolean
-  isGoogle: boolean
   rating?: number | null
 }
 
 export function RestaurantMapPin({
   isSelected,
-  isGoogle,
   rating,
 }: RestaurantMapPinProps): JSX.Element {
-  const bg = isGoogle
-    ? isSelected
-      ? '#6b7280'
-      : '#9ca3af'
-    : isSelected
-      ? '#31343F'
-      : '#ff7c0a'
-  const size = isSelected ? (isGoogle ? 40 : 44) : isGoogle ? 32 : 36
+  const bg = isSelected ? '#31343F' : '#ff7c0a'
+  const size = isSelected ? 44 : 36
 
   return (
     <View
