@@ -87,7 +87,7 @@ export function UnifiedProfileView({
   headlineHandle,
   avatarUrl,
   initials,
-  displayNameSubtitle,
+  displayNameSubtitle: _displayNameSubtitle,
   bio,
   palates,
   memberSinceLabel,

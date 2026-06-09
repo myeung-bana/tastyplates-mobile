@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo } from 'react'
+import { useCallback, useEffect, useMemo, useRef } from 'react'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 
 import { AuthBackButton } from '@/components/auth/AuthBackButton'
@@ -36,9 +36,11 @@ export default function LoginScreen() {
 
   const { isAuthenticated, loading: authLoading } = useAuth()
   const { user, isReady } = useSession()
+  const navigatedAfterAuthRef = useRef(false)
 
   const onAuthSuccess = useCallback(
     async (payload: { needsEmailVerification: boolean; user: typeof user }) => {
+      navigatedAfterAuthRef.current = true
       await navigateAfterAuth(
         router,
         {
@@ -55,6 +57,8 @@ export default function LoginScreen() {
 
   useEffect(() => {
     if (!isReady || authLoading || !isAuthenticated || !user) return
+    if (navigatedAfterAuthRef.current) return
+    navigatedAfterAuthRef.current = true
     void navigateAfterAuth(router, { needsEmailVerification: false, user }, resumeForNav)
   }, [isReady, authLoading, isAuthenticated, user, router, resumeForNav])
 

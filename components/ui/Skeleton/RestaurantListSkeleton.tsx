@@ -65,12 +65,13 @@ export function RestaurantListSkeletonRow({
   )
 }
 
-export function RestaurantListSkeletonList(): JSX.Element {
+export function RestaurantListSkeletonList({ count = 8 }: { count?: number } = {}): JSX.Element {
   const opacity = useSkeletonPulse()
+  const data = Array.from({ length: count }, (_, i) => i)
 
   return (
     <FlashList
-      data={SKELETON_DATA}
+      data={data}
       keyExtractor={(item) => String(item)}
       renderItem={() => <RestaurantListSkeletonRow opacity={opacity} />}
       scrollEnabled={false}
