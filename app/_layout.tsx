@@ -8,7 +8,8 @@ import { GluestackUIProvider } from '@gluestack-ui/themed'
 import { config } from '@gluestack-ui/config'
 import { NhostProvider } from '@nhost/react'
 import { ApolloProvider } from '@apollo/client'
-import { createApolloClient } from '@nhost/apollo'
+import { SafeAreaProvider } from 'react-native-safe-area-context'
+import { createNhostApolloClient } from '@/lib/nhostApolloClient'
 
 import { SplashAuthGate } from '@/components/layout/SplashAuthGate'
 import { SystemChrome } from '@/components/layout/SystemChrome'
@@ -29,7 +30,7 @@ export default function RootLayout() {
   // Neusans: loaded via @font-face in global.css on web; native uses system fallback until .ttf assets are added.
   const [fontsLoaded, fontError] = useFonts({})
 
-  const apolloClient = useMemo(() => createApolloClient({ nhost }), [])
+  const apolloClient = useMemo(() => createNhostApolloClient({ nhost }), [])
 
   /** Wait for fonts; session + splash hide handled inside {@link SplashAuthGate} under `NhostProvider`. */
   if (!fontsLoaded && !fontError) {
@@ -38,27 +39,29 @@ export default function RootLayout() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <SystemChrome />
-      <NhostProvider nhost={nhost}>
-        <ApolloProvider client={apolloClient}>
-          <GluestackUIProvider config={config}>
-            <BottomSheetModalProvider>
-              <UploadProvider>
-                <LocationProvider>
-                  <SearchOverlayProvider>
-                    <AddRestaurantOverlayProvider>
-                      <SearchCuisinesSheetProvider>
-                        <UploadProgressBar />
-                        <SplashAuthGate />
-                      </SearchCuisinesSheetProvider>
-                    </AddRestaurantOverlayProvider>
-                  </SearchOverlayProvider>
-                </LocationProvider>
-              </UploadProvider>
-            </BottomSheetModalProvider>
-          </GluestackUIProvider>
-        </ApolloProvider>
-      </NhostProvider>
+      <SafeAreaProvider>
+        <SystemChrome />
+        <NhostProvider nhost={nhost}>
+          <ApolloProvider client={apolloClient}>
+            <GluestackUIProvider config={config}>
+              <BottomSheetModalProvider>
+                <UploadProvider>
+                  <LocationProvider>
+                    <SearchOverlayProvider>
+                      <AddRestaurantOverlayProvider>
+                        <SearchCuisinesSheetProvider>
+                          <UploadProgressBar />
+                          <SplashAuthGate />
+                        </SearchCuisinesSheetProvider>
+                      </AddRestaurantOverlayProvider>
+                    </SearchOverlayProvider>
+                  </LocationProvider>
+                </UploadProvider>
+              </BottomSheetModalProvider>
+            </GluestackUIProvider>
+          </ApolloProvider>
+        </NhostProvider>
+      </SafeAreaProvider>
     </GestureHandlerRootView>
   )
 }

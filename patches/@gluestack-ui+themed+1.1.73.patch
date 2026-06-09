@@ -1,0 +1,10 @@
+diff --git a/node_modules/@gluestack-ui/themed/build/components/SafeAreaView/styled-components/Root.js b/node_modules/@gluestack-ui/themed/build/components/SafeAreaView/styled-components/Root.js
+index fc4dc5f..5015842 100644
+--- a/node_modules/@gluestack-ui/themed/build/components/SafeAreaView/styled-components/Root.js
++++ b/node_modules/@gluestack-ui/themed/build/components/SafeAreaView/styled-components/Root.js
+@@ -1,4 +1,4 @@
+-import { SafeAreaView } from 'react-native';
++import { SafeAreaView } from 'react-native-safe-area-context';
+ import { styled } from '@gluestack-style/react';
+ export default styled(SafeAreaView, {}, {
+     componentName: 'SafeAreaView',
