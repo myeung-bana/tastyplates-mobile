@@ -5,6 +5,7 @@ import { TEXT_HEADING } from '@/constants/brand'
 export default function RestaurantsStackLayout() {
   return (
     <Stack
+      initialRouteName="index"
       screenOptions={{
         /** Tab root (`index`) uses {@link AppTopNav} only; pushed routes keep a stack header + back. */
         headerShown: false,

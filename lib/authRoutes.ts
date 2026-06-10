@@ -1,5 +1,6 @@
 import type { Href, Router } from 'expo-router'
 
+import { authSheetOpenRef } from '@/lib/authSheetRef'
 import { SCREEN_LOGIN } from '@/constants/screens'
 
 /**
@@ -94,6 +95,15 @@ export function pushLoginScreen(
   options?: { resume?: Parameters<Router['replace']>[0]; mode?: AuthScreenMode },
 ): void {
   const resume = serializeAuthResume(options?.resume)
+  const sheetOptions = {
+    mode: options?.mode,
+    resume: options?.resume,
+    showSkipLogin: !resume,
+  }
+  if (authSheetOpenRef.current) {
+    authSheetOpenRef.current(sheetOptions)
+    return
+  }
   router.push(
     loginScreenHref({
       mode: options?.mode,

@@ -1,7 +1,6 @@
 import { Pressable, Text, View } from 'react-native'
 import { AppIcon } from '@/components/ui/AppIcon'
 
-import { BRAND_PRIMARY } from '@/constants/brand'
 import { labelForPalateKey } from '@/lib/palateLabels'
 import { isNoPalateFilter } from '@/lib/palateSearch'
 
@@ -27,7 +26,7 @@ export function PalateFilterChips({
   if (!showPalate && !showSearch) return null
 
   return (
-    <View className="mt-2 flex-row flex-wrap gap-2">
+    <View className="flex-row flex-wrap gap-2" style={{ marginTop: -5 }}>
       {showPalate ? (
         <FilterChip
           label={`Palate: ${labelForPalateKey(palate ?? null)}`}
@@ -43,8 +42,11 @@ export function PalateFilterChips({
 
 function FilterChip({ label, onDismiss }: { label: string; onDismiss: () => void }): JSX.Element {
   return (
-    <View className="flex-row items-center rounded-full border border-orange-100 bg-orange-50/90 pl-3 pr-1 py-1.5">
-      <Text className="max-w-[200px] text-xs text-gray-800" numberOfLines={1}>
+    <View className="flex-row items-center gap-2 rounded-[50px] border border-gray-300 bg-white pl-4 pr-2 py-2">
+      <Text
+        className="max-w-[200px] font-neusans text-sm font-normal text-gray-900"
+        numberOfLines={1}
+      >
         {label}
       </Text>
       <Pressable
@@ -52,9 +54,9 @@ function FilterChip({ label, onDismiss }: { label: string; onDismiss: () => void
         accessibilityLabel={`Remove ${label}`}
         hitSlop={8}
         onPress={onDismiss}
-        className="ml-1 rounded-full p-1 active:opacity-70"
+        className="rounded-full p-0.5 active:opacity-70"
       >
-        <AppIcon name="x-circle" size={18} color={BRAND_PRIMARY} />
+        <AppIcon name="x" size="sm" color="#6b7280" />
       </Pressable>
     </View>
   )

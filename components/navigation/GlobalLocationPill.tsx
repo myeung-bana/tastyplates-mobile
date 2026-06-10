@@ -1,8 +1,7 @@
-import { Image, Pressable, Text, View } from 'react-native'
+import { Pressable, Text } from 'react-native'
 import * as Haptics from 'expo-haptics'
 import { AppIcon } from '@/components/ui/AppIcon'
 
-import { BORDER_SUBTLE } from '@/constants/brand'
 import { useLocation } from '@/contexts/LocationContext'
 import { formatLocationDisplay } from '@/utils/locationUtils'
 
@@ -25,22 +24,17 @@ export function GlobalLocationPill({ maxWidth = 200 }: Props): JSX.Element {
         void Haptics.selectionAsync()
         openLocationPicker()
       }}
-      className="flex-row items-center rounded-[50px] border bg-[#FCFCFC] px-3 py-1.5 active:opacity-90"
-      style={{
-        borderColor: BORDER_SUBTLE,
-        maxWidth,
-        gap: 6,
-      }}
+      className="flex-row items-center gap-2 rounded-[50px] border border-gray-300 bg-white px-4 py-2 active:opacity-90"
+      style={{ maxWidth }}
     >
       <Text
         numberOfLines={1}
-        className="flex-shrink text-xs font-medium"
-        style={{ color: '#494D5D' }}
+        className="flex-shrink font-neusans text-sm font-normal text-gray-900"
         maxFontSizeMultiplier={1.15}
       >
         {line}
       </Text>
-      <AppIcon name="chevron-down" size={13} color="#494D5D" />
+      <AppIcon name="chevron-down" size="sm" color="#6b7280" />
     </Pressable>
   )
 }

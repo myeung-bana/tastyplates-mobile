@@ -1,4 +1,4 @@
-package com.toyama.rodrigo.exporoutertemplate
+package com.bana.tastyplates.dev
 import expo.modules.splashscreen.SplashScreenManager
 
 import android.os.Build

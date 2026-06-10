@@ -13,6 +13,7 @@ import { createNhostApolloClient } from '@/lib/nhostApolloClient'
 
 import { SplashAuthGate } from '@/components/layout/SplashAuthGate'
 import { SystemChrome } from '@/components/layout/SystemChrome'
+import { AuthSheetProvider } from '@/contexts/AuthSheetContext'
 import { LocationProvider } from '@/contexts/LocationContext'
 import { SearchCuisinesSheetProvider } from '@/contexts/SearchCuisinesSheetContext'
 import { SearchOverlayProvider } from '@/contexts/SearchOverlayContext'
@@ -50,8 +51,10 @@ export default function RootLayout() {
                     <SearchOverlayProvider>
                       <AddRestaurantOverlayProvider>
                         <SearchCuisinesSheetProvider>
-                          <UploadProgressBar />
-                          <SplashAuthGate />
+                          <AuthSheetProvider>
+                            <UploadProgressBar />
+                            <SplashAuthGate />
+                          </AuthSheetProvider>
                         </SearchCuisinesSheetProvider>
                       </AddRestaurantOverlayProvider>
                     </SearchOverlayProvider>

@@ -1,4 +1,4 @@
-import { Redirect, useGlobalSearchParams, usePathname } from 'expo-router'
+import { Redirect } from 'expo-router'
 
 import {
   AUTH_VISIBLE_TABS,
@@ -9,16 +9,9 @@ import { SCREEN_GET_STARTED } from '@/constants/screens'
 import { useGetStartedGate } from '@/hooks/useGetStartedGate'
 import { useGuestBrowseGate } from '@/hooks/useGuestBrowseGate'
 import { useAuth } from '@/hooks/useAuth'
-import { loginScreenHref, pathnameWithQueryResume } from '@/lib/authRoutes'
+import { loginScreenHref } from '@/lib/authRoutes'
 
 export default function TabsLayout(): JSX.Element | null {
-  const pathname = usePathname()
-  const searchParams = useGlobalSearchParams()
-  const resume = pathnameWithQueryResume(
-    pathname,
-    searchParams as Record<string, string | string[] | undefined>,
-  )
-
   const { isAuthenticated, loading } = useAuth()
   const getStartedGate = useGetStartedGate()
   const guestGate = useGuestBrowseGate()
@@ -29,10 +22,6 @@ export default function TabsLayout(): JSX.Element | null {
 
   if (isAuthenticated) {
     return <TabsShell visibleTabs={AUTH_VISIBLE_TABS} useStudioTabBar />
-  }
-
-  if (resume) {
-    return <Redirect href={loginScreenHref({ resume })} />
   }
 
   if (getStartedGate.showIntro && !guestGate.enabled) {

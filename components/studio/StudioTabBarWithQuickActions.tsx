@@ -37,7 +37,7 @@ import {
   SCREEN_STUDIO_REVIEW_LISTING,
 } from '@/constants/screens'
 import { BRAND_PRIMARY, TEXT_HEADING, TEXT_MUTED } from '@/constants/brand'
-import { getStudioSheetBottomPadding, getTabBarStyle } from '@/constants/tabBar'
+import { getStudioSheetBottomPadding } from '@/constants/tabBar'
 import { studioQuickMenuToggleRef } from '@/contexts/StudioQuickMenuContext'
 import { useStudioQuickMenu } from '@/contexts/StudioQuickMenuContext'
 
@@ -59,8 +59,6 @@ export function StudioTabBarWithQuickActions(props: BottomTabBarProps): JSX.Elem
   const router = useRouter()
   const { anchorRect } = useStudioQuickMenu()
   const { insets } = props
-
-  const tabBarStyle = useMemo(() => getTabBarStyle(insets), [insets])
 
   const sheetBottomPadding = useMemo(() => getStudioSheetBottomPadding(insets), [insets])
   const [modalVisible, setModalVisible] = useState(false)
@@ -201,7 +199,7 @@ export function StudioTabBarWithQuickActions(props: BottomTabBarProps): JSX.Elem
 
   return (
     <View style={styles.tabBarWrap}>
-      <BottomTabBar {...props} style={tabBarStyle} />
+      <BottomTabBar {...props} />
 
       <Modal
         transparent

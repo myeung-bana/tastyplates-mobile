@@ -13,10 +13,11 @@ import {
 import * as Haptics from 'expo-haptics'
 import { usePathname, useRouter } from 'expo-router'
 
+import { RatingDisplay } from '@/components/ui/RatingDisplay'
 import { BRAND_PRIMARY } from '@/constants/brand'
 import { useAuth } from '@/hooks/useAuth'
 import { coerceResumeHref, pushLoginScreen } from '@/lib/authRoutes'
-import { coerceRatingNumber, formatRatingValue, hasDisplayableRating } from '@/lib/ratingDisplayUtils'
+import { coerceRatingNumber, hasDisplayableRating } from '@/lib/ratingDisplayUtils'
 import {
   getFavoriteStatus,
   toggleFavoriteBySlug,
@@ -53,6 +54,8 @@ export interface RestaurantBrowseCardProps {
   /** Opens reviews / detail; defaults to `onPress` when omitted. */
   onCommentPress?: () => void
   containerStyle?: StyleProp<ViewStyle>
+  /** When false, hides `(N)` review count beside the score (e.g. home Recommended row). */
+  showReviewCount?: boolean
 }
 
 function buildAccessibilityLabel(
@@ -146,6 +149,7 @@ export function RestaurantBrowseCard({
   onPress,
   onCommentPress,
   containerStyle,
+  showReviewCount = true,
 }: RestaurantBrowseCardProps) {
   const uri = (imageUrl && imageUrl.trim()) || DEFAULT_IMAGE
   const router = useRouter()
@@ -163,9 +167,7 @@ export function RestaurantBrowseCard({
 
   const isNarrow = screenWidth < 768
   const overallRating = coerceRatingNumber(rating)
-  const ratingLabel = formatRatingValue(overallRating)
   const showRating = hasDisplayableRating(overallRating)
-  const showCount = reviewCount != null && reviewCount > 0
 
   const cuisineList = normalizeCuisineList(listingCategories)
   const categoryList = normalizeCategoryList(categories)
@@ -181,7 +183,6 @@ export function RestaurantBrowseCard({
 
   const iconSize = isNarrow ? 12 : 16
   const nameSize = isNarrow ? 14 : 16
-  const ratingSize = 14
   const addressSize = isNarrow ? 12 : 10
   const categorySize = 13
   const titleMaxWidth = 220
@@ -395,31 +396,12 @@ export function RestaurantBrowseCard({
             </Text>
 
             {showRating ? (
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, flexShrink: 0 }}>
-                <AppIcon name="star" size={16} color={TEXT_COLOR} />
-                <Text
-                  style={{
-                    fontFamily: NEUSANS,
-                    fontSize: ratingSize,
-                    fontWeight: '400',
-                    color: TEXT_COLOR,
-                  }}
-                >
-                  {ratingLabel}
-                </Text>
-                {showCount ? (
-                  <Text
-                    style={{
-                      fontFamily: NEUSANS,
-                      fontSize: ratingSize,
-                      fontWeight: '400',
-                      color: TEXT_COLOR,
-                    }}
-                  >
-                    ({reviewCount})
-                  </Text>
-                ) : null}
-              </View>
+              <RatingDisplay
+                value={overallRating}
+                size="sm"
+                reviewCount={showReviewCount ? reviewCount : undefined}
+                style={{ flexShrink: 0 }}
+              />
             ) : null}
           </View>
 

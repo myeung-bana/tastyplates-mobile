@@ -1,4 +1,4 @@
-package com.toyama.rodrigo.exporoutertemplate
+package com.bana.tastyplates.dev
 
 import android.app.Application
 import android.content.res.Configuration

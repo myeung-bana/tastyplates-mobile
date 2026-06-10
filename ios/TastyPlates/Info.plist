@@ -15,7 +15,7 @@
     <key>CFBundleInfoDictionaryVersion</key>
     <string>6.0</string>
     <key>CFBundleName</key>
-    <string>TastyPlates</string>
+    <string>$(PRODUCT_NAME)</string>
     <key>CFBundlePackageType</key>
     <string>$(PRODUCT_BUNDLE_PACKAGE_TYPE)</string>
     <key>CFBundleShortVersionString</key>
@@ -28,7 +28,7 @@
         <key>CFBundleURLSchemes</key>
         <array>
           <string>tastyplates</string>
-          <string>com.toyama.rodrigo.expo-router-template</string>
+          <string>com.bana.tastyplates-dev</string>
         </array>
       </dict>
       <dict>
@@ -41,7 +41,7 @@
     <key>CFBundleVersion</key>
     <string>1</string>
     <key>GMSApiKey</key>
-    <string>AIzaSyCIG5HR22jHOZ6885nFjS1GFtrmVTOZUlA</string>
+    <string>AIzaSyB-XqB6xgHbZzhpBbQtqahKUlObORQpg4I</string>
     <key>ITSAppUsesNonExemptEncryption</key>
     <false/>
     <key>LSMinimumSystemVersion</key>

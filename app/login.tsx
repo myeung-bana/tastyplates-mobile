@@ -1,18 +1,14 @@
-import { useCallback, useEffect, useMemo, useRef } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
+import { View } from 'react-native'
 
-import { AuthBackButton } from '@/components/auth/AuthBackButton'
+import { AuthFormBody } from '@/components/auth/AuthFormBody'
 import { AuthHeroLayout } from '@/components/auth/AuthHeroLayout'
-import { AuthMethodChooser } from '@/components/auth/AuthMethodChooser'
-import { LoginForm } from '@/components/auth/LoginForm'
-import { RegisterEmailForm } from '@/components/auth/RegisterEmailForm'
-import { SCREEN_HOME } from '@/constants/screens'
+import { SCREEN_GET_STARTED } from '@/constants/screens'
+import { useAuthSheet } from '@/contexts/AuthSheetContext'
 import { useAuth } from '@/hooks/useAuth'
-import { useGoogleSignIn } from '@/hooks/useGoogleSignIn'
 import { useSession } from '@/hooks/useSession'
-import { navigateAfterAuth } from '@/lib/authNavigation'
-import { coerceResumeHref, loginScreenHref, type AuthScreenMode } from '@/lib/authRoutes'
-import { enterGuestBrowseMode } from '@/lib/guestBrowse'
+import { coerceResumeHref, type AuthScreenMode } from '@/lib/authRoutes'
 
 function firstParam(value: string | string[] | undefined): string | undefined {
   if (value == null) return undefined
@@ -25,112 +21,61 @@ function parseAuthMode(modeParam: string | undefined): AuthScreenMode {
   return 'chooser'
 }
 
+/**
+ * OAuth callback route (`tastyplates://login`) and deep-link fallback.
+ * Primary auth UX is the global sheet on get-started / in-app CTAs.
+ */
 export default function LoginScreen() {
   const router = useRouter()
+  const { openAuthSheet } = useAuthSheet()
   const raw = useLocalSearchParams<{ resume?: string | string[]; mode?: string | string[] }>()
   const resume = firstParam(raw.resume)
-  const modeParam = firstParam(raw.mode)
-
-  const view = parseAuthMode(modeParam)
+  const mode = parseAuthMode(firstParam(raw.mode))
   const resumeForNav = useMemo(() => coerceResumeHref(resume), [resume])
 
   const { isAuthenticated, loading: authLoading } = useAuth()
   const { user, isReady } = useSession()
-  const navigatedAfterAuthRef = useRef(false)
-
-  const onAuthSuccess = useCallback(
-    async (payload: { needsEmailVerification: boolean; user: typeof user }) => {
-      navigatedAfterAuthRef.current = true
-      await navigateAfterAuth(
-        router,
-        {
-          needsEmailVerification: payload.needsEmailVerification,
-          user: payload.user,
-        },
-        resumeForNav,
-      )
-    },
-    [router, resumeForNav],
-  )
-
-  const { continueWithGoogle, googleBusy } = useGoogleSignIn({ onSuccess: onAuthSuccess })
+  const delegatedToSheetRef = useRef(false)
 
   useEffect(() => {
-    if (!isReady || authLoading || !isAuthenticated || !user) return
-    if (navigatedAfterAuthRef.current) return
-    navigatedAfterAuthRef.current = true
-    void navigateAfterAuth(router, { needsEmailVerification: false, user }, resumeForNav)
-  }, [isReady, authLoading, isAuthenticated, user, router, resumeForNav])
+    if (!isReady || authLoading) return
+    if (isAuthenticated && user) return
+    if (delegatedToSheetRef.current) return
+    delegatedToSheetRef.current = true
+    openAuthSheet({
+      mode,
+      resume: resumeForNav,
+      showSkipLogin: !resume,
+    })
+    router.replace(SCREEN_GET_STARTED)
+  }, [isReady, authLoading, isAuthenticated, user, mode, resumeForNav, openAuthSheet, router])
 
-  const goChooser = useCallback(() => {
-    router.replace(loginScreenHref({ resume }))
-  }, [router, resume])
+  if (!isReady || authLoading) {
+    return null
+  }
 
-  const goSignIn = useCallback(() => {
-    router.replace(loginScreenHref({ mode: 'signin', resume }))
-  }, [router, resume])
-
-  const goSignUp = useCallback(() => {
-    router.replace(loginScreenHref({ mode: 'signup', resume }))
-  }, [router, resume])
-
-  const onSkipLogin = useCallback(async () => {
-    await enterGuestBrowseMode()
-    router.replace(SCREEN_HOME)
-  }, [router])
-
-  const title =
-    view === 'chooser'
-      ? 'Welcome to TastyPlates'
-      : view === 'signin'
-        ? 'Login to Continue'
-        : 'Create an account'
-
-  const subtitle =
-    view === 'chooser'
-      ? 'Discover restaurants, share reviews, and follow food lovers you trust.'
-      : view === 'signin'
-        ? 'Sign in with your Tastyplates email and password.'
-        : 'Create a free account to save favourites, write reviews, and follow other food lovers.'
-
-  const headerSlot =
-    view === 'chooser' ? null : <AuthBackButton onPress={goChooser} label="Back" />
+  if (isAuthenticated && user) {
+    return (
+      <>
+        <Stack.Screen options={{ headerShown: false }} />
+        <AuthFormBody
+          initialMode={mode}
+          resume={resume}
+          showSkipLogin={!resume}
+          renderShell={({ title, subtitle, headerSlot, body }) => (
+            <AuthHeroLayout title={title} subtitle={subtitle} headerSlot={headerSlot}>
+              {body}
+            </AuthHeroLayout>
+          )}
+        />
+      </>
+    )
+  }
 
   return (
     <>
       <Stack.Screen options={{ headerShown: false }} />
-      <AuthHeroLayout title={title} subtitle={subtitle} headerSlot={headerSlot}>
-        {view === 'chooser' ? (
-          <AuthMethodChooser
-            onSignUpFree={goSignUp}
-            onContinueWithEmail={goSignIn}
-            onContinueWithGoogle={() => void continueWithGoogle()}
-            onSkipLogin={view === 'chooser' && !resume ? () => void onSkipLogin() : undefined}
-            googleBusy={googleBusy}
-          />
-        ) : null}
-
-        {view === 'signin' ? (
-          <LoginForm
-            resume={resume}
-            showIntro={false}
-            embedded
-            showGoogle={false}
-            onSignInSuccess={onAuthSuccess}
-            onSwitchToSignUp={goSignUp}
-          />
-        ) : null}
-
-        {view === 'signup' ? (
-          <RegisterEmailForm
-            resume={resume}
-            showIntro={false}
-            embedded
-            onRegisterSuccess={onAuthSuccess}
-            onSwitchToSignIn={goSignIn}
-          />
-        ) : null}
-      </AuthHeroLayout>
+      <View className="flex-1 bg-black" />
     </>
   )
 }

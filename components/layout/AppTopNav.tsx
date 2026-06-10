@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { GlobalLocationPill } from '@/components/navigation/GlobalLocationPill'
 import { TEXT_HEADING, TEXT_MUTED } from '@/constants/brand'
 import { SCREEN_PROFILE } from '@/constants/screens'
+import { useAuthSheet } from '@/contexts/AuthSheetContext'
 import { useSearchOverlay } from '@/contexts/SearchOverlayContext'
 import { FULL_SCREEN_OVERLAY_INNER_PAD } from '@/hooks/useFullScreenOverlayInsets'
 import { useOwnProfilePresentation } from '@/hooks/useOwnProfilePresentation'
@@ -16,12 +17,17 @@ const AVATAR_SIZE = 32
 
 function ProfileShortcut(): JSX.Element {
   const router = useRouter()
+  const { openAuthSheet } = useAuthSheet()
   const { authUserId, avatarUrl, displayName, loading } = useOwnProfilePresentation()
   const isSignedIn = Boolean(authUserId)
   const name = displayName
 
   const goProfile = (): void => {
     void Haptics.selectionAsync()
+    if (!isSignedIn) {
+      openAuthSheet({ mode: 'signin', resume: SCREEN_PROFILE })
+      return
+    }
     router.push(SCREEN_PROFILE)
   }
 

@@ -51,6 +51,8 @@ export interface RestaurantBrowseCardItemProps {
   containerStyle?: StyleProp<ViewStyle>
   /** Overrides default navigation to restaurant detail. */
   onPress?: () => void
+  /** When false, hides review count beside rating (home Recommended carousel). */
+  showReviewCount?: boolean
 }
 
 /**
@@ -68,6 +70,7 @@ export function RestaurantBrowseCardItem({
   categories,
   containerStyle,
   onPress: onPressOverride,
+  showReviewCount = true,
 }: RestaurantBrowseCardItemProps) {
   const slug = slugProp?.trim() ?? ''
   const overallRating = coerceRatingNumber(rating)
@@ -93,6 +96,7 @@ export function RestaurantBrowseCardItem({
       categories={categories}
       rating={overallRating}
       reviewCount={reviewCount ?? undefined}
+      showReviewCount={showReviewCount}
       containerStyle={containerStyle}
       onPress={onPress}
       onCommentPress={onCommentPress}

@@ -88,6 +88,7 @@ export function RecommendedRestaurantsCarousel({
     <RestaurantBrowseCardItem
       key={row.id}
       {...restaurantBrowseCardItemFromFeatured(row)}
+      showReviewCount={!hideSectionHeader}
       containerStyle={layout === 'carousel' ? { width: cardWidth } : undefined}
     />
   ))

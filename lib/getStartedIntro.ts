@@ -11,3 +11,7 @@ export async function hasCompletedGetStarted(): Promise<boolean> {
 export async function setGetStartedCompleted(): Promise<void> {
   await SecureStore.setItemAsync(STORAGE_KEY, VALUE_DONE)
 }
+
+export async function clearGetStartedCompleted(): Promise<void> {
+  await SecureStore.deleteItemAsync(STORAGE_KEY)
+}

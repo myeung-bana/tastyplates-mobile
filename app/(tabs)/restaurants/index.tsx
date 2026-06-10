@@ -65,8 +65,11 @@ import { isGoogleResult, isTPResult } from '@/types/restaurantSearchResult'
 
 const PAGE_SIZE = SEARCH_BROWSE_LIMIT
 const ROW_GAP = 12
-const SHEET_PEEK = '42%'
-const SHEET_EXPANDED = '70%'
+/** Collapsed — maximizes map for pinch/zoom; shows handle + list header peek. */
+const SHEET_MIN = '18%'
+/** Mid — browse a few cards without covering most of the map. */
+const SHEET_MID = '42%'
+const SHEET_EXPANDED = '72%'
 
 function singleParam(v: string | string[] | undefined): string | undefined {
   if (v == null) return undefined
@@ -139,7 +142,7 @@ export default function RestaurantsScreen() {
   const bottomSheetRef = useRef<BottomSheet>(null)
   const loadMoreLockRef = useRef(false)
 
-  const snapPoints = useMemo(() => [SHEET_PEEK, SHEET_EXPANDED], [])
+  const snapPoints = useMemo(() => [SHEET_MIN, SHEET_MID, SHEET_EXPANDED], [])
 
   const mergeOptions = useMemo(
     () => ({

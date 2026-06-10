@@ -1,43 +1,29 @@
-import { Pressable, Text, View } from 'react-native'
-import * as Haptics from 'expo-haptics'
-import { useRouter } from 'expo-router'
+import { useEffect } from 'react'
+import { Redirect } from 'expo-router'
+
 import { ProfileSignedInView } from '@/components/profile/ProfileSignedInView'
-import { useAuth } from '@/hooks/useAuth'
 import { AppTopNav } from '@/components/layout/AppTopNav'
-import { SectionTitle } from '@/components/layout/SectionTitle'
-import { BRAND_PRIMARY, TEXT_MUTED } from '@/constants/brand'
-import { SCREEN_PROFILE } from '@/constants/screens'
-import { pushLoginScreen } from '@/lib/authRoutes'
+import { SCREEN_HOME, SCREEN_PROFILE } from '@/constants/screens'
+import { useAuthSheet } from '@/contexts/AuthSheetContext'
+import { useAuth } from '@/hooks/useAuth'
+import { View } from 'react-native'
+
+/** Deep links only — guest profile tab opens the auth sheet without navigating here. */
+function GuestProfileFallback(): JSX.Element {
+  const { openAuthSheet } = useAuthSheet()
+
+  useEffect(() => {
+    openAuthSheet({ mode: 'signin', resume: SCREEN_PROFILE })
+  }, [openAuthSheet])
+
+  return <Redirect href={SCREEN_HOME} />
+}
 
 export default function ProfileScreen() {
-  const router = useRouter()
   const { isAuthenticated, loading } = useAuth()
 
   if (!loading && !isAuthenticated) {
-    return (
-      <View className="flex-1 bg-white">
-        <AppTopNav />
-        <View className="flex-1 items-center justify-center px-8">
-          <SectionTitle className="text-center">Profile</SectionTitle>
-          <Text
-            className="mt-3 text-center text-sm leading-relaxed"
-            style={{ color: TEXT_MUTED }}
-          >
-            Sign in to see your profile, wishlist, and check-ins.
-          </Text>
-          <Pressable
-            onPress={() => {
-              void Haptics.selectionAsync()
-              pushLoginScreen(router, { resume: SCREEN_PROFILE })
-            }}
-            className="mt-6 rounded-full px-8 py-3 active:opacity-90"
-            style={{ backgroundColor: BRAND_PRIMARY }}
-          >
-            <Text className="font-normal text-base text-white">Sign in</Text>
-          </Pressable>
-        </View>
-      </View>
-    )
+    return <GuestProfileFallback />
   }
 
   if (isAuthenticated) {

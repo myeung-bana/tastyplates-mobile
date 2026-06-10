@@ -18,9 +18,11 @@ import type { RestaurantUserRow } from '@/services/restaurantUserService'
 import {
   SCREEN_EDIT_PROFILE,
   SCREEN_FOLLOWING,
+  SCREEN_GET_STARTED,
   SCREEN_SETTINGS,
   SCREEN_STUDIO_REVIEW_LISTING,
 } from '@/constants/screens'
+import { resetToGetStartedLanding } from '@/lib/guestBrowse'
 
 /** Session profile + merged `restaurant_users` row (username, `about_me`, palates JSON). */
 export function ProfileSignedInView() {
@@ -100,6 +102,8 @@ export function ProfileSignedInView() {
             void (async () => {
               setSigningOut(true)
               try {
+                await resetToGetStartedLanding()
+                router.replace(SCREEN_GET_STARTED)
                 await signOut()
               } finally {
                 setSigningOut(false)
@@ -109,7 +113,7 @@ export function ProfileSignedInView() {
         },
       ],
     )
-  }, [signOut])
+  }, [router, signOut])
 
   const belowMenu = (
     <View>

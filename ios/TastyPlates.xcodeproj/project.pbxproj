@@ -8,28 +8,28 @@
 
 /* Begin PBXBuildFile section */
 		13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB51A68108700A75B9A /* Images.xcassets */; };
+		38CF86A97CF6EF3021AA1672 /* libPods-TastyPlates.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 8E226FF6283CB6D4482216E4 /* libPods-TastyPlates.a */; };
 		3E461D99554A48A4959DE609 /* SplashScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */; };
-		7CF067C4FC2D6A0B10D41052 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = D7E13A1E49C10CC14ADD6547 /* PrivacyInfo.xcprivacy */; };
-		9E5BEBC7392DDC40662DFAB0 /* ExpoModulesProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C06E19F0D39D29E51822042 /* ExpoModulesProvider.swift */; };
+		5990C4CD58B2A9EFF0B88742 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 881EABDF3B65F405B366D385 /* PrivacyInfo.xcprivacy */; };
+		5C4BA64F80833ACAF25FFEC3 /* ExpoModulesProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = B07CA05610A71571071A9177 /* ExpoModulesProvider.swift */; };
 		BB2F792D24A3F905000567C9 /* Expo.plist in Resources */ = {isa = PBXBuildFile; fileRef = BB2F792C24A3F905000567C9 /* Expo.plist */; };
-		C0CC9BCB2D8B0D8C5581EFE9 /* libPods-exporoutertemplate.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 30ECFCBBCE31D5378FCEF20F /* libPods-exporoutertemplate.a */; };
 		F11748422D0307B40044C1D9 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = F11748412D0307B40044C1D9 /* AppDelegate.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		0E9EB3D5162D304AD00A212F /* Pods-exporoutertemplate.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-exporoutertemplate.debug.xcconfig"; path = "Target Support Files/Pods-exporoutertemplate/Pods-exporoutertemplate.debug.xcconfig"; sourceTree = "<group>"; };
-		13B07F961A680F5B00A75B9A /* exporoutertemplate.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = exporoutertemplate.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		13B07FB51A68108700A75B9A /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Images.xcassets; path = exporoutertemplate/Images.xcassets; sourceTree = "<group>"; };
-		13B07FB61A68108700A75B9A /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = exporoutertemplate/Info.plist; sourceTree = "<group>"; };
-		30ECFCBBCE31D5378FCEF20F /* libPods-exporoutertemplate.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-exporoutertemplate.a"; sourceTree = BUILT_PRODUCTS_DIR; };
-		4C06E19F0D39D29E51822042 /* ExpoModulesProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ExpoModulesProvider.swift; path = "Pods/Target Support Files/Pods-exporoutertemplate/ExpoModulesProvider.swift"; sourceTree = "<group>"; };
-		8AD3FDA342FEC5DF96AD048D /* Pods-exporoutertemplate.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-exporoutertemplate.release.xcconfig"; path = "Target Support Files/Pods-exporoutertemplate/Pods-exporoutertemplate.release.xcconfig"; sourceTree = "<group>"; };
-		AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = SplashScreen.storyboard; path = exporoutertemplate/SplashScreen.storyboard; sourceTree = "<group>"; };
+		13B07F961A680F5B00A75B9A /* TastyPlates.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TastyPlates.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		13B07FB51A68108700A75B9A /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Images.xcassets; path = TastyPlates/Images.xcassets; sourceTree = "<group>"; };
+		13B07FB61A68108700A75B9A /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = TastyPlates/Info.plist; sourceTree = "<group>"; };
+		881EABDF3B65F405B366D385 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; name = PrivacyInfo.xcprivacy; path = TastyPlates/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		8E226FF6283CB6D4482216E4 /* libPods-TastyPlates.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-TastyPlates.a"; sourceTree = BUILT_PRODUCTS_DIR; };
+		9942DE9C367BBA4A97F699A9 /* Pods-TastyPlates.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-TastyPlates.release.xcconfig"; path = "Target Support Files/Pods-TastyPlates/Pods-TastyPlates.release.xcconfig"; sourceTree = "<group>"; };
+		AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = SplashScreen.storyboard; path = TastyPlates/SplashScreen.storyboard; sourceTree = "<group>"; };
+		B07CA05610A71571071A9177 /* ExpoModulesProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ExpoModulesProvider.swift; path = "Pods/Target Support Files/Pods-TastyPlates/ExpoModulesProvider.swift"; sourceTree = "<group>"; };
 		BB2F792C24A3F905000567C9 /* Expo.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Expo.plist; sourceTree = "<group>"; };
-		D7E13A1E49C10CC14ADD6547 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; name = PrivacyInfo.xcprivacy; path = exporoutertemplate/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		E437990E4CDA6E803CE1CA2F /* Pods-TastyPlates.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-TastyPlates.debug.xcconfig"; path = "Target Support Files/Pods-TastyPlates/Pods-TastyPlates.debug.xcconfig"; sourceTree = "<group>"; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
-		F11748412D0307B40044C1D9 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = exporoutertemplate/AppDelegate.swift; sourceTree = "<group>"; };
-		F11748442D0722820044C1D9 /* exporoutertemplate-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "exporoutertemplate-Bridging-Header.h"; path = "exporoutertemplate/exporoutertemplate-Bridging-Header.h"; sourceTree = "<group>"; };
+		F11748412D0307B40044C1D9 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = TastyPlates/AppDelegate.swift; sourceTree = "<group>"; };
+		F11748442D0722820044C1D9 /* TastyPlates-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "TastyPlates-Bridging-Header.h"; path = "TastyPlates/TastyPlates-Bridging-Header.h"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -37,41 +37,49 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				C0CC9BCB2D8B0D8C5581EFE9 /* libPods-exporoutertemplate.a in Frameworks */,
+				38CF86A97CF6EF3021AA1672 /* libPods-TastyPlates.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		13B07FAE1A68108700A75B9A /* exporoutertemplate */ = {
+		13B07FAE1A68108700A75B9A /* TastyPlates */ = {
 			isa = PBXGroup;
 			children = (
 				F11748412D0307B40044C1D9 /* AppDelegate.swift */,
-				F11748442D0722820044C1D9 /* exporoutertemplate-Bridging-Header.h */,
+				F11748442D0722820044C1D9 /* TastyPlates-Bridging-Header.h */,
 				BB2F792B24A3F905000567C9 /* Supporting */,
 				13B07FB51A68108700A75B9A /* Images.xcassets */,
 				13B07FB61A68108700A75B9A /* Info.plist */,
 				AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */,
-				D7E13A1E49C10CC14ADD6547 /* PrivacyInfo.xcprivacy */,
+				881EABDF3B65F405B366D385 /* PrivacyInfo.xcprivacy */,
 			);
-			name = exporoutertemplate;
+			name = TastyPlates;
+			sourceTree = "<group>";
+		};
+		27F803F61D1F8D60A9A3DBC1 /* TastyPlates */ = {
+			isa = PBXGroup;
+			children = (
+				B07CA05610A71571071A9177 /* ExpoModulesProvider.swift */,
+			);
+			name = TastyPlates;
 			sourceTree = "<group>";
 		};
 		2D16E6871FA4F8E400B85C8A /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
 				ED297162215061F000B7C4FE /* JavaScriptCore.framework */,
-				30ECFCBBCE31D5378FCEF20F /* libPods-exporoutertemplate.a */,
+				8E226FF6283CB6D4482216E4 /* libPods-TastyPlates.a */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
 		};
-		5869E1C6264CE2194DFD3F7A /* Pods */ = {
+		6253A513376D4B3D24E813C7 /* Pods */ = {
 			isa = PBXGroup;
 			children = (
-				0E9EB3D5162D304AD00A212F /* Pods-exporoutertemplate.debug.xcconfig */,
-				8AD3FDA342FEC5DF96AD048D /* Pods-exporoutertemplate.release.xcconfig */,
+				E437990E4CDA6E803CE1CA2F /* Pods-TastyPlates.debug.xcconfig */,
+				9942DE9C367BBA4A97F699A9 /* Pods-TastyPlates.release.xcconfig */,
 			);
 			name = Pods;
 			path = Pods;
@@ -87,12 +95,12 @@
 		83CBB9F61A601CBA00E9B192 = {
 			isa = PBXGroup;
 			children = (
-				13B07FAE1A68108700A75B9A /* exporoutertemplate */,
+				13B07FAE1A68108700A75B9A /* TastyPlates */,
 				832341AE1AAA6A7D00B99B32 /* Libraries */,
 				83CBBA001A601CBA00E9B192 /* Products */,
 				2D16E6871FA4F8E400B85C8A /* Frameworks */,
-				5869E1C6264CE2194DFD3F7A /* Pods */,
-				FBBB304BFFBEB3FB60608286 /* ExpoModulesProviders */,
+				6253A513376D4B3D24E813C7 /* Pods */,
+				B28ACBFDB48FF1AA241ADED4 /* ExpoModulesProviders */,
 			);
 			indentWidth = 2;
 			sourceTree = "<group>";
@@ -102,17 +110,17 @@
 		83CBBA001A601CBA00E9B192 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				13B07F961A680F5B00A75B9A /* exporoutertemplate.app */,
+				13B07F961A680F5B00A75B9A /* TastyPlates.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
 		};
-		92A96F07238C783C3FEA35DD /* exporoutertemplate */ = {
+		B28ACBFDB48FF1AA241ADED4 /* ExpoModulesProviders */ = {
 			isa = PBXGroup;
 			children = (
-				4C06E19F0D39D29E51822042 /* ExpoModulesProvider.swift */,
+				27F803F61D1F8D60A9A3DBC1 /* TastyPlates */,
 			);
-			name = exporoutertemplate;
+			name = ExpoModulesProviders;
 			sourceTree = "<group>";
 		};
 		BB2F792B24A3F905000567C9 /* Supporting */ = {
@@ -121,40 +129,32 @@
 				BB2F792C24A3F905000567C9 /* Expo.plist */,
 			);
 			name = Supporting;
-			path = exporoutertemplate/Supporting;
-			sourceTree = "<group>";
-		};
-		FBBB304BFFBEB3FB60608286 /* ExpoModulesProviders */ = {
-			isa = PBXGroup;
-			children = (
-				92A96F07238C783C3FEA35DD /* exporoutertemplate */,
-			);
-			name = ExpoModulesProviders;
+			path = TastyPlates/Supporting;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		13B07F861A680F5B00A75B9A /* exporoutertemplate */ = {
+		13B07F861A680F5B00A75B9A /* TastyPlates */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 13B07F931A680F5B00A75B9A /* Build configuration list for PBXNativeTarget "exporoutertemplate" */;
+			buildConfigurationList = 13B07F931A680F5B00A75B9A /* Build configuration list for PBXNativeTarget "TastyPlates" */;
 			buildPhases = (
 				08A4A3CD28434E44B6B9DE2E /* [CP] Check Pods Manifest.lock */,
-				DB8973584B5682F46C463E85 /* [Expo] Configure project */,
+				72F8D8CCD8806D22333DE6C1 /* [Expo] Configure project */,
 				13B07F871A680F5B00A75B9A /* Sources */,
 				13B07F8C1A680F5B00A75B9A /* Frameworks */,
 				13B07F8E1A680F5B00A75B9A /* Resources */,
 				00DD1BFF1BD5951E006B06BC /* Bundle React Native code and images */,
 				800E24972A6A228C8D4807E9 /* [CP] Copy Pods Resources */,
-				9F541946276F0470D19C06EE /* [CP] Embed Pods Frameworks */,
+				C6C31FA3E7B45F7C6ABD44FB /* [CP] Embed Pods Frameworks */,
 			);
 			buildRules = (
 			);
 			dependencies = (
 			);
-			name = exporoutertemplate;
-			productName = exporoutertemplate;
-			productReference = 13B07F961A680F5B00A75B9A /* exporoutertemplate.app */;
+			name = TastyPlates;
+			productName = TastyPlates;
+			productReference = 13B07F961A680F5B00A75B9A /* TastyPlates.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -170,7 +170,7 @@
 					};
 				};
 			};
-			buildConfigurationList = 83CBB9FA1A601CBA00E9B192 /* Build configuration list for PBXProject "exporoutertemplate" */;
+			buildConfigurationList = 83CBB9FA1A601CBA00E9B192 /* Build configuration list for PBXProject "TastyPlates" */;
 			compatibilityVersion = "Xcode 3.2";
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
@@ -183,7 +183,7 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				13B07F861A680F5B00A75B9A /* exporoutertemplate */,
+				13B07F861A680F5B00A75B9A /* TastyPlates */,
 			);
 		};
 /* End PBXProject section */
@@ -196,7 +196,7 @@
 				BB2F792D24A3F905000567C9 /* Expo.plist in Resources */,
 				13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */,
 				3E461D99554A48A4959DE609 /* SplashScreen.storyboard in Resources */,
-				7CF067C4FC2D6A0B10D41052 /* PrivacyInfo.xcprivacy in Resources */,
+				5990C4CD58B2A9EFF0B88742 /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -235,12 +235,36 @@
 			outputFileListPaths = (
 			);
 			outputPaths = (
-				"$(DERIVED_FILE_DIR)/Pods-exporoutertemplate-checkManifestLockResult.txt",
+				"$(DERIVED_FILE_DIR)/Pods-TastyPlates-checkManifestLockResult.txt",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
 			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
 			showEnvVarsInLog = 0;
+		};
+		72F8D8CCD8806D22333DE6C1 /* [Expo] Configure project */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"$(SRCROOT)/.xcode.env",
+				"$(SRCROOT)/.xcode.env.local",
+				"$(SRCROOT)/TastyPlates/TastyPlates.entitlements",
+				"$(SRCROOT)/Pods/Target Support Files/Pods-TastyPlates/expo-configure-project.sh",
+			);
+			name = "[Expo] Configure project";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(SRCROOT)/Pods/Target Support Files/Pods-TastyPlates/ExpoModulesProvider.swift",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "# This script configures Expo modules and generates the modules provider file.\nbash -l -c \"./Pods/Target\\ Support\\ Files/Pods-TastyPlates/expo-configure-project.sh\"\n";
 		};
 		800E24972A6A228C8D4807E9 /* [CP] Copy Pods Resources */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -248,7 +272,7 @@
 			files = (
 			);
 			inputPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-exporoutertemplate/Pods-exporoutertemplate-resources.sh",
+				"${PODS_ROOT}/Target Support Files/Pods-TastyPlates/Pods-TastyPlates-resources.sh",
 				"${PODS_CONFIGURATION_BUILD_DIR}/EXConstants/EXConstants.bundle",
 				"${PODS_CONFIGURATION_BUILD_DIR}/EXConstants/ExpoConstants_privacy.bundle",
 				"${PODS_CONFIGURATION_BUILD_DIR}/EXUpdates/EXUpdates.bundle",
@@ -283,16 +307,16 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-exporoutertemplate/Pods-exporoutertemplate-resources.sh\"\n";
+			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-TastyPlates/Pods-TastyPlates-resources.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
-		9F541946276F0470D19C06EE /* [CP] Embed Pods Frameworks */ = {
+		C6C31FA3E7B45F7C6ABD44FB /* [CP] Embed Pods Frameworks */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
 			);
 			inputPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-exporoutertemplate/Pods-exporoutertemplate-frameworks.sh",
+				"${PODS_ROOT}/Target Support Files/Pods-TastyPlates/Pods-TastyPlates-frameworks.sh",
 				"${PODS_XCFRAMEWORKS_BUILD_DIR}/React-Core-prebuilt/React.framework/React",
 				"${PODS_XCFRAMEWORKS_BUILD_DIR}/ReactNativeDependencies/ReactNativeDependencies.framework/ReactNativeDependencies",
 				"${PODS_XCFRAMEWORKS_BUILD_DIR}/hermes-engine/Pre-built/hermes.framework/hermes",
@@ -305,32 +329,8 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-exporoutertemplate/Pods-exporoutertemplate-frameworks.sh\"\n";
+			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-TastyPlates/Pods-TastyPlates-frameworks.sh\"\n";
 			showEnvVarsInLog = 0;
-		};
-		DB8973584B5682F46C463E85 /* [Expo] Configure project */ = {
-			isa = PBXShellScriptBuildPhase;
-			alwaysOutOfDate = 1;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputFileListPaths = (
-			);
-			inputPaths = (
-				"$(SRCROOT)/.xcode.env",
-				"$(SRCROOT)/.xcode.env.local",
-				"$(SRCROOT)/exporoutertemplate/exporoutertemplate.entitlements",
-				"$(SRCROOT)/Pods/Target Support Files/Pods-exporoutertemplate/expo-configure-project.sh",
-			);
-			name = "[Expo] Configure project";
-			outputFileListPaths = (
-			);
-			outputPaths = (
-				"$(SRCROOT)/Pods/Target Support Files/Pods-exporoutertemplate/ExpoModulesProvider.swift",
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "# This script configures Expo modules and generates the modules provider file.\nbash -l -c \"./Pods/Target\\ Support\\ Files/Pods-exporoutertemplate/expo-configure-project.sh\"\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
@@ -340,7 +340,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				F11748422D0307B40044C1D9 /* AppDelegate.swift in Sources */,
-				9E5BEBC7392DDC40662DFAB0 /* ExpoModulesProvider.swift in Sources */,
+				5C4BA64F80833ACAF25FFEC3 /* ExpoModulesProvider.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -349,18 +349,18 @@
 /* Begin XCBuildConfiguration section */
 		13B07F941A680F5B00A75B9A /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 0E9EB3D5162D304AD00A212F /* Pods-exporoutertemplate.debug.xcconfig */;
+			baseConfigurationReference = E437990E4CDA6E803CE1CA2F /* Pods-TastyPlates.debug.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
-				CODE_SIGN_ENTITLEMENTS = exporoutertemplate/exporoutertemplate.entitlements;
+				CODE_SIGN_ENTITLEMENTS = TastyPlates/TastyPlates.entitlements;
 				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_BITCODE = NO;
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					"$(inherited)",
 					"FB_SONARKIT_ENABLED=1",
 				);
-				INFOPLIST_FILE = exporoutertemplate/Info.plist;
+				INFOPLIST_FILE = TastyPlates/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 15.1;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -373,9 +373,9 @@
 					"-lc++",
 				);
 				OTHER_SWIFT_FLAGS = "$(inherited) -D EXPO_CONFIGURATION_DEBUG";
-				PRODUCT_BUNDLE_IDENTIFIER = "com.toyama.rodrigo.expo-router-template";
+				PRODUCT_BUNDLE_IDENTIFIER = "com.bana.tastyplates-dev";
 				PRODUCT_NAME = TastyPlates;
-				SWIFT_OBJC_BRIDGING_HEADER = "exporoutertemplate/exporoutertemplate-Bridging-Header.h";
+				SWIFT_OBJC_BRIDGING_HEADER = "TastyPlates/TastyPlates-Bridging-Header.h";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -385,13 +385,13 @@
 		};
 		13B07F951A680F5B00A75B9A /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 8AD3FDA342FEC5DF96AD048D /* Pods-exporoutertemplate.release.xcconfig */;
+			baseConfigurationReference = 9942DE9C367BBA4A97F699A9 /* Pods-TastyPlates.release.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
-				CODE_SIGN_ENTITLEMENTS = exporoutertemplate/exporoutertemplate.entitlements;
+				CODE_SIGN_ENTITLEMENTS = TastyPlates/TastyPlates.entitlements;
 				CURRENT_PROJECT_VERSION = 1;
-				INFOPLIST_FILE = exporoutertemplate/Info.plist;
+				INFOPLIST_FILE = TastyPlates/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 15.1;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -404,9 +404,9 @@
 					"-lc++",
 				);
 				OTHER_SWIFT_FLAGS = "$(inherited) -D EXPO_CONFIGURATION_RELEASE";
-				PRODUCT_BUNDLE_IDENTIFIER = "com.toyama.rodrigo.expo-router-template";
+				PRODUCT_BUNDLE_IDENTIFIER = "com.bana.tastyplates-dev";
 				PRODUCT_NAME = TastyPlates;
-				SWIFT_OBJC_BRIDGING_HEADER = "exporoutertemplate/exporoutertemplate-Bridging-Header.h";
+				SWIFT_OBJC_BRIDGING_HEADER = "TastyPlates/TastyPlates-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				VERSIONING_SYSTEM = "apple-generic";
@@ -534,7 +534,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		13B07F931A680F5B00A75B9A /* Build configuration list for PBXNativeTarget "exporoutertemplate" */ = {
+		13B07F931A680F5B00A75B9A /* Build configuration list for PBXNativeTarget "TastyPlates" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				13B07F941A680F5B00A75B9A /* Debug */,
@@ -543,7 +543,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		83CBB9FA1A601CBA00E9B192 /* Build configuration list for PBXProject "exporoutertemplate" */ = {
+		83CBB9FA1A601CBA00E9B192 /* Build configuration list for PBXProject "TastyPlates" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				83CBBA201A601CBA00E9B192 /* Debug */,

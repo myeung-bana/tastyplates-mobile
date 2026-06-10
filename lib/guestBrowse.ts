@@ -1,6 +1,6 @@
 import * as SecureStore from 'expo-secure-store'
 
-import { setGetStartedCompleted } from '@/lib/getStartedIntro'
+import { clearGetStartedCompleted, setGetStartedCompleted } from '@/lib/getStartedIntro'
 
 const STORAGE_KEY = 'tastyplates_guest_browse_v1'
 const VALUE_ENABLED = '1'
@@ -22,4 +22,10 @@ export async function clearGuestBrowseEnabled(): Promise<void> {
 export async function enterGuestBrowseMode(): Promise<void> {
   await setGetStartedCompleted()
   await setGuestBrowseEnabled()
+}
+
+/** Clears guest + intro flags so logout returns to the get-started carousel. */
+export async function resetToGetStartedLanding(): Promise<void> {
+  await clearGuestBrowseEnabled()
+  await clearGetStartedCompleted()
 }

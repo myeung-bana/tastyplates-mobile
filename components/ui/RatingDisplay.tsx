@@ -1,5 +1,6 @@
 import { Text, View, type StyleProp, type ViewStyle } from 'react-native'
 
+import { AppIcon } from '@/components/ui/AppIcon'
 import { RATING_STAR_INK, TEXT_HEADING, TEXT_MUTED } from '@/constants/brand'
 import { formatRatingValue } from '@/lib/ratingDisplayUtils'
 
@@ -64,12 +65,13 @@ export function RatingDisplay({
       ) : null}
       {formatted ? (
         <>
-          <Text
-            style={{ fontSize: star, color: RATING_STAR_INK }}
-            importantForAccessibility="no"
-          >
-            ★
-          </Text>
+          <AppIcon
+            name="star"
+            active
+            size={star}
+            color={RATING_STAR_INK}
+            style={{ marginTop: 1 }}
+          />
           <Text style={{ fontSize: score, fontWeight: scoreWeight, color: TEXT_HEADING }}>
             {formatted}
           </Text>

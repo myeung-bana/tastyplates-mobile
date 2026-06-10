@@ -1,16 +1,15 @@
 import type { JSX } from 'react'
 import { Image, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { AppIcon } from '@/components/ui/AppIcon'
+import { RatingDisplay } from '@/components/ui/RatingDisplay'
 
-import { BORDER_SUBTLE, RATING_STAR, TEXT_BODY, TEXT_HEADING, TEXT_MUTED } from '@/constants/brand'
-import { coerceRatingNumber } from '@/lib/ratingDisplayUtils'
+import { BORDER_SUBTLE, TEXT_BODY, TEXT_HEADING, TEXT_MUTED } from '@/constants/brand'
 import { stripHtml } from '@/lib/restaurantDetailUtils'
 import { reviewImageUris } from '@/lib/reviewDisplayUtils'
 import { formatLikeCount, formatRelativeTime } from '@/lib/utils'
 import type { FollowingFeedReviewRow } from '@/services/followingFeedService'
 
 const THUMB = 84
-const MAX_STARS = 5
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 
@@ -29,46 +28,6 @@ function resolveRestaurantName(review: FollowingFeedReviewRow): string {
   const t = review.restaurant?.title?.trim()
   if (t) return stripHtml(t)
   return 'a restaurant'
-}
-
-/** Map a rating 0–5 to a background colour for the badge. */
-function ratingBadgeColor(rating: number): string {
-  if (rating >= 4.5) return '#16a34a' // green-600
-  if (rating >= 4.0) return '#0d9488' // teal-600
-  if (rating >= 3.0) return '#d97706' // amber-600
-  return '#dc2626' // red-600
-}
-
-// ─── sub-components ───────────────────────────────────────────────────────────
-
-function RatingBadge({ rating }: { rating: number | null | undefined }) {
-  const n = coerceRatingNumber(rating)
-  if (!n) return null
-  return (
-    <View style={[styles.ratingBadge, { backgroundColor: ratingBadgeColor(n) }]}>
-      <Text style={styles.ratingBadgeText}>{n.toFixed(1)}</Text>
-    </View>
-  )
-}
-
-function StarRow({ rating }: { rating: number | null | undefined }) {
-  const n = coerceRatingNumber(rating)
-  if (!n) return null
-  const full = Math.floor(n)
-  const half = n - full >= 0.5
-  const empty = MAX_STARS - full - (half ? 1 : 0)
-  return (
-    <View style={styles.starRow}>
-      {Array.from({ length: full }, (_, i) => (
-        <AppIcon key={`f${i}`} name="star" active size={13} color={RATING_STAR} />
-      ))}
-      {half && <AppIcon name="star-half" size={13} color={RATING_STAR} />}
-      {Array.from({ length: empty }, (_, i) => (
-        <AppIcon key={`e${i}`} name="star" size={13} color={RATING_STAR} />
-      ))}
-      <Text style={styles.starScore}>{n.toFixed(1)}</Text>
-    </View>
-  )
 }
 
 // ─── main card ────────────────────────────────────────────────────────────────
@@ -134,7 +93,7 @@ export function FollowingFeedReviewCard({
           <Text style={styles.timeLabel}>{timeLabel}</Text>
         </Pressable>
 
-        <RatingBadge rating={review.rating} />
+        <RatingDisplay value={review.rating} size="sm" style={styles.ratingSlot} />
       </View>
 
       {/* ── body ── */}
@@ -215,13 +174,7 @@ export function FollowingFeedRowSkeleton(): JSX.Element {
           <View style={{ height: 14, width: '80%', borderRadius: 4, backgroundColor: '#e5e7eb' }} />
           <View style={{ height: 12, width: 56, borderRadius: 4, backgroundColor: '#e5e7eb', marginTop: 6 }} />
         </View>
-        <View style={{ width: 40, height: 24, borderRadius: 12, backgroundColor: '#e5e7eb' }} />
-      </View>
-      {/* stars placeholder */}
-      <View style={{ flexDirection: 'row', marginTop: 14, gap: 4 }}>
-        {[0, 1, 2, 3, 4].map((i) => (
-          <View key={i} style={{ width: 13, height: 13, borderRadius: 3, backgroundColor: '#e5e7eb' }} />
-        ))}
+        <View style={{ width: 44, height: 16, borderRadius: 4, backgroundColor: '#e5e7eb' }} />
       </View>
       {/* excerpt placeholder */}
       <View style={{ marginTop: 10 }}>
@@ -309,20 +262,9 @@ const styles = StyleSheet.create({
     color: TEXT_MUTED,
   },
 
-  // ── rating badge ──
-  ratingBadge: {
+  ratingSlot: {
     marginTop: 2,
-    paddingHorizontal: 9,
-    paddingVertical: 4,
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  ratingBadgeText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#ffffff',
-    letterSpacing: 0.2,
+    flexShrink: 0,
   },
 
   // ── body ──
@@ -331,17 +273,6 @@ const styles = StyleSheet.create({
   },
   bodyPressed: {
     opacity: 0.88,
-  },
-  starRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 2,
-  },
-  starScore: {
-    marginLeft: 5,
-    fontSize: 12,
-    fontWeight: '600',
-    color: TEXT_HEADING,
   },
   excerpt: {
     marginTop: 10,

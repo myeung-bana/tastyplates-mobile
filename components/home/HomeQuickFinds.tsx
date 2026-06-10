@@ -25,7 +25,7 @@ export function HomeQuickFinds() {
   const cellWidth = Math.floor((innerWidth - COLUMN_GAP * (COLS - 1)) / COLS)
 
   return (
-    <HomeSectionCard title="Quick finds" shadowed={false}>
+    <HomeSectionCard title="Quick finds" shadowed={false} className="!mt-[9px]">
       <View
         className="flex-row flex-wrap"
         style={{ columnGap: COLUMN_GAP, rowGap: ROW_GAP }}

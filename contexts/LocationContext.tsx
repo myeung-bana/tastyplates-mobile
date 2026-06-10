@@ -1,4 +1,4 @@
-import type { ReactNode, ElementRef } from 'react'
+import type { ReactNode } from 'react'
 import {
   createContext,
   useCallback,
@@ -8,10 +8,9 @@ import {
   useRef,
   useState,
 } from 'react'
-import type { BottomSheetModal } from '@gorhom/bottom-sheet'
 import * as SecureStore from 'expo-secure-store'
 
-import { LocationHierarchyPickerModal } from '@/components/navigation/LocationHierarchyPickerModal'
+import { LocationPickerOverlay } from '@/components/navigation/LocationPickerOverlay'
 import type { SavedLocationPreference } from '@/constants/locations'
 import { readStoredLocationKey } from '@/constants/locations'
 import {
@@ -54,6 +53,7 @@ export type LocationContextValue = {
   ready: boolean
   openLocationPicker: () => void
   closeLocationPicker: () => void
+  isLocationPickerOpen: boolean
 }
 
 const LocationContext = createContext<LocationContextValue | null>(null)
@@ -66,7 +66,7 @@ export function LocationProvider({ children }: { children: ReactNode }): JSX.Ele
   const [hierarchy, setHierarchy] = useState<GetLocationsData | null>(null)
   const [hierarchyLoading, setHierarchyLoading] = useState(false)
   const [hierarchyError, setHierarchyError] = useState<string | null>(null)
-  const sheetRef = useRef<ElementRef<typeof BottomSheetModal>>(null)
+  const [isLocationPickerOpen, setIsLocationPickerOpen] = useState(false)
   const initialSyncDoneRef = useRef(false)
 
   const reloadHierarchy = useCallback(() => {
@@ -171,11 +171,11 @@ export function LocationProvider({ children }: { children: ReactNode }): JSX.Ele
   )
 
   const openLocationPicker = useCallback(() => {
-    sheetRef.current?.present()
+    setIsLocationPickerOpen(true)
   }, [])
 
   const closeLocationPicker = useCallback(() => {
-    sheetRef.current?.dismiss()
+    setIsLocationPickerOpen(false)
   }, [])
 
   const value = useMemo(
@@ -190,12 +190,14 @@ export function LocationProvider({ children }: { children: ReactNode }): JSX.Ele
       ready,
       openLocationPicker,
       closeLocationPicker,
+      isLocationPickerOpen,
     }),
     [
       closeLocationPicker,
       hierarchy,
       hierarchyError,
       hierarchyLoading,
+      isLocationPickerOpen,
       location,
       openLocationPicker,
       ready,
@@ -208,14 +210,16 @@ export function LocationProvider({ children }: { children: ReactNode }): JSX.Ele
   return (
     <LocationContext.Provider value={value}>
       {children}
-      <LocationHierarchyPickerModal
-        sheetRef={sheetRef}
-        hierarchy={hierarchy}
-        hierarchyLoading={hierarchyLoading}
-        hierarchyError={hierarchyError}
-        selectedLocation={location}
-        setLocationPreference={setLocationPreference}
-      />
+      {isLocationPickerOpen ? (
+        <LocationPickerOverlay
+          hierarchy={hierarchy}
+          hierarchyLoading={hierarchyLoading}
+          hierarchyError={hierarchyError}
+          selectedLocation={location}
+          setLocationPreference={setLocationPreference}
+          onClose={closeLocationPicker}
+        />
+      ) : null}
     </LocationContext.Provider>
   )
 }

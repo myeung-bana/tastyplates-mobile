@@ -19,14 +19,14 @@
     "assetBundlePatterns": ["**/*"],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.toyama.rodrigo.expo-router-template",
+      "bundleIdentifier": "com.bana.tastyplates-dev",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "CFBundleDisplayName": "TastyPlates"
       }
     },
     "android": {
-      "package": "com.toyama.rodrigo.exporoutertemplate",
+      "package": "com.bana.tastyplates.dev",
       "icon": "./assets/AppIcons/playstore.png",
       "adaptiveIcon": {
         "foregroundImage": "./assets/AppIcons/playstore.png",

@@ -2,8 +2,8 @@ import type { JSX } from 'react'
 import { useCallback, useEffect, useRef } from 'react'
 import { View } from 'react-native'
 import type { BottomTabBarButtonProps } from '@react-navigation/bottom-tabs'
-import { PlatformPressable } from '@react-navigation/elements'
 
+import { TabBarButton } from '@/components/navigation/TabBarButton'
 import { useStudioQuickMenu } from '@/contexts/StudioQuickMenuContext'
 
 /**
@@ -26,7 +26,7 @@ export function StudioTabAnchorButton(props: BottomTabBarButtonProps): JSX.Eleme
 
   return (
     <View ref={wrapRef} collapsable={false} style={{ flex: 1 }} onLayout={publishLayout}>
-      <PlatformPressable {...props} style={[{ flex: 1 }, props.style]} />
+      <TabBarButton {...props} />
     </View>
   )
 }

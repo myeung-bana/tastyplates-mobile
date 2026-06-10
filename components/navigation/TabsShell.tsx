@@ -1,12 +1,16 @@
 import { Tabs } from 'expo-router'
-import { useMemo } from 'react'
-import type { BottomTabBarButtonProps } from '@react-navigation/bottom-tabs'
+import { useCallback, useMemo } from 'react'
+import type { BottomTabBarButtonProps, BottomTabBarProps } from '@react-navigation/bottom-tabs'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { AppIcon, type AppIconName } from '@/components/ui/AppIcon'
 import { getTabBarStyle } from '@/constants/tabBar'
+import { AppBottomTabBar } from '@/components/navigation/AppBottomTabBar'
+import { TabBarButton } from '@/components/navigation/TabBarButton'
 import { StudioTabAnchorButton } from '@/components/studio/StudioTabAnchorButton'
 import { StudioTabBarWithQuickActions } from '@/components/studio/StudioTabBarWithQuickActions'
+import { SCREEN_PROFILE } from '@/constants/screens'
+import { useAuthSheet } from '@/contexts/AuthSheetContext'
 import { studioQuickMenuToggleRef } from '@/contexts/StudioQuickMenuContext'
 
 const BRAND_PRIMARY = '#ff7c0a'
@@ -56,29 +60,43 @@ function tabBarIcon(config: TabConfig) {
 /**
  * Shared tab navigator — visible tab set differs for signed-in vs guest browse.
  */
+function renderTabBarButton(props: BottomTabBarButtonProps): JSX.Element {
+  return <TabBarButton {...props} />
+}
+
 export function TabsShell({ visibleTabs, useStudioTabBar = false }: TabsShellProps): JSX.Element {
   const visibleNames = new Set(visibleTabs.map((t) => t.name))
   const insets = useSafeAreaInsets()
+  const { openAuthSheet } = useAuthSheet()
   const tabBarStyle = useMemo(() => getTabBarStyle(insets), [insets.bottom])
 
+  const renderTabBar = useCallback(
+    (tabBarProps: BottomTabBarProps) =>
+      useStudioTabBar ? (
+        <StudioTabBarWithQuickActions {...tabBarProps} />
+      ) : (
+        <AppBottomTabBar {...tabBarProps} />
+      ),
+    [useStudioTabBar],
+  )
+
+  const screenOptions = useMemo(
+    () => ({
+      tabBarActiveTintColor: BRAND_PRIMARY,
+      tabBarInactiveTintColor: TAB_INACTIVE,
+      tabBarLabelStyle: {
+        fontSize: 11,
+        fontWeight: '500',
+      },
+      tabBarStyle,
+      tabBarButton: renderTabBarButton,
+      headerShown: false,
+    }),
+    [tabBarStyle],
+  )
+
   return (
-    <Tabs
-      tabBar={
-        useStudioTabBar
-          ? (tabBarProps) => <StudioTabBarWithQuickActions {...tabBarProps} />
-          : undefined
-      }
-      screenOptions={{
-        tabBarActiveTintColor: BRAND_PRIMARY,
-        tabBarInactiveTintColor: TAB_INACTIVE,
-        tabBarLabelStyle: {
-          fontSize: 11,
-          fontWeight: '500',
-        },
-        tabBarStyle: useStudioTabBar ? undefined : tabBarStyle,
-        headerShown: false,
-      }}
-    >
+    <Tabs tabBar={renderTabBar} screenOptions={screenOptions}>
       {MAIN_TAB_NAMES.map((name) => {
         const config = TAB_CONFIG_BY_NAME[name]
         const showInBar = visibleNames.has(name)
@@ -100,6 +118,43 @@ export function TabsShell({ visibleTabs, useStudioTabBar = false }: TabsShellPro
                 tabBarButton: (props: BottomTabBarButtonProps) => (
                   <StudioTabAnchorButton {...props} />
                 ),
+              }}
+            />
+          )
+        }
+
+        if (name === 'restaurants' && showInBar) {
+          return (
+            <Tabs.Screen
+              key={name}
+              name={name}
+              listeners={({ navigation }) => ({
+                tabPress: () => {
+                  navigation.navigate('restaurants', { screen: 'index' })
+                },
+              })}
+              options={{
+                title: config.title,
+                tabBarIcon: tabBarIcon(config),
+              }}
+            />
+          )
+        }
+
+        if (name === 'profile' && showInBar && !useStudioTabBar) {
+          return (
+            <Tabs.Screen
+              key={name}
+              name={name}
+              listeners={{
+                tabPress: (e) => {
+                  e.preventDefault()
+                  openAuthSheet({ mode: 'signin', resume: SCREEN_PROFILE })
+                },
+              }}
+              options={{
+                title: config.title,
+                tabBarIcon: tabBarIcon(config),
               }}
             />
           )

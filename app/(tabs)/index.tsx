@@ -1,6 +1,7 @@
 import { View, ScrollView, RefreshControl } from 'react-native'
 
 import { useCallback, useState } from 'react'
+import { useFocusEffect } from '@react-navigation/native'
 import {
   HomeBrandMark,
   HomeHero,
@@ -15,6 +16,13 @@ import { BRAND_PRIMARY } from '@/constants/brand'
 export default function HomeScreen() {
   const [refreshing, setRefreshing] = useState(false)
   const [feedKey, setFeedKey] = useState(0)
+  const [recentRefreshKey, setRecentRefreshKey] = useState(0)
+
+  useFocusEffect(
+    useCallback(() => {
+      setRecentRefreshKey((k) => k + 1)
+    }, []),
+  )
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true)
@@ -32,7 +40,7 @@ export default function HomeScreen() {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={BRAND_PRIMARY} />}
       >
         <HomeBrandMark />
-        <HomeHero />
+        <HomeHero recentRefreshKey={recentRefreshKey} />
         <HomeQuickFinds />
         <HomeFeaturedRestaurants key={`home-featured-${feedKey}`} />
         <HomeReviewsSection refreshNonce={feedKey} />

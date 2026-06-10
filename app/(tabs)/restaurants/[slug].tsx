@@ -1,12 +1,11 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useState } from 'react'
+import { useCallback, useLayoutEffect, useMemo, useState } from 'react'
 import { ActivityIndicator, Pressable, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { router, useLocalSearchParams, useNavigation } from 'expo-router'
+import { useLocalSearchParams, useNavigation } from 'expo-router'
 import { AppIcon } from '@/components/ui/AppIcon'
 
 import { RestaurantDetailView } from '@/components/restaurant/RestaurantDetailView'
 import { BRAND_PRIMARY, TEXT_HEADING, TEXT_MUTED } from '@/constants/brand'
-import { SCREEN_RESTAURANTS } from '@/constants/screens'
 import { isNoPalateFilter } from '@/lib/palateSearch'
 import {
   getRatingSummary,
@@ -60,11 +59,12 @@ export default function RestaurantDetailScreen() {
   const [refreshing, setRefreshing] = useState(false)
   const [state, setState] = useState<ScreenState>({ status: 'loading' })
 
+  // Stay inside the restaurants stack — `Redirect`/`router.replace` fires on focus and breaks tab nav.
   useLayoutEffect(() => {
     if (!hasSlug) {
-      router.replace(SCREEN_RESTAURANTS)
+      navigation.navigate('index')
     }
-  }, [hasSlug])
+  }, [hasSlug, navigation])
 
   const fetchRestaurant = useCallback(
     async (mode: 'initial' | 'refresh') => {
@@ -127,7 +127,7 @@ export default function RestaurantDetailScreen() {
             if (navigation.canGoBack()) {
               navigation.goBack()
             } else {
-              router.replace(SCREEN_RESTAURANTS)
+              navigation.navigate('index')
             }
           }}
           className="ml-1 rounded-full p-1 active:opacity-70"
@@ -139,11 +139,7 @@ export default function RestaurantDetailScreen() {
   }, [navigation, state])
 
   if (!hasSlug) {
-    return (
-      <SafeAreaView className="flex-1 items-center justify-center bg-white" edges={['bottom']}>
-        <ActivityIndicator size="large" color={BRAND_PRIMARY} />
-      </SafeAreaView>
-    )
+    return null
   }
 
   if (state.status === 'loading') {
