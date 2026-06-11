@@ -56,6 +56,9 @@ export interface RestaurantBrowseCardProps {
   containerStyle?: StyleProp<ViewStyle>
   /** When false, hides `(N)` review count beside the score (e.g. home Recommended row). */
   showReviewCount?: boolean
+  /** Palate-match Search score when `?palate=` is active on browse. */
+  searchPalateRating?: number | null
+  searchPalateReviewCount?: number | null
 }
 
 function buildAccessibilityLabel(
@@ -150,6 +153,8 @@ export function RestaurantBrowseCard({
   onCommentPress,
   containerStyle,
   showReviewCount = true,
+  searchPalateRating,
+  searchPalateReviewCount,
 }: RestaurantBrowseCardProps) {
   const uri = (imageUrl && imageUrl.trim()) || DEFAULT_IMAGE
   const router = useRouter()
@@ -168,6 +173,9 @@ export function RestaurantBrowseCard({
   const isNarrow = screenWidth < 768
   const overallRating = coerceRatingNumber(rating)
   const showRating = hasDisplayableRating(overallRating)
+  const palateMatchRating = coerceRatingNumber(searchPalateRating)
+  const showPalateMatchRating =
+    searchPalateRating !== undefined && hasDisplayableRating(palateMatchRating)
 
   const cuisineList = normalizeCuisineList(listingCategories)
   const categoryList = normalizeCategoryList(categories)
@@ -395,14 +403,27 @@ export function RestaurantBrowseCard({
               {title}
             </Text>
 
-            {showRating ? (
-              <RatingDisplay
-                value={overallRating}
-                size="sm"
-                reviewCount={showReviewCount ? reviewCount : undefined}
-                style={{ flexShrink: 0 }}
-              />
-            ) : null}
+            <View style={{ flexShrink: 0, alignItems: 'flex-end', gap: 2 }}>
+              {showRating ? (
+                <RatingDisplay
+                  value={overallRating}
+                  size="sm"
+                  reviewCount={showReviewCount ? reviewCount : undefined}
+                />
+              ) : null}
+              {showPalateMatchRating ? (
+                <RatingDisplay
+                  value={palateMatchRating}
+                  size="sm"
+                  reviewCount={
+                    searchPalateReviewCount != null && searchPalateReviewCount > 0
+                      ? searchPalateReviewCount
+                      : undefined
+                  }
+                  label="Match"
+                />
+              ) : null}
+            </View>
           </View>
 
           {subtitle?.trim() ? (

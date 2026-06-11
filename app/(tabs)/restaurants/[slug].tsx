@@ -83,9 +83,9 @@ export default function RestaurantDetailScreen() {
           getRestaurantReviewsPreview(restaurant.uuid, 8),
           palateSlug
             ? getPreferenceStatsByPalate(palateSlug)
-            : Promise.resolve(new Map<number, PreferenceStat>()),
+            : Promise.resolve(new Map<string, PreferenceStat>()),
         ])
-        const pref = prefMap.get(restaurant.id)
+        const pref = prefMap.get(restaurant.uuid)
         setState({
           status: 'ready',
           restaurant,

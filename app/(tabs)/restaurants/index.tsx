@@ -44,8 +44,11 @@ import {
 } from '@/lib/restaurantSearchConfig'
 import type { NearbyPlaceRow } from '@/lib/googlePlaces'
 import { getNearbyRestaurants } from '@/lib/googlePlaces'
-import { isNoPalateFilter } from '@/lib/palateSearch'
+import { usePalatePreferenceStats } from '@/hooks/usePalatePreferenceStats'
 import { labelForPalateKey } from '@/lib/palateLabels'
+import { isNoPalateFilter, isPalateSortActive } from '@/lib/palateSearch'
+import { sortRestaurantsByPalateMatch } from '@/lib/sortByPalateMatch'
+import { hasDisplayableRating } from '@/lib/ratingDisplayUtils'
 import { coerceRatingNumber } from '@/lib/ratingDisplayUtils'
 import {
   mergeRestaurantResults,
@@ -126,7 +129,15 @@ export default function RestaurantsScreen() {
     return a ?? b ?? undefined
   }, [search, listing])
 
-  const palateSlugs = useMemo(() => (palate ? [palate] : undefined), [palate])
+  const palateSortActive = isPalateSortActive(palate)
+  const listOrderBy = palateSortActive ? 'smart' : undefined
+
+  const {
+    loading: palateStatsLoading,
+    error: palateStatsError,
+    statsMap,
+    getForRestaurantUuid,
+  } = usePalatePreferenceStats(palate)
 
   const [rows, setRows] = useState<RestaurantSearchResult[]>([])
   const [cursor, setCursor] = useState<string | null>(null)
@@ -168,7 +179,6 @@ export default function RestaurantsScreen() {
       try {
         if (searchQuery?.trim()) {
           const hybrid = await hybridSearch(searchQuery, locationKey, coordinates, {
-            palateSlugs,
             mode: 'browse',
             palateSlug: palate ?? null,
             cityName,
@@ -180,10 +190,10 @@ export default function RestaurantsScreen() {
           const [tpData, googlePlaces] = await Promise.allSettled([
             getRestaurants({
               search: searchQuery,
-              palateSlugs,
               limit: PAGE_SIZE,
               cursor: null,
               locationKey,
+              order_by: listOrderBy,
               ...geoParams,
             }),
             coordinates
@@ -224,7 +234,7 @@ export default function RestaurantsScreen() {
         setRefreshing(false)
       }
     },
-    [searchQuery, palateSlugs, locationKey, coordinates, palate, mergeOptions, geoParams, cityName],
+    [searchQuery, listOrderBy, locationKey, coordinates, palate, mergeOptions, geoParams, cityName],
   )
 
   useEffect(() => {
@@ -246,10 +256,10 @@ export default function RestaurantsScreen() {
     try {
       const data = await getRestaurants({
         search: searchQuery,
-        palateSlugs,
         limit: PAGE_SIZE,
         cursor,
         locationKey,
+        order_by: listOrderBy,
         cityName: searchQuery?.trim() ? cityName : undefined,
         ...(searchQuery?.trim() ? {} : geoParams),
       })
@@ -276,12 +286,17 @@ export default function RestaurantsScreen() {
     loadingMore,
     loading,
     searchQuery,
-    palateSlugs,
+    listOrderBy,
     locationKey,
     mergeOptions,
     geoParams,
     cityName,
   ])
+
+  const displayRows = useMemo(() => {
+    if (!palateSortActive || !statsMap) return rows
+    return sortRestaurantsByPalateMatch(rows, statsMap)
+  }, [rows, palateSortActive, statsMap])
 
   const onRefresh = useCallback(() => {
     void fetchFirstPage({ isPullRefresh: true })
@@ -358,7 +373,7 @@ export default function RestaurantsScreen() {
   }, [panMapToResult])
 
   const listHeaderText = useMemo(() => {
-    const count = rows.length
+    const count = displayRows.length
     const locality = location.label?.trim() || 'your area'
     const title = `${count} listing${count === 1 ? '' : 's'} within ${CITY_SEARCH_RADIUS_KM} km of ${locality}`
     if (!isNoPalateFilter(palate)) {
@@ -368,14 +383,14 @@ export default function RestaurantsScreen() {
       }
     }
     return { title, subtitle: null as string | null }
-  }, [rows.length, location.label, palate])
+  }, [displayRows.length, location.label, palate])
 
   const emptyMessage = useMemo(() => {
-    if (searchQuery || palate) {
-      return 'No restaurants match your filters. Try adjusting search or palate.'
+    if (searchQuery || palateSortActive) {
+      return 'No restaurants match your search. Try adjusting keywords or palate.'
     }
     return `No restaurants found within ${CITY_SEARCH_RADIUS_KM} km. Try another city.`
-  }, [searchQuery, palate])
+  }, [searchQuery, palateSortActive])
 
   const renderBrowseCard = useCallback(
     ({ item }: { item: RestaurantSearchResult }) => {
@@ -387,6 +402,13 @@ export default function RestaurantsScreen() {
       const overallRating = isGoogleResult(item)
         ? coerceRatingNumber(item.google_rating)
         : coerceRatingNumber(item.average_rating)
+
+      const palateStat =
+        palateSortActive && statsMap && isTPResult(item)
+          ? getForRestaurantUuid(item.uuid)
+          : null
+      const searchPalateRating =
+        palateStat && hasDisplayableRating(palateStat.avg) ? palateStat.avg : undefined
 
       return (
         <View style={selectedStyle}>
@@ -407,6 +429,8 @@ export default function RestaurantsScreen() {
                 ? (item.ratings_count ?? undefined)
                 : (item.google_review_count ?? undefined)
             }
+            searchPalateRating={searchPalateRating}
+            searchPalateReviewCount={palateStat?.count}
             containerStyle={cardWidth != null ? { width: cardWidth } : undefined}
             onPress={() => handleCardPress(item)}
             onCommentPress={() => handleCardPress(item)}
@@ -414,7 +438,7 @@ export default function RestaurantsScreen() {
         </View>
       )
     },
-    [cardWidth, handleCardPress, selectedId],
+    [cardWidth, getForRestaurantUuid, handleCardPress, palateSortActive, selectedId, statsMap],
   )
 
   const sheetListHeader = (
@@ -427,14 +451,20 @@ export default function RestaurantsScreen() {
           {listHeaderText.subtitle}
         </Text>
       ) : null}
-      {error && rows.length > 0 ? (
+      {error && displayRows.length > 0 ? (
         <Text className="mt-2 text-center text-xs text-red-600">{error}</Text>
+      ) : null}
+      {palateStatsError && palateSortActive ? (
+        <Text className="mt-2 text-center text-xs text-amber-700">{palateStatsError}</Text>
+      ) : null}
+      {palateStatsLoading && palateSortActive ? (
+        <Text className="mt-0.5 font-neusans text-xs text-gray-500">Updating match order…</Text>
       ) : null}
     </View>
   )
 
   const showMapLayout = cityMapRegion != null
-  const showMapExperience = showMapLayout && !loading && !(error && rows.length === 0)
+  const showMapExperience = showMapLayout && !loading && !(error && displayRows.length === 0)
 
   const filterChips = (
     <View className="bg-white px-4 pb-2 pt-2">
@@ -448,8 +478,8 @@ export default function RestaurantsScreen() {
   )
 
   const mapMarkers = useMemo(() => {
-    if (!coordinates) return rows
-    return rows.filter((result) => {
+    if (!coordinates) return displayRows
+    return displayRows.filter((result) => {
       const coords = restaurantSearchResultCoords(result)
       if (coords.latitude == null || coords.longitude == null) return false
       return isWithinRadiusKm(
@@ -459,7 +489,7 @@ export default function RestaurantsScreen() {
         CITY_SEARCH_RADIUS_KM,
       )
     })
-  }, [rows, coordinates])
+  }, [displayRows, coordinates])
 
   return (
     <View className="flex-1 bg-white">
@@ -478,7 +508,7 @@ export default function RestaurantsScreen() {
               const coords = restaurantSearchResultCoords(result)
               if (coords.latitude == null || coords.longitude == null) return null
               const id = restaurantSearchResultId(result)
-              const index = rows.findIndex((r) => restaurantSearchResultId(r) === id)
+              const index = displayRows.findIndex((r) => restaurantSearchResultId(r) === id)
               return (
                 <Marker
                   key={id}
@@ -510,7 +540,7 @@ export default function RestaurantsScreen() {
           >
             <BottomSheetFlatList
               ref={listRef}
-              data={rows}
+              data={displayRows}
               keyExtractor={(item) => restaurantSearchResultId(item)}
               renderItem={renderBrowseCard}
               ItemSeparatorComponent={() => <View style={{ height: ROW_GAP }} />}
@@ -545,11 +575,11 @@ export default function RestaurantsScreen() {
           <AppTopNav />
           {filterChips}
 
-          {loading && rows.length === 0 ? (
+          {loading && displayRows.length === 0 ? (
             <View className="flex-1 px-4">
               <RestaurantBrowseSkeletonList cardWidth={cardWidth} />
             </View>
-          ) : error && rows.length === 0 ? (
+          ) : error && displayRows.length === 0 ? (
             <View className="mt-8 flex-1 items-center px-4">
               <Text className="text-center text-sm text-red-600">{error}</Text>
             </View>
@@ -557,11 +587,27 @@ export default function RestaurantsScreen() {
             <View className="flex-1 px-4">
               <FlatList
                 className="mt-3 flex-1"
-                data={rows}
+                data={displayRows}
                 keyExtractor={(item) => restaurantSearchResultId(item)}
                 renderItem={renderBrowseCard}
                 ItemSeparatorComponent={() => <View style={{ height: ROW_GAP }} />}
                 contentContainerStyle={{ paddingBottom: 24 }}
+                ListHeaderComponent={
+                  listHeaderText.subtitle || palateStatsLoading || palateStatsError ? (
+                    <View className="pb-2">
+                      {listHeaderText.subtitle ? (
+                        <Text className="font-neusans text-xs" style={{ color: BRAND_PRIMARY }}>
+                          {listHeaderText.subtitle}
+                        </Text>
+                      ) : null}
+                      {palateStatsLoading && palateSortActive ? (
+                        <Text className="mt-0.5 font-neusans text-xs text-gray-500">
+                          Updating match order…
+                        </Text>
+                      ) : null}
+                    </View>
+                  ) : null
+                }
                 ListEmptyComponent={
                   <Text className="mt-8 text-center text-sm text-gray-500">{emptyMessage}</Text>
                 }

@@ -1,44 +1,55 @@
+import { expandPalateParamToSlugs } from '@/lib/palateSearch'
 import { tastyplatesFetch, unwrapEnvelope } from '@/lib/tastyplatesFetch'
 import { coerceRatingNumber } from '@/lib/ratingDisplayUtils'
-
-export interface PreferenceStatRow {
-  restaurant_id: number
-  cuisine_id: number
-  preference_rating_avg: number | null
-  preference_review_count: number
-}
 
 export interface PreferenceStat {
   avg: number | null
   count: number
 }
 
-/**
- * Preference / Search scores for one palate slug (`restaurant_cuisine_rating_summary`).
- */
-export async function getPreferenceStatsByPalate(
-  palateSlug: string,
-): Promise<Map<number, PreferenceStat>> {
-  const slug = palateSlug.trim()
-  if (!slug) return new Map()
+type PreferenceStatsResponse = Record<string, { avg: number; count: number }>
 
-  const envelope = await tastyplatesFetch<PreferenceStatRow[]>(
-    `restaurants-v2/get-preference-stats?palate_slug=${encodeURIComponent(slug)}`,
+/**
+ * Preference / Search scores for a palate slug set (reviewer-profile matching via Nhost).
+ * Returns a map keyed by `restaurant_uuid`.
+ */
+export async function getPreferenceStatsForPalates(
+  palateSlugs: string[],
+): Promise<Map<string, PreferenceStat>> {
+  const slugs = [...new Set(palateSlugs.map((s) => s.trim().toLowerCase()).filter(Boolean))]
+  if (slugs.length === 0) return new Map()
+
+  const envelope = await tastyplatesFetch<PreferenceStatsResponse>(
+    `restaurants-v2/get-preference-stats?palates=${encodeURIComponent(slugs.join(','))}`,
   )
-  const rows = unwrapEnvelope(envelope)
-  const map = new Map<number, PreferenceStat>()
-  for (const row of rows) {
-    map.set(row.restaurant_id, {
-      avg: coerceRatingNumber(row.preference_rating_avg),
-      count: row.preference_review_count ?? 0,
+  const data = unwrapEnvelope(envelope)
+  const map = new Map<string, PreferenceStat>()
+  for (const [uuid, row] of Object.entries(data ?? {})) {
+    map.set(uuid, {
+      avg: coerceRatingNumber(row.avg),
+      count: row.count ?? 0,
     })
   }
   return map
 }
 
-export function lookupPreferenceStat(
-  map: Map<number, PreferenceStat>,
-  restaurantId: number,
+/** Expand a route param (cuisine slug or region key) then fetch preference stats. */
+export async function getPreferenceStatsByPalateParam(
+  palateParam: string,
+): Promise<Map<string, PreferenceStat>> {
+  return getPreferenceStatsForPalates(expandPalateParamToSlugs(palateParam))
+}
+
+/** @deprecated Use `getPreferenceStatsByPalateParam` — kept for call-site clarity. */
+export async function getPreferenceStatsByPalate(
+  palateParam: string,
+): Promise<Map<string, PreferenceStat>> {
+  return getPreferenceStatsByPalateParam(palateParam)
+}
+
+export function lookupPreferenceStatByUuid(
+  map: Map<string, PreferenceStat>,
+  restaurantUuid: string,
 ): PreferenceStat | null {
-  return map.get(restaurantId) ?? null
+  return map.get(restaurantUuid) ?? null
 }

@@ -139,11 +139,13 @@ function errorFromReason(reason: unknown): string {
 }
 
 export interface HybridSearchOptions {
+  /** @deprecated Palate Sort uses `palateSlug` for sort context only — not sent as `palate_slugs` filter. */
   palateSlugs?: string[]
   limit?: number
   mode?: HybridSearchMode
   geoMode?: HybridSearchGeoMode
   cityName?: string
+  /** When set, enables Palate Sort base order (`smart`) and suppresses Google merge. */
   palateSlug?: string | null
   signal?: AbortSignal
 }
@@ -178,14 +180,16 @@ export async function hybridSearch(
   const signal = options.signal
   const errors: HybridSearchResponse['errors'] = {}
 
+  const palateSortActive = Boolean(options.palateSlug?.trim())
+
   const [tpResult, googlePredictions] = await Promise.allSettled([
     hasTextQuery
       ? getRestaurants({
           search: trimmed,
-          palateSlugs: options.palateSlugs,
           limit,
           locationKey,
           cityName: options.cityName,
+          order_by: palateSortActive ? 'smart' : undefined,
           ...geo,
         })
       : Promise.resolve({ restaurants: [], meta: { cursor: null, hasMore: false } }),
