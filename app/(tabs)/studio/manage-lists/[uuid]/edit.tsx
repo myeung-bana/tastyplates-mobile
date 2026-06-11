@@ -36,6 +36,7 @@ export default function EditListScreen(): JSX.Element {
   const [formValues, setFormValues] = useState<ListFormInitialValues | null>(null)
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
+  const [submitPhase, setSubmitPhase] = useState<'idle' | 'upload' | 'save'>('idle')
 
   useEffect(() => {
     const fallback: ListFormInitialValues = {
@@ -84,11 +85,13 @@ export default function EditListScreen(): JSX.Element {
     try {
       let display_pic: string | null | undefined
       if (values.pendingCover) {
+        setSubmitPhase('upload')
         display_pic = await uploadListCoverPhoto(values.pendingCover)
       } else if (values.clearDisplayPic) {
         display_pic = null
       }
 
+      setSubmitPhase('save')
       await updateList({
         list_uuid: uuid,
         title: values.title,
@@ -102,8 +105,12 @@ export default function EditListScreen(): JSX.Element {
       toast.error(e instanceof Error ? e.message : listUpdateError)
     } finally {
       setSubmitting(false)
+      setSubmitPhase('idle')
     }
   }
+
+  const submittingLabel =
+    submitPhase === 'upload' ? 'Uploading cover…' : submitPhase === 'save' ? 'Saving…' : 'Saving…'
 
   if (loading || !formValues) {
     return (
@@ -119,6 +126,7 @@ export default function EditListScreen(): JSX.Element {
       mode="edit"
       initialValues={formValues}
       submitLabel="Save Changes"
+      submittingLabel={submitting ? submittingLabel : undefined}
       submitting={submitting}
       onSubmit={(values) => void handleSubmit(values)}
     />

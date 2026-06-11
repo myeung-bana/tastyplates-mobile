@@ -182,10 +182,23 @@ export function formatRestaurantCardAddress(
     listingStreet?.trim() || address?.street_address?.trim() || null
 
   if (street && city) {
-    if (streetEndsWithCity(street, city)) return street
+    if (streetEndsWithCity(street, city)) {
+      const commaIdx = street.toLowerCase().lastIndexOf(`, ${city.toLowerCase()}`)
+      if (commaIdx > 0) {
+        return `${street.slice(0, commaIdx).trim()}, ${city}`
+      }
+      return street
+    }
+    if (street.includes(',')) {
+      const streetLine = street.split(',')[0]?.trim()
+      if (streetLine) return `${streetLine}, ${city}`
+    }
     return `${street}, ${city}`
   }
-  if (street) return street
+  if (street) {
+    if (street.includes(',')) return formatShortFormattedAddress(street)
+    return street
+  }
   if (city) {
     return address?.country_short ? `${city}, ${address.country_short}` : city
   }
@@ -193,7 +206,8 @@ export function formatRestaurantCardAddress(
 }
 
 /**
- * Short subtitle for list rows from Google `formatted_address` (street + city).
+ * Short subtitle from a comma-separated address (street + city only).
+ * e.g. `146 Front St W, Toronto, ON M5J 1G2, Canada` → `146 Front St W, Toronto`
  */
 export function formatShortFormattedAddress(
   formatted: string | null | undefined,
@@ -202,8 +216,8 @@ export function formatShortFormattedAddress(
   if (!raw) return null
   const parts = raw.split(',').map((p) => p.trim()).filter(Boolean)
   if (parts.length === 0) return null
-  if (parts.length <= 2) return parts.join(', ')
-  return `${parts[0]}, ${parts[parts.length - 2]}`
+  if (parts.length === 1) return parts[0]
+  return `${parts[0]}, ${parts[1]}`
 }
 
 /** @deprecated Prefer `formatRestaurantCardAddress` for list/detail subtitle lines. */

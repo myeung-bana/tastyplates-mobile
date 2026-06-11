@@ -2,13 +2,14 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   ActivityIndicator,
   FlatList,
+  Pressable,
   RefreshControl,
   StyleSheet,
   Text,
   View,
   useWindowDimensions,
 } from 'react-native'
-import BottomSheet, { BottomSheetFlatList, type BottomSheetFlatListMethods } from '@gorhom/bottom-sheet'
+import BottomSheet, { BottomSheetFlatList } from '@gorhom/bottom-sheet'
 import MapView, { Marker, PROVIDER_GOOGLE, type Region } from 'react-native-maps'
 import * as Haptics from 'expo-haptics'
 import { useLocalSearchParams, router } from 'expo-router'
@@ -35,7 +36,10 @@ import {
   isWithinRadiusKm,
   mapRegionForRadiusKm,
 } from '@/lib/geoUtils'
-import { cityNameFromLocation } from '@/lib/restaurantDiscoveryHelpers'
+import {
+  cityNameFromLocation,
+  formatRestaurantSearchResultAddress,
+} from '@/lib/restaurantDiscoveryHelpers'
 import { hybridSearch } from '@/lib/hybridSearch'
 import {
   MERGE_GOOGLE_LIMIT_IDLE,
@@ -48,7 +52,6 @@ import { usePalatePreferenceStats } from '@/hooks/usePalatePreferenceStats'
 import { labelForPalateKey } from '@/lib/palateLabels'
 import { isNoPalateFilter, isPalateSortActive } from '@/lib/palateSearch'
 import { sortRestaurantsByPalateMatch } from '@/lib/sortByPalateMatch'
-import { hasDisplayableRating } from '@/lib/ratingDisplayUtils'
 import { coerceRatingNumber } from '@/lib/ratingDisplayUtils'
 import {
   mergeRestaurantResults,
@@ -58,7 +61,6 @@ import {
   restaurantSearchResultRating,
 } from '@/lib/restaurantSearchMerge'
 import {
-  formatRestaurantCardAddress,
   getRestaurants,
   normalizeCategoryList,
   normalizeCuisineList,
@@ -149,7 +151,6 @@ export default function RestaurantsScreen() {
   const [selectedId, setSelectedId] = useState<string | null>(null)
 
   const mapRef = useRef<MapView>(null)
-  const listRef = useRef<BottomSheetFlatListMethods>(null)
   const bottomSheetRef = useRef<BottomSheet>(null)
   const loadMoreLockRef = useRef(false)
 
@@ -298,6 +299,17 @@ export default function RestaurantsScreen() {
     return sortRestaurantsByPalateMatch(rows, statsMap)
   }, [rows, palateSortActive, statsMap])
 
+  const selectedPinResult = useMemo(() => {
+    if (!selectedId) return null
+    return displayRows.find((r) => restaurantSearchResultId(r) === selectedId) ?? null
+  }, [selectedId, displayRows])
+
+  /** Exclude pinned preview from the scrollable list to avoid duplicate cards. */
+  const sheetListData = useMemo(() => {
+    if (!selectedId) return displayRows
+    return displayRows.filter((r) => restaurantSearchResultId(r) !== selectedId)
+  }, [displayRows, selectedId])
+
   const onRefresh = useCallback(() => {
     void fetchFirstPage({ isPullRefresh: true })
   }, [fetchFirstPage])
@@ -361,16 +373,23 @@ export default function RestaurantsScreen() {
     [navigateToRestaurant, panMapToResult],
   )
 
-  const handlePinPress = useCallback((result: RestaurantSearchResult, index: number) => {
-    const id = restaurantSearchResultId(result)
-    setSelectedId(id)
-    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium)
-    panMapToResult(result)
-    bottomSheetRef.current?.snapToIndex(1)
-    globalThis.setTimeout(() => {
-      listRef.current?.scrollToIndex({ index, animated: true, viewOffset: 12 })
-    }, 280)
-  }, [panMapToResult])
+  const clearPinSelection = useCallback(() => {
+    setSelectedId(null)
+  }, [])
+
+  const handlePinPress = useCallback(
+    (result: RestaurantSearchResult) => {
+      setSelectedId(restaurantSearchResultId(result))
+      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium)
+      panMapToResult(result)
+      bottomSheetRef.current?.snapToIndex(1)
+    },
+    [panMapToResult],
+  )
+
+  const handleSheetIndexChange = useCallback((index: number) => {
+    if (index === 0) setSelectedId(null)
+  }, [])
 
   const listHeaderText = useMemo(() => {
     const count = displayRows.length
@@ -392,13 +411,8 @@ export default function RestaurantsScreen() {
     return `No restaurants found within ${CITY_SEARCH_RADIUS_KM} km. Try another city.`
   }, [searchQuery, palateSortActive])
 
-  const renderBrowseCard = useCallback(
-    ({ item }: { item: RestaurantSearchResult }) => {
-      const id = restaurantSearchResultId(item)
-      const isSelected = selectedId === id
-      const selectedStyle =
-        isSelected ? { borderWidth: 2, borderColor: BRAND_PRIMARY, borderRadius: 16 } : undefined
-
+  const renderResultCard = useCallback(
+    (item: RestaurantSearchResult, options?: { pinPreview?: boolean }) => {
       const overallRating = isGoogleResult(item)
         ? coerceRatingNumber(item.google_rating)
         : coerceRatingNumber(item.average_rating)
@@ -407,20 +421,18 @@ export default function RestaurantsScreen() {
         palateSortActive && statsMap && isTPResult(item)
           ? getForRestaurantUuid(item.uuid)
           : null
-      const searchPalateRating =
-        palateStat && hasDisplayableRating(palateStat.avg) ? palateStat.avg : undefined
+
+      const wrapperStyle = options?.pinPreview
+        ? { borderWidth: 2, borderColor: BRAND_PRIMARY, borderRadius: 16 }
+        : undefined
 
       return (
-        <View style={selectedStyle}>
+        <View style={wrapperStyle}>
           <RestaurantBrowseCard
             title={item.title}
             slug={isTPResult(item) ? item.slug : undefined}
             imageUrl={item.featured_image_url}
-            subtitle={
-              isTPResult(item)
-                ? formatRestaurantCardAddress(item.listing_street, item.address)
-                : item.address
-            }
+            subtitle={formatRestaurantSearchResultAddress(item)}
             listingCategories={isTPResult(item) ? item.cuisines : undefined}
             categories={isTPResult(item) ? item.categories : undefined}
             rating={overallRating}
@@ -429,7 +441,8 @@ export default function RestaurantsScreen() {
                 ? (item.ratings_count ?? undefined)
                 : (item.google_review_count ?? undefined)
             }
-            searchPalateRating={searchPalateRating}
+            ratingMode={palateSortActive ? 'palate-match' : 'overall'}
+            searchPalateRating={palateStat?.avg ?? null}
             searchPalateReviewCount={palateStat?.count}
             containerStyle={cardWidth != null ? { width: cardWidth } : undefined}
             onPress={() => handleCardPress(item)}
@@ -438,29 +451,77 @@ export default function RestaurantsScreen() {
         </View>
       )
     },
-    [cardWidth, getForRestaurantUuid, handleCardPress, palateSortActive, selectedId, statsMap],
+    [cardWidth, getForRestaurantUuid, handleCardPress, palateSortActive, statsMap],
   )
 
-  const sheetListHeader = (
-    <View className="border-b border-gray-100 px-4 pb-3 pt-2">
-      <Text className="font-neusans text-base font-semibold text-[#31343F]">
-        {listHeaderText.title}
-      </Text>
-      {listHeaderText.subtitle ? (
-        <Text className="mt-0.5 font-neusans text-xs" style={{ color: BRAND_PRIMARY }}>
-          {listHeaderText.subtitle}
-        </Text>
-      ) : null}
-      {error && displayRows.length > 0 ? (
-        <Text className="mt-2 text-center text-xs text-red-600">{error}</Text>
-      ) : null}
-      {palateStatsError && palateSortActive ? (
-        <Text className="mt-2 text-center text-xs text-amber-700">{palateStatsError}</Text>
-      ) : null}
-      {palateStatsLoading && palateSortActive ? (
-        <Text className="mt-0.5 font-neusans text-xs text-gray-500">Updating match order…</Text>
-      ) : null}
-    </View>
+  const renderBrowseCard = useCallback(
+    ({ item }: { item: RestaurantSearchResult }) => renderResultCard(item),
+    [renderResultCard],
+  )
+
+  const sheetListHeader = useMemo(
+    () => (
+      <View className="border-b border-gray-100 pb-3 pt-2">
+        <View className="px-4">
+          <Text className="font-neusans text-base font-semibold text-[#31343F]">
+            {listHeaderText.title}
+          </Text>
+          {listHeaderText.subtitle ? (
+            <Text className="mt-0.5 font-neusans text-xs" style={{ color: BRAND_PRIMARY }}>
+              {listHeaderText.subtitle}
+            </Text>
+          ) : null}
+          {error && displayRows.length > 0 ? (
+            <Text className="mt-2 text-center text-xs text-red-600">{error}</Text>
+          ) : null}
+          {palateStatsError && palateSortActive ? (
+            <Text className="mt-2 text-center text-xs text-amber-700">{palateStatsError}</Text>
+          ) : null}
+          {palateStatsLoading && palateSortActive ? (
+            <Text className="mt-0.5 font-neusans text-xs text-gray-500">Updating match order…</Text>
+          ) : null}
+        </View>
+
+        {selectedPinResult ? (
+          <View className="mt-3 border-t border-gray-100 px-4 pt-3">
+            <View className="mb-2 flex-row items-center justify-between">
+              <Text className="font-neusans text-xs font-medium text-gray-500">
+                Selected on map
+              </Text>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Show all results"
+                onPress={clearPinSelection}
+                hitSlop={8}
+              >
+                <Text className="font-neusans text-xs font-medium" style={{ color: BRAND_PRIMARY }}>
+                  Show all
+                </Text>
+              </Pressable>
+            </View>
+            {renderResultCard(selectedPinResult, { pinPreview: true })}
+            {sheetListData.length > 0 ? (
+              <Text className="mt-4 font-neusans text-xs font-semibold uppercase tracking-wide text-gray-400">
+                All results
+              </Text>
+            ) : null}
+          </View>
+        ) : null}
+      </View>
+    ),
+    [
+      clearPinSelection,
+      displayRows.length,
+      error,
+      listHeaderText.subtitle,
+      listHeaderText.title,
+      palateSortActive,
+      palateStatsError,
+      palateStatsLoading,
+      renderResultCard,
+      selectedPinResult,
+      sheetListData.length,
+    ],
   )
 
   const showMapLayout = cityMapRegion != null
@@ -503,17 +564,17 @@ export default function RestaurantsScreen() {
             showsUserLocation
             showsMyLocationButton={false}
             mapPadding={{ top: 0, right: 0, bottom: 0, left: 0 }}
+            onPress={clearPinSelection}
           >
             {mapMarkers.map((result) => {
               const coords = restaurantSearchResultCoords(result)
               if (coords.latitude == null || coords.longitude == null) return null
               const id = restaurantSearchResultId(result)
-              const index = displayRows.findIndex((r) => restaurantSearchResultId(r) === id)
               return (
                 <Marker
                   key={id}
                   coordinate={{ latitude: coords.latitude, longitude: coords.longitude }}
-                  onPress={() => handlePinPress(result, index >= 0 ? index : 0)}
+                  onPress={() => handlePinPress(result)}
                   tracksViewChanges={false}
                 >
                   <RestaurantMapPin
@@ -537,16 +598,18 @@ export default function RestaurantsScreen() {
             enablePanDownToClose={false}
             enableDynamicSizing={false}
             handleIndicatorStyle={{ backgroundColor: '#d1d5db', width: 40 }}
+            onChange={handleSheetIndexChange}
           >
             <BottomSheetFlatList
-              ref={listRef}
-              data={displayRows}
+              data={sheetListData}
               keyExtractor={(item) => restaurantSearchResultId(item)}
               renderItem={renderBrowseCard}
               ItemSeparatorComponent={() => <View style={{ height: ROW_GAP }} />}
               ListHeaderComponent={sheetListHeader}
               ListEmptyComponent={
-                <Text className="py-8 text-center text-sm text-gray-500">{emptyMessage}</Text>
+                selectedPinResult ? null : (
+                  <Text className="py-8 text-center text-sm text-gray-500">{emptyMessage}</Text>
+                )
               }
               ListFooterComponent={
                 loadingMore ? (
@@ -561,12 +624,6 @@ export default function RestaurantsScreen() {
               onEndReached={() => void loadMore()}
               onEndReachedThreshold={0.35}
               contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 32 }}
-              onScrollToIndexFailed={(info) => {
-                listRef.current?.scrollToOffset({
-                  offset: info.averageItemLength * info.index,
-                  animated: true,
-                })
-              }}
             />
           </BottomSheet>
         </View>

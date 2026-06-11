@@ -1,10 +1,15 @@
 import { getNhostFunctionsBase, unwrapEnvelope, type Envelope } from '@/lib/tastyplatesFetch'
 import { nhost } from '@/lib/nhost'
 
-export interface S3UploadResult {
+export interface MediaUploadResult {
   fileUrl: string
   filePath: string
+  mediaUuid?: string | null
+  deduped?: boolean
 }
+
+/** @deprecated Use {@link MediaUploadResult} */
+export type S3UploadResult = MediaUploadResult
 
 export interface UploadProgress {
   loaded: number
@@ -29,20 +34,25 @@ function toFormDataFile(file: UploadableFile): Blob | { uri: string; name: strin
   }
 }
 
+function requireAccessToken(): string {
+  const token = nhost.auth.getAccessToken() ?? nhost.auth.getSession()?.accessToken ?? null
+  if (!token) {
+    throw new Error('You must be signed in to upload images')
+  }
+  return token
+}
+
 /**
- * Upload an image via Nhost Functions `POST upload/image` (multipart → S3).
+ * Upload an image via Nhost Functions `POST upload/image`.
  * Returns the public HTTPS URL to store on entities (reviews, profile, list display_pic).
  */
-export async function uploadImageToS3(file: UploadableFile): Promise<S3UploadResult> {
+export async function uploadMediaAsset(file: UploadableFile): Promise<MediaUploadResult> {
   const base = getNhostFunctionsBase()
   if (!base) {
     throw new Error('EXPO_PUBLIC_NHOST_FUNCTIONS_URL is not set')
   }
 
-  const token = nhost.auth.getAccessToken() ?? nhost.auth.getSession()?.accessToken ?? null
-  if (!token) {
-    throw new Error('You must be signed in to upload images')
-  }
+  const token = requireAccessToken()
 
   const form = new FormData()
   const payload = toFormDataFile(file)
@@ -59,9 +69,9 @@ export async function uploadImageToS3(file: UploadableFile): Promise<S3UploadRes
   })
 
   const text = await res.text()
-  let envelope: Envelope<S3UploadResult>
+  let envelope: Envelope<MediaUploadResult>
   try {
-    envelope = JSON.parse(text) as Envelope<S3UploadResult>
+    envelope = JSON.parse(text) as Envelope<MediaUploadResult>
   } catch {
     throw new Error(
       res.ok ? 'Invalid JSON response from upload server' : `HTTP ${res.status}: ${text.slice(0, 200)}`,
@@ -80,16 +90,24 @@ export async function uploadImageToS3(file: UploadableFile): Promise<S3UploadRes
   return {
     fileUrl: data.fileUrl,
     filePath: typeof data.filePath === 'string' ? data.filePath : '',
+    mediaUuid: data.mediaUuid ?? null,
+    deduped: data.deduped ?? false,
   }
 }
 
-/** @deprecated Use {@link uploadImageToS3} — kept for gradual migration; maps to S3 result shape. */
+/** @deprecated Use {@link uploadMediaAsset} */
+export async function uploadImageToS3(file: UploadableFile): Promise<MediaUploadResult> {
+  return uploadMediaAsset(file)
+}
+
+/** @deprecated Use {@link uploadMediaAsset} */
 export async function uploadPhoto(file: UploadableFile): Promise<{ fileId: string; url: string }> {
-  const { fileUrl, filePath } = await uploadImageToS3(file)
+  const { fileUrl, filePath } = await uploadMediaAsset(file)
   return { fileId: filePath, url: fileUrl }
 }
 
 export const uploadService = {
+  uploadMediaAsset,
   uploadImageToS3,
   uploadPhoto,
 }

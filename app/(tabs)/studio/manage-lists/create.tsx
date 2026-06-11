@@ -12,14 +12,17 @@ import { toast } from '@/utils/toast'
 
 export default function CreateListScreen(): JSX.Element {
   const [submitting, setSubmitting] = useState(false)
+  const [submitPhase, setSubmitPhase] = useState<'idle' | 'upload' | 'save'>('idle')
 
   async function handleSubmit(values: ListFormValues): Promise<void> {
     setSubmitting(true)
     try {
       let display_pic: string | undefined
       if (values.pendingCover) {
+        setSubmitPhase('upload')
         display_pic = await uploadListCoverPhoto(values.pendingCover)
       }
+      setSubmitPhase('save')
 
       const list = await createList({
         title: values.title,
@@ -36,13 +39,18 @@ export default function CreateListScreen(): JSX.Element {
       toast.error(e instanceof Error ? e.message : 'Failed to create list. Please try again.')
     } finally {
       setSubmitting(false)
+      setSubmitPhase('idle')
     }
   }
+
+  const submittingLabel =
+    submitPhase === 'upload' ? 'Uploading cover…' : submitPhase === 'save' ? 'Creating…' : 'Creating…'
 
   return (
     <ListForm
       mode="create"
       submitLabel="Create List"
+      submittingLabel={submitting ? submittingLabel : undefined}
       submitting={submitting}
       onSubmit={(values) => void handleSubmit(values)}
     />

@@ -45,7 +45,7 @@ import {
   normalizeLegacyProfileAvatar,
   updateRestaurantUserProfile,
 } from '@/services/restaurantUserService'
-import { uploadImageToS3 } from '@/services/uploadService'
+import { uploadPickedImage } from '@/lib/uploadPickedImage'
 import { toast } from '@/utils/toast'
 
 const AVATAR_SIZE = 112
@@ -73,6 +73,7 @@ export default function EditProfileScreen(): JSX.Element {
 
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [uploadingPhoto, setUploadingPhoto] = useState(false)
   const { selectedPalates, setSelectedPalates, openPalatePicker } = useEditProfileDraft()
   const [aboutMe, setAboutMe] = useState('')
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
@@ -202,12 +203,9 @@ export default function EditProfileScreen(): JSX.Element {
     try {
       let profileImageUrl: string | undefined
       if (pendingPhoto) {
-        const { fileUrl } = await uploadImageToS3({
-          uri: pendingPhoto.uri,
-          name: pendingPhoto.fileName,
-          type: pendingPhoto.mimeType,
-        })
-        profileImageUrl = fileUrl
+        setUploadingPhoto(true)
+        profileImageUrl = await uploadPickedImage(pendingPhoto)
+        setUploadingPhoto(false)
       }
 
       const payload: Parameters<typeof updateRestaurantUserProfile>[0] = {
@@ -225,6 +223,7 @@ export default function EditProfileScreen(): JSX.Element {
     } catch (e) {
       toast.error(e instanceof Error ? e.message : profileUpdateFailed)
     } finally {
+      setUploadingPhoto(false)
       setSaving(false)
     }
   }, [aboutMe, doneEnabled, nhost.auth, pendingPhoto, router, selectedPalates, user?.id])
@@ -314,6 +313,11 @@ export default function EditProfileScreen(): JSX.Element {
               <Text className="mt-1 text-xs" style={{ color: TEXT_MUTED }}>
                 Square crop · max 5 MB
               </Text>
+              {uploadingPhoto ? (
+                <Text className="mt-2 text-xs" style={{ color: TEXT_MUTED }}>
+                  Uploading photo…
+                </Text>
+              ) : null}
 
               <Text className="mt-4 text-base font-semibold" style={{ color: TEXT_HEADING }}>
                 {previewHandle}

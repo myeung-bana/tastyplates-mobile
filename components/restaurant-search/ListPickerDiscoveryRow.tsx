@@ -3,9 +3,8 @@ import { AppIcon } from '@/components/ui/AppIcon'
 
 import { BRAND_PRIMARY } from '@/constants/brand'
 import { coerceRatingNumber } from '@/lib/ratingDisplayUtils'
-import { formatRestaurantCardAddress } from '@/services/restaurantsV2Service'
+import { formatRestaurantSearchResultAddress } from '@/lib/restaurantDiscoveryHelpers'
 import type { RestaurantSearchResult } from '@/types/restaurantSearchResult'
-import { isTPResult } from '@/types/restaurantSearchResult'
 
 const DEFAULT_IMAGE = 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400&q=80'
 
@@ -50,9 +49,7 @@ export function ListPickerDiscoveryRow({
 }): JSX.Element {
   const title = result.title
   const imageUrl = result.featured_image_url ?? DEFAULT_IMAGE
-  const address = isTPResult(result)
-    ? formatRestaurantCardAddress(result.listing_street, result.address)
-    : result.address
+  const address = formatRestaurantSearchResultAddress(result)
   const rating = isTPResult(result)
     ? coerceRatingNumber(result.average_rating)
     : coerceRatingNumber(result.google_rating)

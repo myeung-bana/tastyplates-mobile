@@ -1,6 +1,20 @@
 import type { SavedLocationPreference } from '@/constants/locations'
+import {
+  formatRestaurantCardAddress,
+  formatShortFormattedAddress,
+} from '@/services/restaurantsV2Service'
 import type { RestaurantSearchResult } from '@/types/restaurantSearchResult'
 import { isGoogleResult, isTPResult } from '@/types/restaurantSearchResult'
+
+/** Browse/search card subtitle — street and city only. */
+export function formatRestaurantSearchResultAddress(
+  result: RestaurantSearchResult,
+): string | null {
+  if (isTPResult(result)) {
+    return formatRestaurantCardAddress(result.listing_street, result.address)
+  }
+  return formatShortFormattedAddress(result.address)
+}
 
 /** First segment of location label for backend `city_name` filter. */
 export function cityNameFromLocation(location: SavedLocationPreference): string | undefined {
