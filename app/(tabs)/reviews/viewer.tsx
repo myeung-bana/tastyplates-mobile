@@ -13,7 +13,6 @@ import { router, useLocalSearchParams } from 'expo-router'
 
 import { ReplyItem } from '@/components/review/ReplyItem'
 import { ReviewDetailImages } from '@/components/review/ReviewDetailImages'
-import { ReviewDetailTopNav } from '@/components/review/ReviewDetailTopNav'
 import { ReplySkeleton } from '@/components/ui/Skeleton/ReplySkeleton'
 import { RatingDisplay } from '@/components/ui/RatingDisplay'
 import { BORDER_SUBTLE, BRAND_PRIMARY, TEXT_BODY, TEXT_HEADING, TEXT_MUTED } from '@/constants/brand'
@@ -524,8 +523,6 @@ export default function ReviewViewerScreen() {
 
   return (
     <View className="flex-1 bg-white">
-      <ReviewDetailTopNav title="Review" />
-
       {paramError ? (
         <View className="flex-1 items-center justify-center px-8">
           <Text className="text-center text-base leading-relaxed" style={{ color: TEXT_MUTED }}>

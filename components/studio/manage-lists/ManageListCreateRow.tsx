@@ -3,6 +3,7 @@ import * as Haptics from 'expo-haptics'
 import { router } from 'expo-router'
 import { AppIcon } from '@/components/ui/AppIcon'
 
+import { TEXT_HEADING } from '@/constants/brand'
 import { SCREEN_STUDIO_MANAGE_LISTS_CREATE } from '@/constants/screens'
 import { castHref } from '@/lib/routeParams'
 
@@ -18,8 +19,8 @@ export function ManageListCreateRow(): JSX.Element {
       }}
       className="flex-row items-center gap-3 border-b border-gray-50 bg-white px-4 py-3 active:bg-gray-50"
     >
-      <View className="h-14 w-14 flex-shrink-0 items-center justify-center overflow-hidden rounded-xl bg-orange-50">
-        <AppIcon name="plus" size={28} color="#ff7c0a" />
+      <View className="h-14 w-14 flex-shrink-0 items-center justify-center">
+        <AppIcon name="plus" size={28} color={TEXT_HEADING} />
       </View>
 
       <View className="min-w-0 flex-1" style={{ gap: 2 }}>

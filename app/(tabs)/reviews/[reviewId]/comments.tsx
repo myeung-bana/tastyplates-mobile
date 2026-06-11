@@ -19,6 +19,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { ReplyItem } from '@/components/review/ReplyItem'
 import { ReplySkeleton } from '@/components/ui/Skeleton/ReplySkeleton'
 import { BRAND_PRIMARY, TEXT_MUTED } from '@/constants/brand'
+import { STACK_DETAIL_HEADER_OPTIONS } from '@/constants/stackHeader'
 import { errorOccurred } from '@/constants/messages'
 import { reviewDescriptionDisplayLimit } from '@/constants/validation'
 import { useAuth } from '@/hooks/useAuth'
@@ -254,9 +255,8 @@ export default function ReviewCommentsScreen() {
     <>
       <Stack.Screen
         options={{
-          headerShown: true,
+          ...STACK_DETAIL_HEADER_OPTIONS,
           title: `Comments (${totalCount})`,
-          headerBackTitle: 'Back',
         }}
       />
 

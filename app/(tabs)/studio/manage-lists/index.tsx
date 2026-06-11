@@ -19,6 +19,7 @@ import { deleteList, getMyLists } from '@/services/restaurantListService'
 import type { RestaurantListSummary } from '@/types/restaurantList'
 import { toast } from '@/utils/toast'
 import { AppIcon } from '@/components/ui/AppIcon'
+import { TEXT_HEADING } from '@/constants/brand'
 
 function filterListsByTab(lists: RestaurantListSummary[], tab: ManageListsTab): RestaurantListSummary[] {
   if (tab === 'all') return lists
@@ -90,9 +91,9 @@ export default function ManageListsScreen(): JSX.Element {
             void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
             router.push(castHref(SCREEN_STUDIO_MANAGE_LISTS_CREATE))
           }}
-          className="mr-1 h-9 w-9 items-center justify-center rounded-full bg-orange-50"
+          className="mr-1 h-9 w-9 items-center justify-center active:opacity-80"
         >
-          <AppIcon name="plus" size={22} color="#ff7c0a" />
+          <AppIcon name="plus" size={22} color={TEXT_HEADING} />
         </Pressable>
       ),
     })

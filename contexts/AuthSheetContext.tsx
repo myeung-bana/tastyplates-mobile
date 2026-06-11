@@ -50,7 +50,8 @@ export function AuthSheetProvider({ children }: PropsWithChildren): JSX.Element 
   const [resume, setResume] = useState<string | undefined>(undefined)
   const [showSkipLogin, setShowSkipLogin] = useState(false)
 
-  const snapPoints = useMemo(() => ['92%'], [])
+  /** 75% leaves headroom so the keyboard does not cover email/password fields. */
+  const snapPoints = useMemo(() => ['75%'], [])
 
   const dismissSheet = useCallback(() => {
     Keyboard.dismiss()

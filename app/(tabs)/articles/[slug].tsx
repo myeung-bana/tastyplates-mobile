@@ -13,7 +13,6 @@ import { useLocalSearchParams } from 'expo-router'
 
 import { ArticleCategoryTag } from '@/components/articles/ArticleCategoryTag'
 import { ArticleRelatedRestaurantsSection } from '@/components/articles/ArticleRelatedRestaurantsSection'
-import { ReviewDetailTopNav } from '@/components/review/ReviewDetailTopNav'
 import {
   BORDER_SUBTLE,
   BRAND_PRIMARY,
@@ -176,7 +175,6 @@ export default function ArticleDetailScreen() {
   if (!segment) {
     return (
       <View className="flex-1 bg-white">
-        <ReviewDetailTopNav title="Article" />
         <View className="flex-1 items-center justify-center px-8">
           <Text style={{ color: TEXT_MUTED }}>Invalid article link.</Text>
         </View>
@@ -186,8 +184,6 @@ export default function ArticleDetailScreen() {
 
   return (
     <View className="flex-1 bg-white">
-      <ReviewDetailTopNav title="Article" />
-
       {loading ? (
         <View className="flex-1 items-center justify-center pt-8">
           <ActivityIndicator color={BRAND_PRIMARY} size="large" />

@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useMemo } from 'react'
-import { View, Text, ScrollView, ActivityIndicator, useWindowDimensions } from 'react-native'
+import { View, Text, ScrollView, useWindowDimensions } from 'react-native'
 
 import {
   RestaurantBrowseCardItem,
@@ -8,11 +8,10 @@ import {
   restaurantBrowseCardItemFromFeatured,
 } from '@/components/restaurant/RestaurantBrowseCardItem'
 import {
-  BORDER_SUBTLE,
-  BRAND_PRIMARY,
-  TEXT_HEADING,
-  TEXT_MUTED,
-} from '@/constants/brand'
+  RestaurantBrowseCardSkeleton,
+} from '@/components/ui/Skeleton/RestaurantBrowseCardSkeleton'
+import { useSkeletonPulse } from '@/components/ui/Skeleton/RestaurantListSkeleton'
+import { BORDER_SUBTLE, TEXT_HEADING, TEXT_MUTED } from '@/constants/brand'
 import {
   fetchFeaturedRestaurants,
   type FeaturedRestaurantApi,
@@ -62,9 +61,11 @@ export function RecommendedRestaurantsCarousel({
     return getRestaurantBrowseCardWidth(screenWidth)
   }, [screenWidth, hideSectionHeader])
 
+  const skeletonOpacity = useSkeletonPulse()
   const useRemote = staticItems === undefined
   const [items, setItems] = useState<FeaturedRestaurantApi[]>(() => (useRemote ? [] : staticItems))
   const [loading, setLoading] = useState(() => useRemote)
+  const skeletonCount = layout === 'carousel' ? 3 : 4
 
   const load = useCallback(async (locKey?: string) => {
     setLoading(true)
@@ -117,9 +118,36 @@ export function RecommendedRestaurantsCarousel({
       ) : null}
 
       {loading ? (
-        <View className="items-center justify-center py-12" style={{ minHeight: 220 }}>
-          <ActivityIndicator color={BRAND_PRIMARY} />
-        </View>
+        layout === 'list' ? (
+          <View className="px-5 pt-4 pb-2" style={{ gap: 12 }}>
+            {Array.from({ length: skeletonCount }, (_, i) => (
+              <RestaurantBrowseCardSkeleton
+                key={`recommended-skeleton-${i}`}
+                width={cardWidth}
+                opacity={skeletonOpacity}
+              />
+            ))}
+          </View>
+        ) : (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{
+              paddingHorizontal: hideSectionHeader ? 0 : 16,
+              paddingTop: hideSectionHeader ? 0 : 16,
+              gap: 12,
+              paddingBottom: 8,
+            }}
+          >
+            {Array.from({ length: skeletonCount }, (_, i) => (
+              <RestaurantBrowseCardSkeleton
+                key={`recommended-skeleton-${i}`}
+                width={cardWidth}
+                opacity={skeletonOpacity}
+              />
+            ))}
+          </ScrollView>
+        )
       ) : layout === 'list' ? (
         <View className="px-5 pt-4 pb-2" style={{ gap: 12 }}>
           {cardNodes}

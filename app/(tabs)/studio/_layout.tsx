@@ -2,6 +2,7 @@ import { ActivityIndicator, View } from 'react-native'
 import { Redirect, Stack, usePathname } from 'expo-router'
 
 import { TEXT_HEADING } from '@/constants/brand'
+import { STACK_DETAIL_HEADER_OPTIONS } from '@/constants/stackHeader'
 import { SCREEN_STUDIO_ENTRY } from '@/constants/screens'
 import { useAuth } from '@/hooks/useAuth'
 import { loginScreenHref } from '@/lib/authRoutes'
@@ -30,15 +31,8 @@ export default function StudioSectionLayout(): JSX.Element {
   return (
     <Stack
       screenOptions={{
-        headerShadowVisible: false,
-        headerTintColor: TEXT_HEADING,
-        headerStyle: { backgroundColor: '#ffffff' },
+        ...STACK_DETAIL_HEADER_OPTIONS,
         contentStyle: { backgroundColor: '#ffffff' },
-        headerTitleStyle: { fontWeight: '600' },
-        /** Chevron only on iOS — no parent route title beside Back */
-        headerBackTitle: '',
-        headerBackTitleVisible: false,
-        headerBackButtonDisplayMode: 'minimal',
       }}
     >
       <Stack.Screen name="index" options={{ headerShown: false }} />
