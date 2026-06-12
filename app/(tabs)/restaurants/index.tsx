@@ -11,6 +11,7 @@ import {
 } from 'react-native'
 import BottomSheet, { BottomSheetFlatList } from '@gorhom/bottom-sheet'
 import MapView, { Marker, PROVIDER_GOOGLE, type Region } from 'react-native-maps'
+import type { MapPressEvent } from 'react-native-maps'
 import * as Haptics from 'expo-haptics'
 import { useLocalSearchParams, router } from 'expo-router'
 
@@ -152,7 +153,10 @@ export default function RestaurantsScreen() {
 
   const mapRef = useRef<MapView>(null)
   const bottomSheetRef = useRef<BottomSheet>(null)
+  const sheetListRef = useRef<FlatList<RestaurantSearchResult>>(null)
   const loadMoreLockRef = useRef(false)
+  /** Skip clearing pin selection while collapsing/reopening sheet for map pin preview. */
+  const pinPreviewSnapRef = useRef(false)
 
   const snapPoints = useMemo(() => [SHEET_MIN, SHEET_MID, SHEET_EXPANDED], [])
 
@@ -373,6 +377,23 @@ export default function RestaurantsScreen() {
     [navigateToRestaurant, panMapToResult],
   )
 
+  const scrollSheetToTop = useCallback(() => {
+    sheetListRef.current?.scrollToOffset({ offset: 0, animated: false })
+  }, [])
+
+  const presentPinPreview = useCallback(() => {
+    pinPreviewSnapRef.current = true
+    scrollSheetToTop()
+    bottomSheetRef.current?.snapToIndex(0)
+    requestAnimationFrame(() => {
+      scrollSheetToTop()
+      bottomSheetRef.current?.snapToIndex(1)
+      setTimeout(() => {
+        pinPreviewSnapRef.current = false
+      }, 350)
+    })
+  }, [scrollSheetToTop])
+
   const clearPinSelection = useCallback(() => {
     setSelectedId(null)
   }, [])
@@ -382,14 +403,23 @@ export default function RestaurantsScreen() {
       setSelectedId(restaurantSearchResultId(result))
       void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium)
       panMapToResult(result)
-      bottomSheetRef.current?.snapToIndex(1)
+      presentPinPreview()
     },
-    [panMapToResult],
+    [panMapToResult, presentPinPreview],
   )
 
   const handleSheetIndexChange = useCallback((index: number) => {
+    if (pinPreviewSnapRef.current) return
     if (index === 0) setSelectedId(null)
   }, [])
+
+  const handleMapPress = useCallback(
+    (_event: MapPressEvent) => {
+      if (pinPreviewSnapRef.current) return
+      clearPinSelection()
+    },
+    [clearPinSelection],
+  )
 
   const listHeaderText = useMemo(() => {
     const count = displayRows.length
@@ -412,7 +442,7 @@ export default function RestaurantsScreen() {
   }, [searchQuery, palateSortActive])
 
   const renderResultCard = useCallback(
-    (item: RestaurantSearchResult, options?: { pinPreview?: boolean }) => {
+    (item: RestaurantSearchResult) => {
       const overallRating = isGoogleResult(item)
         ? coerceRatingNumber(item.google_rating)
         : coerceRatingNumber(item.average_rating)
@@ -422,33 +452,27 @@ export default function RestaurantsScreen() {
           ? getForRestaurantUuid(item.uuid)
           : null
 
-      const wrapperStyle = options?.pinPreview
-        ? { borderWidth: 2, borderColor: BRAND_PRIMARY, borderRadius: 16 }
-        : undefined
-
       return (
-        <View style={wrapperStyle}>
-          <RestaurantBrowseCard
-            title={item.title}
-            slug={isTPResult(item) ? item.slug : undefined}
-            imageUrl={item.featured_image_url}
-            subtitle={formatRestaurantSearchResultAddress(item)}
-            listingCategories={isTPResult(item) ? item.cuisines : undefined}
-            categories={isTPResult(item) ? item.categories : undefined}
-            rating={overallRating}
-            reviewCount={
-              isTPResult(item)
-                ? (item.ratings_count ?? undefined)
-                : (item.google_review_count ?? undefined)
-            }
-            ratingMode={palateSortActive ? 'palate-match' : 'overall'}
-            searchPalateRating={palateStat?.avg ?? null}
-            searchPalateReviewCount={palateStat?.count}
-            containerStyle={cardWidth != null ? { width: cardWidth } : undefined}
-            onPress={() => handleCardPress(item)}
-            onCommentPress={() => handleCardPress(item)}
-          />
-        </View>
+        <RestaurantBrowseCard
+          title={item.title}
+          slug={isTPResult(item) ? item.slug : undefined}
+          imageUrl={item.featured_image_url}
+          subtitle={formatRestaurantSearchResultAddress(item)}
+          listingCategories={isTPResult(item) ? item.cuisines : undefined}
+          categories={isTPResult(item) ? item.categories : undefined}
+          rating={overallRating}
+          reviewCount={
+            isTPResult(item)
+              ? (item.ratings_count ?? undefined)
+              : (item.google_review_count ?? undefined)
+          }
+          ratingMode={palateSortActive ? 'palate-match' : 'overall'}
+          searchPalateRating={palateStat?.avg ?? null}
+          searchPalateReviewCount={palateStat?.count}
+          containerStyle={cardWidth != null ? { width: cardWidth } : undefined}
+          onPress={() => handleCardPress(item)}
+          onCommentPress={() => handleCardPress(item)}
+        />
       )
     },
     [cardWidth, getForRestaurantUuid, handleCardPress, palateSortActive, statsMap],
@@ -483,7 +507,7 @@ export default function RestaurantsScreen() {
         </View>
 
         {selectedPinResult ? (
-          <View className="mt-3 border-t border-gray-100 px-4 pt-3">
+          <View className="mt-3 border-t border-gray-100 pt-3">
             <View className="mb-2 flex-row items-center justify-between">
               <Text className="font-neusans text-xs font-medium text-gray-500">
                 Selected on map
@@ -499,7 +523,7 @@ export default function RestaurantsScreen() {
                 </Text>
               </Pressable>
             </View>
-            {renderResultCard(selectedPinResult, { pinPreview: true })}
+            {renderResultCard(selectedPinResult)}
             {sheetListData.length > 0 ? (
               <Text className="mt-4 font-neusans text-xs font-semibold uppercase tracking-wide text-gray-400">
                 All results
@@ -564,7 +588,7 @@ export default function RestaurantsScreen() {
             showsUserLocation
             showsMyLocationButton={false}
             mapPadding={{ top: 0, right: 0, bottom: 0, left: 0 }}
-            onPress={clearPinSelection}
+            onPress={handleMapPress}
           >
             {mapMarkers.map((result) => {
               const coords = restaurantSearchResultCoords(result)
@@ -574,6 +598,7 @@ export default function RestaurantsScreen() {
                 <Marker
                   key={id}
                   coordinate={{ latitude: coords.latitude, longitude: coords.longitude }}
+                  stopPropagation
                   onPress={() => handlePinPress(result)}
                   tracksViewChanges={false}
                 >
@@ -601,6 +626,7 @@ export default function RestaurantsScreen() {
             onChange={handleSheetIndexChange}
           >
             <BottomSheetFlatList
+              ref={sheetListRef}
               data={sheetListData}
               keyExtractor={(item) => restaurantSearchResultId(item)}
               renderItem={renderBrowseCard}
