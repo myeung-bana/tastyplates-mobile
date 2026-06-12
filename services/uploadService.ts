@@ -25,13 +25,23 @@ export type UploadableFile =
       type: string
     }
 
-function toFormDataFile(file: UploadableFile): Blob | { uri: string; name: string; type: string } {
-  if (file instanceof File) return file
-  return {
-    uri: file.uri,
-    name: file.name,
-    type: file.type,
+/** React Native FormData file part — must be `{ uri, name, type }`, not a Blob cast. */
+function appendUploadFile(form: FormData, file: UploadableFile): void {
+  if (file instanceof File) {
+    form.append('file', file, file.name)
+    return
   }
+
+  const name = file.name?.trim() || `upload-${Date.now()}.jpg`
+  const type = file.type?.trim() || 'image/jpeg'
+  const uri = file.uri
+
+  if (!uri) {
+    throw new Error('Upload failed: image file has no URI')
+  }
+
+  // RN/Expo fetch reads this object shape for multipart file parts
+  form.append('file', { uri, name, type } as unknown as Blob)
 }
 
 function requireAccessToken(): string {
@@ -55,16 +65,15 @@ export async function uploadMediaAsset(file: UploadableFile): Promise<MediaUploa
   const token = requireAccessToken()
 
   const form = new FormData()
-  const payload = toFormDataFile(file)
-  if (payload instanceof File) {
-    form.append('file', payload)
-  } else {
-    form.append('file', payload as unknown as Blob)
-  }
+  appendUploadFile(form, file)
+
+  const headers = new Headers()
+  headers.set('Authorization', `Bearer ${token}`)
+  // Do not set Content-Type — fetch must add multipart boundary automatically
 
   const res = await fetch(`${base}/upload/image`, {
     method: 'POST',
-    headers: { Authorization: `Bearer ${token}` },
+    headers,
     body: form,
   })
 
