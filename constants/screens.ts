@@ -45,6 +45,7 @@ export function cuisineBrowsePath(slug: string): string {
 // ─── Reviews ──────────────────────────────────────────────────────────────────
 
 export const SCREEN_REVIEW_VIEWER = '/reviews/viewer' as const
+export const SCREEN_RESTAURANT_REVIEWS = '/reviews/restaurant' as const
 export const SCREEN_REVIEW_COMMENTS = '/(tabs)/reviews/[reviewId]/comments' as const
 
 /** Full comments thread for a review UUID. */

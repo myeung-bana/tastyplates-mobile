@@ -14,6 +14,7 @@ export default function ReviewsLayout() {
       }}
     >
       <Stack.Screen name="viewer" options={{ headerShown: true, title: 'Review' }} />
+      <Stack.Screen name="restaurant" options={{ headerShown: true, title: 'Reviews' }} />
       <Stack.Screen name="[reviewId]/comments" options={{ headerShown: true, title: 'Comments' }} />
     </Stack>
   )

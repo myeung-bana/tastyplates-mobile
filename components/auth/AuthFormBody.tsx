@@ -82,7 +82,11 @@ export function AuthFormBody({
   }, [initialMode])
 
   const onAuthSuccess = useCallback(
-    async (payload: { needsEmailVerification: boolean; user: User | null }) => {
+    async (payload: {
+      needsEmailVerification: boolean
+      user: User | null
+      email?: string
+    }) => {
       navigatedAfterAuthRef.current = true
       onBeforeNavigate?.()
       await navigateAfterAuth(
@@ -90,6 +94,7 @@ export function AuthFormBody({
         {
           needsEmailVerification: payload.needsEmailVerification,
           user: payload.user,
+          verificationEmail: payload.email ?? payload.user?.email ?? undefined,
         },
         resumeForNav,
       )

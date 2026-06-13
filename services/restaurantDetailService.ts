@@ -1,4 +1,5 @@
 import { tastyplatesFetch, unwrapEnvelope } from '@/lib/tastyplatesFetch'
+import type { TrendingReviewRow } from '@/services/homeReviewsService'
 
 /** Full row from `restaurants-v2/get-restaurant-by-id` (Hasura `restaurants`). */
 export interface RestaurantDetailRow {
@@ -63,7 +64,7 @@ export interface GetRestaurantBySlugResponse {
 }
 
 export interface GetReviewsByRestaurantResponse {
-  reviews: RestaurantReviewPreview[]
+  reviews: TrendingReviewRow[]
   meta: { total: number; limit: number; offset: number; hasMore: boolean }
 }
 
@@ -93,10 +94,25 @@ export async function getRestaurantReviewsPreview(
   restaurantUuid: string,
   limit = 8,
 ): Promise<GetReviewsByRestaurantResponse> {
+  return fetchRestaurantReviews(restaurantUuid, { limit, offset: 0 })
+}
+
+export async function fetchRestaurantReviews(
+  restaurantUuid: string,
+  options?: {
+    limit?: number
+    offset?: number
+    sort?: 'all' | 'asc' | 'desc' | 'highest'
+  },
+): Promise<GetReviewsByRestaurantResponse> {
+  const limit = Math.min(Math.max(options?.limit ?? 16, 1), 100)
+  const offset = Math.max(options?.offset ?? 0, 0)
+  const sort = options?.sort ?? 'all'
   const q = new URLSearchParams({
     restaurant_uuid: restaurantUuid,
     limit: String(limit),
-    offset: '0',
+    offset: String(offset),
+    sort,
   })
   const envelope = await tastyplatesFetch<GetReviewsByRestaurantResponse>(
     `restaurant-reviews/get-reviews-by-restaurant?${q.toString()}`,

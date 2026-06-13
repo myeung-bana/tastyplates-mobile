@@ -1,5 +1,8 @@
 /** Mobile onboarding + profile + reviews — aligned with web `constants/validation.ts`. */
 
+/** Must match `auth.method.emailPassword.passwordMinLength` in `tastyplates-nhost/nhost/nhost.toml`. */
+export const minimumPassword = 9
+
 export const userNameMinLimit = 3
 export const userNameMaxLimit = 20
 export const palateLimit = 2

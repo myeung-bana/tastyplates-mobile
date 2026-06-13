@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import {
   ActivityIndicator,
   Pressable,
@@ -5,12 +6,10 @@ import {
   TextInput,
   View,
 } from 'react-native'
-import * as Linking from 'expo-linking'
 import { Link } from 'expo-router'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Controller, useForm } from 'react-hook-form'
 import type { User } from '@nhost/nhost-js'
-import { useSignUpEmailPassword } from '@nhost/react'
 import { z } from 'zod'
 
 import { PasswordInput } from '@/components/ui/PasswordInput'
@@ -26,6 +25,9 @@ import {
   SCREEN_TERMS_OF_SERVICE,
   SCREEN_USER_VERIFICATION,
 } from '@/constants/screens'
+import { minimumPassword } from '@/constants/validation'
+import { storePendingVerificationEmail } from '@/lib/authProfileSetup'
+import { signUpEmailPasswordDirect } from '@/lib/nhostAuthDirect'
 import { loginScreenHref } from '@/lib/authRoutes'
 import { toast } from '@/utils/toast'
 
@@ -35,7 +37,7 @@ const inputClass =
 const registerSchema = z
   .object({
     email: z.string().trim().email('Enter a valid email'),
-    password: z.string().min(8, 'Use at least 8 characters'),
+    password: z.string().min(minimumPassword, `Use at least ${minimumPassword} characters`),
     confirmPassword: z.string().min(1, 'Confirm your password'),
   })
   .refine((data) => data.password === data.confirmPassword, {
@@ -48,6 +50,7 @@ type RegisterForm = z.infer<typeof registerSchema>
 export type RegisterSuccessPayload = {
   needsEmailVerification: boolean
   user: User | null
+  email: string
 }
 
 export type RegisterEmailFormProps = {
@@ -72,7 +75,7 @@ export function RegisterEmailForm({
   onRegisterSuccess,
   onSwitchToSignIn,
 }: RegisterEmailFormProps) {
-  const { signUpEmailPassword, isLoading } = useSignUpEmailPassword()
+  const [busy, setBusy] = useState(false)
 
   const {
     control,
@@ -84,22 +87,27 @@ export function RegisterEmailForm({
   })
 
   const onSubmit = handleSubmit(async ({ email, password }) => {
-    const redirectTo = Linking.createURL(SCREEN_USER_VERIFICATION)
-    const result = await signUpEmailPassword(email, password, {
-      displayName: email.split('@')[0] ?? 'Food lover',
-      redirectTo,
-    })
-    if (result.isError && result.error) {
-      toast.error(result.error.message ?? 'Could not create account')
-      return
+    setBusy(true)
+    try {
+      const result = await signUpEmailPasswordDirect(email, password, {
+        displayName: email.split('@')[0] ?? 'Food lover',
+        redirectPath: SCREEN_USER_VERIFICATION,
+      })
+      if (result.isError && result.error) {
+        toast.error(result.error.message ?? 'Could not create account')
+        return
+      }
+      // Sign-up often has no session until verify — persist email for resend on /user-verification.
+      await storePendingVerificationEmail(email)
+      await onRegisterSuccess({
+        needsEmailVerification: result.needsEmailVerification,
+        user: result.user,
+        email,
+      })
+    } finally {
+      setBusy(false)
     }
-    await onRegisterSuccess({
-      needsEmailVerification: result.needsEmailVerification,
-      user: result.user,
-    })
   })
-
-  const busy = isLoading
 
   return (
     <View>
@@ -148,7 +156,7 @@ export function RegisterEmailForm({
             autoComplete="new-password"
             onBlur={onBlur}
             onChangeText={onChange}
-            placeholder="At least 8 characters"
+            placeholder={`At least ${minimumPassword} characters`}
             placeholderTextColor="#9ca3af"
             value={value}
             className={inputClass}

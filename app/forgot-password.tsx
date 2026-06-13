@@ -7,15 +7,14 @@ import {
   View,
 } from 'react-native'
 import { Stack, Link } from 'expo-router'
-import * as Linking from 'expo-linking'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Controller, useForm } from 'react-hook-form'
-import { useResetPassword } from '@nhost/react'
 import { z } from 'zod'
 
 import { AuthHeroLayout } from '@/components/auth/AuthHeroLayout'
 import { BRAND_PRIMARY, mergeTextInputBodyTypography } from '@/constants/brand'
 import { SCREEN_LOGIN } from '@/constants/screens'
+import { resetPasswordEmailDirect } from '@/lib/nhostAuthDirect'
 import { toast } from '@/utils/toast'
 
 const schema = z.object({
@@ -28,8 +27,8 @@ const inputClass =
   'mb-1 rounded-[10px] border border-[#797979] bg-white px-4 py-3 text-base text-gray-900'
 
 export default function ForgotPasswordScreen() {
-  const { resetPassword, isLoading } = useResetPassword()
   const [sent, setSent] = useState(false)
+  const [busy, setBusy] = useState(false)
 
   const {
     control,
@@ -41,14 +40,18 @@ export default function ForgotPasswordScreen() {
   })
 
   const onSubmit = handleSubmit(async ({ email }) => {
-    const redirectTo = Linking.createURL('/reset-password')
-    const result = await resetPassword(email, { redirectTo })
-    if (result.isError && result.error) {
-      toast.error(result.error.message ?? 'Could not send reset email')
-      return
+    setBusy(true)
+    try {
+      const result = await resetPasswordEmailDirect(email)
+      if (result.isError && result.error) {
+        toast.error(result.error.message ?? 'Could not send reset email')
+        return
+      }
+      setSent(true)
+      toast.success('Check your email for a reset link')
+    } finally {
+      setBusy(false)
     }
-    setSent(true)
-    toast.success('Check your email for a reset link')
   })
 
   return (
@@ -95,12 +98,12 @@ export default function ForgotPasswordScreen() {
             )}
             <Pressable
               accessibilityRole="button"
-              disabled={isLoading}
+              disabled={busy}
               onPress={onSubmit}
               className="mb-8 items-center rounded-full py-4 active:opacity-90 disabled:opacity-50"
               style={{ backgroundColor: BRAND_PRIMARY }}
             >
-              {isLoading ? (
+              {busy ? (
                 <ActivityIndicator color="#fff" />
               ) : (
                 <Text className="text-base font-semibold text-white">Send reset link</Text>

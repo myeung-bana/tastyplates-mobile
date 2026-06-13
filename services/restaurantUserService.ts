@@ -70,6 +70,51 @@ export async function fetchRestaurantUserById(id: string): Promise<RestaurantUse
   return unwrapEnvelope(envelope).user
 }
 
+/** Returns null when the profile row does not exist (HTTP 404). */
+export async function tryFetchRestaurantUserById(id: string): Promise<RestaurantUserRow | null> {
+  const envelope = await tastyplatesFetch<GetRestaurantUserByIdResponse>(
+    `restaurant-users/get-restaurant-user-by-id?id=${encodeURIComponent(id)}`,
+  )
+  if (!envelope.ok) {
+    if (envelope.error.includes('404')) return null
+    throw new Error(envelope.error)
+  }
+  return envelope.data.user
+}
+
+export interface CreateRestaurantUserParams {
+  username: string
+  onboarding_complete?: boolean
+  palates?: string[]
+  about_me?: string | null
+}
+
+interface CreateRestaurantUserResponse {
+  user: RestaurantUserRow
+}
+
+/** `POST restaurant-users/create-restaurant-user` — JWT user_id only; see api-guide §8.6. */
+export async function createRestaurantUserProfile(
+  params: CreateRestaurantUserParams,
+): Promise<RestaurantUserRow> {
+  const body: Record<string, unknown> = {
+    username: params.username.trim(),
+    onboarding_complete: params.onboarding_complete ?? false,
+  }
+  if (params.palates !== undefined) body.palates = params.palates
+  if (params.about_me !== undefined) body.about_me = params.about_me
+
+  const envelope = await tastyplatesFetch<CreateRestaurantUserResponse>(
+    'restaurant-users/create-restaurant-user',
+    {
+      method: 'POST',
+      withAuth: true,
+      body: JSON.stringify(body),
+    },
+  )
+  return unwrapEnvelope(envelope).user
+}
+
 export interface UpdateRestaurantUserProfileParams {
   about_me?: string
   profile_image?: string

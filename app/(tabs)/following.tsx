@@ -12,20 +12,25 @@ import * as Haptics from 'expo-haptics'
 import { router } from 'expo-router'
 
 import {
-  FollowingFeedReviewCard,
+  FollowingFeedActivityCard,
   FollowingFeedRowSkeleton,
-} from '@/components/following/FollowingFeedReviewCard'
+} from '@/components/following/FollowingFeedActivityCard'
 import { SuggestedUserRow } from '@/components/following/SuggestedUserRow'
 import { AppTopNav } from '@/components/layout/AppTopNav'
 import { SectionTitle } from '@/components/layout/SectionTitle'
 import { BRAND_PRIMARY, TEXT_MUTED } from '@/constants/brand'
-import { SCREEN_PUBLIC_PROFILE, SCREEN_REVIEW_VIEWER } from '@/constants/screens'
+import {
+  restaurantDetailPath,
+  SCREEN_PUBLIC_PROFILE,
+  SCREEN_REVIEW_VIEWER,
+} from '@/constants/screens'
 import { useAuth } from '@/hooks/useAuth'
 import { pushLoginScreen } from '@/lib/authRoutes'
 import {
   fetchFollowingFeed,
   fetchSuggestedUsers,
-  type FollowingFeedReviewRow,
+  type FollowingFeedActivity,
+  type FollowingFeedAuthorProfile,
 } from '@/services/followingFeedService'
 import { isRestaurantUserRouteId } from '@/services/restaurantUserService'
 
@@ -79,7 +84,7 @@ export default function FollowingScreen() {
   const { isAuthenticated, loading: authLoading, authUser } = useAuth()
   const userId = authUser?.id ?? null
 
-  const [reviews, setReviews] = useState<FollowingFeedReviewRow[]>([])
+  const [activities, setActivities] = useState<FollowingFeedActivity[]>([])
   const [suggested, setSuggested] = useState<Awaited<ReturnType<typeof fetchSuggestedUsers>>>([])
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
@@ -97,7 +102,7 @@ export default function FollowingScreen() {
           fetchFollowingFeed(userId, { limit: 40 }),
         ])
         setSuggested(suggestedUsers)
-        setReviews(feedRes.reviews ?? [])
+        setActivities(feedRes.activities ?? [])
       } catch (e) {
         setError(e instanceof Error ? e.message : 'Could not load your following feed.')
       } finally {
@@ -125,9 +130,12 @@ export default function FollowingScreen() {
     })
   }
 
-  const onOpenAuthor = (review: FollowingFeedReviewRow) => {
+  const onOpenAuthor = (
+    authorId: string,
+    profile: FollowingFeedAuthorProfile | null | undefined,
+  ) => {
     void Haptics.selectionAsync()
-    const usernameSlug = review.AuthorProfile?.username?.trim().replace(/^@/, '')
+    const usernameSlug = profile?.username?.trim().replace(/^@/, '')
     if (usernameSlug) {
       router.push({
         pathname: SCREEN_PUBLIC_PROFILE,
@@ -135,12 +143,19 @@ export default function FollowingScreen() {
       })
       return
     }
-    const id = review.author_id?.trim()
+    const id = authorId.trim()
     if (id && isRestaurantUserRouteId(id)) {
       router.push({
         pathname: SCREEN_PUBLIC_PROFILE,
         params: { userId: id },
       })
+    }
+  }
+
+  const onOpenCheckin = (slug: string | null) => {
+    void Haptics.selectionAsync()
+    if (slug) {
+      router.push(restaurantDetailPath(slug) as never)
     }
   }
 
@@ -151,7 +166,7 @@ export default function FollowingScreen() {
         <View className="flex-1 items-center justify-center px-8">
           <SectionTitle className="text-center">Following</SectionTitle>
           <Text className="mt-3 text-center text-sm leading-relaxed" style={{ color: TEXT_MUTED }}>
-            Sign in to see the latest reviews from people you follow.
+            Sign in to see activity from people you follow.
           </Text>
           <Pressable
             onPress={() => {
@@ -256,20 +271,22 @@ export default function FollowingScreen() {
       <AppTopNav />
       <FlatList
         style={{ flex: 1 }}
-        data={reviews}
-        keyExtractor={(item) => item.id}
+        data={activities}
+        keyExtractor={(item) => `${item.type}:${item.id}`}
         ListHeaderComponent={feedListHeader}
         ListEmptyComponent={
           <Text className="mt-4 px-4 text-center text-sm leading-relaxed" style={{ color: TEXT_MUTED }}>
-            No reviews from people you follow yet.
+            No activity from people you follow yet.
           </Text>
         }
         renderItem={({ item }) => (
           <View className="px-4">
-            <FollowingFeedReviewCard
-              review={item}
-              onPressCard={() => onOpenReview(item.id)}
-              onPressAuthor={() => onOpenAuthor(item)}
+            <FollowingFeedActivityCard
+              activity={item}
+              onPressReview={onOpenReview}
+              onPressComment={onOpenReview}
+              onPressCheckin={onOpenCheckin}
+              onPressAuthor={onOpenAuthor}
             />
           </View>
         )}

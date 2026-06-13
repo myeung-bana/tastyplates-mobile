@@ -43,6 +43,7 @@ export type LoginFormValues = z.infer<typeof loginSchema>
 export type SignInSuccessPayload = {
   needsEmailVerification: boolean
   user: User | null
+  email?: string
 }
 
 export type LoginFormProps = {
@@ -69,7 +70,13 @@ export function LoginForm({
   onSwitchToSignUp,
 }: LoginFormProps) {
   const { signInEmailPassword, isLoading } = useSignInEmailPassword()
-  const { continueWithGoogle, googleBusy } = useGoogleSignIn({ onSuccess: onSignInSuccess })
+  const { continueWithGoogle, googleBusy } = useGoogleSignIn({
+    onSuccess: (payload) =>
+      onSignInSuccess({
+        ...payload,
+        email: payload.user?.email ?? undefined,
+      }),
+  })
 
   const {
     control,
@@ -89,6 +96,7 @@ export function LoginForm({
     await onSignInSuccess({
       needsEmailVerification: result.needsEmailVerification,
       user: result.user,
+      email,
     })
   })
 

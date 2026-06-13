@@ -1,10 +1,12 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import * as Linking from 'expo-linking'
 import * as WebBrowser from 'expo-web-browser'
 import type { User } from '@nhost/nhost-js'
 import { useNhostClient } from '@nhost/react'
 
 import { SCREEN_LOGIN } from '@/constants/screens'
+import { authDeepLink } from '@/lib/authRedirectUrls'
+import { buildOAuthProviderUrl } from '@/lib/nhostAuthDirect'
 import { toast } from '@/utils/toast'
 
 export type GoogleSignInSuccessPayload = {
@@ -22,18 +24,16 @@ type UseGoogleSignInOptions = {
 export function useGoogleSignIn({ onSuccess }: UseGoogleSignInOptions) {
   const nhost = useNhostClient()
   const [googleBusy, setGoogleBusy] = useState(false)
+  const redirectTo = useMemo(() => authDeepLink(SCREEN_LOGIN), [])
+  const providerUrl = useMemo(
+    () => buildOAuthProviderUrl('google', redirectTo),
+    [redirectTo],
+  )
 
   const continueWithGoogle = useCallback(async () => {
     if (googleBusy) return
     setGoogleBusy(true)
     try {
-      const redirectTo = Linking.createURL(SCREEN_LOGIN)
-      const started = await nhost.auth.signIn({ provider: 'google', options: { redirectTo } })
-      const providerUrl = started.providerUrl
-      if (!providerUrl) {
-        toast.error(started.error?.message ?? 'Google sign-in is unavailable.')
-        return
-      }
       const result = await WebBrowser.openAuthSessionAsync(providerUrl, redirectTo)
       if (result.type !== 'success') return
       if (!('url' in result) || result.url.length === 0) {
@@ -72,7 +72,7 @@ export function useGoogleSignIn({ onSuccess }: UseGoogleSignInOptions) {
     } finally {
       setGoogleBusy(false)
     }
-  }, [googleBusy, nhost, onSuccess])
+  }, [googleBusy, nhost, onSuccess, providerUrl, redirectTo])
 
   return { continueWithGoogle, googleBusy }
 }

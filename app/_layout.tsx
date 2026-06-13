@@ -20,6 +20,7 @@ import { SearchOverlayProvider } from '@/contexts/SearchOverlayContext'
 import { AddRestaurantOverlayProvider } from '@/contexts/AddRestaurantOverlayContext'
 import { UploadProvider } from '@/contexts/UploadContext'
 import { UploadProgressBar } from '@/components/ui/UploadProgressBar'
+import { ToastHost } from '@/components/ui/ToastHost'
 import { nhost } from '@/lib/nhost'
 import '../global.css'
 
@@ -53,6 +54,7 @@ export default function RootLayout() {
                         <SearchCuisinesSheetProvider>
                           <AuthSheetProvider>
                             <UploadProgressBar />
+                            <ToastHost />
                             <SplashAuthGate />
                           </AuthSheetProvider>
                         </SearchCuisinesSheetProvider>

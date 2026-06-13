@@ -6,6 +6,7 @@ import {
 } from '@/constants/locations'
 import { tastyplatesFetch, unwrapEnvelope } from '@/lib/tastyplatesFetch'
 import type { RestaurantUserRow } from '@/services/restaurantUserService'
+import { createRestaurantUserProfile } from '@/services/restaurantUserService'
 
 /** Draft onboarding fields between steps (AsyncStorage). */
 export const ONBOARDING_REGISTRATION_KEY = 'tastyplates_onboarding_registration_v1'
@@ -78,19 +79,32 @@ export async function completeOnboardingProfile(params: {
   username: string
   palates: string[]
 }): Promise<void> {
+  const payload = {
+    username: params.username.trim(),
+    palates: params.palates,
+    onboarding_complete: true,
+  }
+
   const envelope = await tastyplatesFetch<UpdateRestaurantUserResponse>(
     'restaurant-users/update-restaurant-user',
     {
       method: 'POST',
       withAuth: true,
-      body: JSON.stringify({
-        username: params.username.trim(),
-        palates: params.palates,
-        onboarding_complete: true,
-      }),
+      body: JSON.stringify(payload),
     },
   )
-  unwrapEnvelope(envelope)
+
+  if (envelope.ok) {
+    return
+  }
+
+  const err = envelope.error.toLowerCase()
+  if (err.includes('404') || err.includes('not found')) {
+    await createRestaurantUserProfile(payload)
+    return
+  }
+
+  throw new Error(envelope.error)
 }
 
 export function generateDefaultUsername(): string {

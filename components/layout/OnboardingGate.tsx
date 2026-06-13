@@ -4,6 +4,7 @@ import { useRouter, useSegments } from 'expo-router'
 
 import { SCREEN_ONBOARDING } from '@/constants/screens'
 import { useAuth } from '@/hooks/useAuth'
+import { ensureRestaurantUserProfile } from '@/lib/authProfileSetup'
 import { consumeOnboardingJustCompletedFlag } from '@/services/onboardingService'
 import { fetchRestaurantUserById } from '@/services/restaurantUserService'
 
@@ -51,7 +52,12 @@ export function OnboardingGate({ children }: { children: ReactNode }): JSX.Eleme
           router.replace(SCREEN_ONBOARDING)
         }
       } catch {
-        // Do not block the app on profile fetch errors.
+        try {
+          await ensureRestaurantUserProfile(user)
+          if (!cancelled) router.replace(SCREEN_ONBOARDING)
+        } catch {
+          // Do not block the app on profile fetch errors.
+        }
       } finally {
         if (!cancelled) setReady(true)
       }

@@ -25,7 +25,7 @@ import { usePathname, useRouter } from 'expo-router'
 
 import { RatingDisplay } from '@/components/ui/RatingDisplay'
 import { BORDER_SUBTLE, BRAND_PRIMARY, TEXT_BODY, TEXT_HEADING, TEXT_MUTED } from '@/constants/brand'
-import { restaurantDetailPath, SCREEN_REVIEW_VIEWER, SCREEN_STUDIO_ADD_REVIEW } from '@/constants/screens'
+import { restaurantDetailPath, SCREEN_RESTAURANT_REVIEWS, SCREEN_STUDIO_ADD_REVIEW } from '@/constants/screens'
 import {
   buildDirectionsUrl,
   buildGoogleMapsPlaceUrl,
@@ -594,8 +594,12 @@ export function RestaurantDetailView({
               onPress={() => {
                 void Haptics.selectionAsync()
                 router.push({
-                  pathname: SCREEN_REVIEW_VIEWER,
-                  params: { restaurant_uuid: restaurant.uuid },
+                  pathname: SCREEN_RESTAURANT_REVIEWS,
+                  params: {
+                    restaurant_uuid: restaurant.uuid,
+                    restaurant_title: restaurant.title,
+                    restaurant_slug: restaurant.slug,
+                  },
                 })
               }}
               className="mt-3 w-full items-center justify-center rounded-xl border border-gray-300 bg-white py-3 active:opacity-90"
