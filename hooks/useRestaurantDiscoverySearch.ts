@@ -1,11 +1,19 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 
 import type { SavedLocationPreference } from '@/constants/locations'
-import { cityNameFromLocation } from '@/lib/restaurantDiscoveryHelpers'
-import { listPickerHybridSearch, previewHybridSearch, hybridSearch } from '@/lib/hybridSearch'
+import {
+  cityNameFromLocation,
+  cuisineSlugsForFilter,
+  googleKeywordForCuisine,
+} from '@/lib/restaurantDiscoveryHelpers'
+import {
+  hybridSearch,
+  listPickerHybridSearch,
+  nearbyHybridDiscovery,
+  previewHybridSearch,
+} from '@/lib/hybridSearch'
 import type { HybridSearchMode } from '@/lib/restaurantSearchConfig'
-import { NEARBY_PICKER_RADIUS_METERS } from '@/lib/restaurantSearchConfig'
-import { getNearbyRestaurants, type NearbyPlaceRow } from '@/lib/googlePlaces'
+import type { NearbyPlaceRow } from '@/lib/googlePlaces'
 import type { RestaurantSearchResult } from '@/types/restaurantSearchResult'
 
 const DEFAULT_DEBOUNCE_MS = 320
@@ -17,6 +25,7 @@ export interface UseRestaurantDiscoverySearchOptions {
   debounceMs?: number
   enabled?: boolean
   palateSlug?: string | null
+  cuisineSlug?: string | null
   loadNearby?: boolean
 }
 
@@ -26,8 +35,10 @@ export interface UseRestaurantDiscoverySearchResult {
   googleResults: RestaurantSearchResult[]
   loading: boolean
   errors: { tp?: string; google?: string }
+  tpNearby: RestaurantSearchResult[]
   nearbyPlaces: NearbyPlaceRow[]
   nearbyLoading: boolean
+  nearbyErrors: { tp?: string; google?: string }
 }
 
 export function useRestaurantDiscoverySearch({
@@ -37,6 +48,7 @@ export function useRestaurantDiscoverySearch({
   debounceMs = DEFAULT_DEBOUNCE_MS,
   enabled = true,
   palateSlug = null,
+  cuisineSlug = null,
   loadNearby = false,
 }: UseRestaurantDiscoverySearchOptions): UseRestaurantDiscoverySearchResult {
   const [debouncedQuery, setDebouncedQuery] = useState(query.trim())
@@ -45,14 +57,19 @@ export function useRestaurantDiscoverySearch({
   const [googleResults, setGoogleResults] = useState<RestaurantSearchResult[]>([])
   const [loading, setLoading] = useState(false)
   const [errors, setErrors] = useState<{ tp?: string; google?: string }>({})
+  const [tpNearby, setTpNearby] = useState<RestaurantSearchResult[]>([])
   const [nearbyPlaces, setNearbyPlaces] = useState<NearbyPlaceRow[]>([])
   const [nearbyLoading, setNearbyLoading] = useState(false)
+  const [nearbyErrors, setNearbyErrors] = useState<{ tp?: string; google?: string }>({})
 
   const abortRef = useRef<AbortController | null>(null)
+  const nearbyAbortRef = useRef<AbortController | null>(null)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const cityName = useMemo(() => cityNameFromLocation(location), [location.label, location.key])
   const coordinates = location.coordinates ?? null
+  const cuisineSlugs = useMemo(() => cuisineSlugsForFilter(cuisineSlug), [cuisineSlug])
+  const googleKeyword = useMemo(() => googleKeywordForCuisine(cuisineSlug), [cuisineSlug])
 
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current)
@@ -63,33 +80,63 @@ export function useRestaurantDiscoverySearch({
   }, [query, debounceMs])
 
   useEffect(() => {
+    nearbyAbortRef.current?.abort()
+
     if (!loadNearby) {
+      setTpNearby([])
       setNearbyPlaces([])
       setNearbyLoading(false)
+      setNearbyErrors({})
       return
     }
 
-    let cancelled = false
     if (
       !coordinates ||
       !Number.isFinite(coordinates.latitude) ||
       !Number.isFinite(coordinates.longitude)
     ) {
+      setTpNearby([])
       setNearbyPlaces([])
       setNearbyLoading(false)
+      setNearbyErrors({})
       return
     }
 
+    const controller = new AbortController()
+    nearbyAbortRef.current = controller
     setNearbyLoading(true)
-    void getNearbyRestaurants(coordinates, NEARBY_PICKER_RADIUS_METERS).then((rows) => {
-      if (!cancelled) setNearbyPlaces(rows)
-      if (!cancelled) setNearbyLoading(false)
-    })
 
-    return () => {
-      cancelled = true
-    }
-  }, [loadNearby, location.key, coordinates?.latitude, coordinates?.longitude])
+    void nearbyHybridDiscovery(location.key, coordinates, {
+      signal: controller.signal,
+      cuisineSlugs,
+      googleKeyword,
+    })
+      .then((response) => {
+        if (controller.signal.aborted) return
+        setTpNearby(response.tpResults)
+        setNearbyPlaces(response.googlePlaces)
+        setNearbyErrors(response.errors)
+        setNearbyLoading(false)
+      })
+      .catch((err: unknown) => {
+        if (controller.signal.aborted) return
+        setTpNearby([])
+        setNearbyPlaces([])
+        setNearbyErrors({
+          tp: err instanceof Error ? err.message : 'Nearby search failed',
+        })
+        setNearbyLoading(false)
+      })
+
+    return () => controller.abort()
+  }, [
+    loadNearby,
+    location.key,
+    coordinates?.latitude,
+    coordinates?.longitude,
+    cuisineSlugs,
+    googleKeyword,
+  ])
 
   useEffect(() => {
     abortRef.current?.abort()
@@ -112,6 +159,7 @@ export function useRestaurantDiscoverySearch({
         signal: controller.signal,
         cityName,
         palateSlug,
+        cuisineSlugs,
       }
 
       if (mode === 'listPicker') {
@@ -156,6 +204,7 @@ export function useRestaurantDiscoverySearch({
     mode,
     cityName,
     palateSlug,
+    cuisineSlugs,
   ])
 
   return {
@@ -164,7 +213,9 @@ export function useRestaurantDiscoverySearch({
     googleResults,
     loading,
     errors,
+    tpNearby,
     nearbyPlaces,
     nearbyLoading,
+    nearbyErrors,
   }
 }

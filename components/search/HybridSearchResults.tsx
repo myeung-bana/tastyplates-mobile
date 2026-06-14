@@ -10,7 +10,7 @@ interface HybridSearchResultsProps {
 
 export function HybridSearchResults({ keyword, onSelect }: HybridSearchResultsProps) {
   const { location } = useLocation()
-  const { results, loading, errors } = useRestaurantDiscoverySearch({
+  const { tpResults, googleResults, loading, errors } = useRestaurantDiscoverySearch({
     query: keyword,
     location,
     mode: 'preview',
@@ -22,7 +22,8 @@ export function HybridSearchResults({ keyword, onSelect }: HybridSearchResultsPr
       keyword={keyword.trim()}
       variant="navigate"
       loading={loading}
-      results={results}
+      tpResults={tpResults}
+      googleResults={googleResults}
       errors={errors}
       onSelect={onSelect}
     />

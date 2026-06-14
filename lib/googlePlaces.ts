@@ -141,6 +141,7 @@ export interface NearbyPlaceRow {
 export async function getNearbyRestaurants(
   center: LocationCoordinates | null | undefined,
   radiusMeters = 1500,
+  keyword?: string | null,
 ): Promise<NearbyPlaceRow[]> {
   const key = getPlacesApiKey()
   if (!center || !key) return []
@@ -153,6 +154,8 @@ export async function getNearbyRestaurants(
     type: 'restaurant',
     key,
   })
+  const kw = keyword?.trim()
+  if (kw) params.set('keyword', kw)
 
   interface NearbyPayload {
     results?: unknown[]

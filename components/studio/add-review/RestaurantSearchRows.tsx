@@ -1,18 +1,7 @@
 import { Image, Pressable, Text, View } from 'react-native'
 import { AppIcon } from '@/components/ui/AppIcon'
 
-import { STAR_FILLED } from '@/constants/images'
 import { googlePlacePhotoUrl, type NearbyPlaceRow, type PlacesAutocompletePrediction } from '@/lib/googlePlaces'
-
-function StarRating({ value }: { value: number }): JSX.Element {
-  const StarIcon = STAR_FILLED
-  return (
-    <View className="flex-row items-center gap-1">
-      <StarIcon width={11} height={11} />
-      <Text className="font-neusans text-[11px] text-gray-400">{value.toFixed(1)}</Text>
-    </View>
-  )
-}
 
 type NearbyProps = {
   row: NearbyPlaceRow
@@ -47,7 +36,6 @@ export function NearbyRestaurantRow({ row, onPress }: NearbyProps): JSX.Element 
             {row.address}
           </Text>
         ) : null}
-        {typeof row.google_rating === 'number' ? <StarRating value={row.google_rating} /> : null}
       </View>
       <AppIcon name="chevron-right" size={16} color="#e5e7eb" />
     </Pressable>

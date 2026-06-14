@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import {
   ActivityIndicator,
   Pressable,
@@ -28,13 +28,6 @@ import { isGoogleResult, isTPResult } from '@/types/restaurantSearchResult'
 import { formatLocationDisplay } from '@/utils/locationUtils'
 import { toast } from '@/utils/toast'
 
-function filterNearbyByCuisine(rows: NearbyPlaceRow[], slug: string | null): NearbyPlaceRow[] {
-  if (!slug) return rows
-  return rows.filter((row) =>
-    (row.types ?? []).some((t) => t.includes(slug.replace(/-/g, '_'))),
-  )
-}
-
 export interface AddRestaurantOverlayContentProps {
   listUuid: string
   listTitle?: string
@@ -60,23 +53,22 @@ export function AddRestaurantOverlayContent({
   const isAdding = addingId != null
 
   const {
-    results,
+    tpResults,
+    googleResults,
     loading: searchLoading,
-    errors,
+    errors: searchErrors,
+    tpNearby,
     nearbyPlaces,
     nearbyLoading,
+    nearbyErrors,
   } = useRestaurantDiscoverySearch({
     query,
     location,
     mode: 'listPicker',
     enabled: hasQuery && !isAdding,
     loadNearby: !hasQuery,
+    cuisineSlug: activeCuisineFilter,
   })
-
-  const filteredNearby = useMemo(
-    () => filterNearbyByCuisine(nearbyPlaces, activeCuisineFilter),
-    [nearbyPlaces, activeCuisineFilter],
-  )
 
   const addGooglePlace = useCallback(
     async (placeId: string, name: string) => {
@@ -248,8 +240,9 @@ export function AddRestaurantOverlayContent({
             keyword={query.trim()}
             variant="addToList"
             loading={searchLoading}
-            results={results}
-            errors={errors}
+            tpResults={tpResults}
+            googleResults={googleResults}
+            errors={searchErrors}
             onAddResult={handleAddResult}
             addingId={addingId}
             addDisabled={isAdding}
@@ -261,10 +254,14 @@ export function AddRestaurantOverlayContent({
             contentContainerStyle={{ paddingBottom: 24 }}
           >
             <RestaurantDiscoveryNearby
-              places={filteredNearby}
+              tpResults={tpNearby}
+              places={nearbyPlaces}
               loading={nearbyLoading}
               variant="addToList"
+              errors={nearbyErrors}
+              onAddTp={addTpResult}
               onAddNearby={handleAddNearby}
+              addingId={addingId}
               addingPlaceId={addingId}
               addDisabled={isAdding}
             />

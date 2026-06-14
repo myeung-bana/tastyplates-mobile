@@ -11,6 +11,8 @@ type Props = {
   className?: string
   /** @default true */
   shadowed?: boolean
+  /** Inner card padding (`p-3`). @default true */
+  padded?: boolean
 }
 
 /** Shared home section shell — matches Quick finds card + title style. */
@@ -20,11 +22,12 @@ export function HomeSectionCard({
   headerRight,
   className,
   shadowed = true,
+  padded = true,
 }: Props): JSX.Element {
   return (
     <View className={`mt-6 w-full px-4 ${className ?? ''}`}>
       <View
-        className={`rounded-2xl bg-white p-3 ${shadowed ? 'shadow-sm shadow-black/5' : ''}`}
+        className={`rounded-2xl bg-white ${padded ? 'p-3' : ''} ${shadowed ? 'shadow-sm shadow-black/5' : ''}`}
       >
         <View className="flex-row items-center justify-between gap-2">
           <SectionTitle>{title}</SectionTitle>

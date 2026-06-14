@@ -38,6 +38,8 @@ interface NhostFeaturedRow {
     address: unknown
     average_rating: number | null
     ratings_count: number | null
+    cuisines?: unknown
+    categories?: unknown
   }
 }
 
@@ -81,6 +83,8 @@ function mapNhostFeaturedRows(rows: NhostFeaturedRow[]): FeaturedRestaurantApi[]
         address: normalizeRestaurantAddressJson(r.restaurant.address),
         average_rating: r.restaurant.average_rating,
         ratings_count: r.restaurant.ratings_count,
+        cuisines: r.restaurant.cuisines,
+        categories: r.restaurant.categories,
       },
     }))
 }

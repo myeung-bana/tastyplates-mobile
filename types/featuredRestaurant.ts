@@ -1,4 +1,9 @@
 /** Featured / recommended restaurant row (home carousel, article associations). */
+import type {
+  RestaurantListCategory,
+  RestaurantListCuisine,
+} from '@/services/restaurantsV2Service'
+
 export interface FeaturedRestaurantApi {
   id: number
   restaurant: {
@@ -14,5 +19,7 @@ export interface FeaturedRestaurantApi {
     } | null
     average_rating: number | null
     ratings_count: number | null
+    cuisines?: RestaurantListCuisine[] | unknown
+    categories?: RestaurantListCategory[] | unknown
   }
 }

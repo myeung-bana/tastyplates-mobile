@@ -9,7 +9,7 @@ export function HomeFeaturedRestaurants() {
   const { location } = useLocation()
 
   return (
-    <HomeSectionCard title="Recommended restaurants">
+    <HomeSectionCard title="Recommended restaurants" shadowed={false} padded={false}>
       <RecommendedRestaurantsCarousel
         hideSectionHeader
         locationKey={location.key}

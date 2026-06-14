@@ -61,6 +61,7 @@ export interface GetRestaurantsResponse {
 export interface GetRestaurantsParams {
   search?: string
   palateSlugs?: string[]
+  cuisineSlugs?: string[]
   limit?: number
   cursor?: string | null
   order_by?: string
@@ -129,6 +130,7 @@ function buildQuery(params: GetRestaurantsParams): string {
   qs.set('limit', String(limit))
   if (params.search?.trim()) qs.set('search', params.search.trim())
   if (params.palateSlugs?.length) qs.set('palate_slugs', params.palateSlugs.filter(Boolean).join(','))
+  if (params.cuisineSlugs?.length) qs.set('cuisine_slugs', params.cuisineSlugs.filter(Boolean).join(','))
   if (params.cursor) qs.set('cursor', params.cursor)
   if (params.order_by) qs.set('order_by', params.order_by)
   if (params.locationKey?.trim()) qs.set('location_key', params.locationKey.trim())

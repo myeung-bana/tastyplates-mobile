@@ -15,8 +15,8 @@ import { pushLoginScreen } from '@/lib/authRoutes'
 
 const TRENDING_LIMIT = 6
 const GRID_GAP = 12
-/** Outer `px-4` + card `p-3` — matches Quick finds gutter. */
-const SECTION_H_PAD = 16 * 2 + 12 * 2
+/** Outer `px-4` gutter on home sections without inner card padding. */
+const SECTION_H_PAD = 16 * 2
 
 type HomeReviewsSectionProps = {
   /** Bumps when the parent pull-to-refresh runs so trending refetches. */
@@ -64,7 +64,7 @@ export function HomeReviewsSection({ refreshNonce = 0 }: HomeReviewsSectionProps
   }
 
   return (
-    <HomeSectionCard title="Recent reviews">
+    <HomeSectionCard title="Recent reviews" shadowed={false} padded={false}>
       {trendingLoading ? (
         <View className="w-full">
           {[0, 1].map((row) => (

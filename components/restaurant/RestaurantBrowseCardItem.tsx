@@ -19,23 +19,15 @@ import {
 /** Horizontal padding on Restaurants tab — browse cards are full width inside this inset. */
 export const RESTAURANT_BROWSE_CARD_HORIZONTAL_PAD = 16
 
-/** Extra inset inside {@link HomeSectionCard} (`px-4` + inner `p-3`) vs Restaurants tab (`px-4` only). */
-export const HOME_SECTION_CARD_EXTRA_HORIZONTAL_INSET = 24
-
 export function getRestaurantBrowseCardWidth(screenWidth: number): number {
   return screenWidth - RESTAURANT_BROWSE_CARD_HORIZONTAL_PAD * 2
-}
-
-/** Card width when rendered inside `HomeSectionCard` on the home feed. */
-export function getHomeFeaturedRestaurantCardWidth(screenWidth: number): number {
-  return getRestaurantBrowseCardWidth(screenWidth) - HOME_SECTION_CARD_EXTRA_HORIZONTAL_INSET
 }
 
 /** Home Recommended carousel — 15% narrower so the next card peeks on the right. */
 export const HOME_CAROUSEL_CARD_WIDTH_SCALE = 0.85
 
 export function getHomeCarouselRestaurantCardWidth(screenWidth: number): number {
-  return Math.round(getHomeFeaturedRestaurantCardWidth(screenWidth) * HOME_CAROUSEL_CARD_WIDTH_SCALE)
+  return Math.round(getRestaurantBrowseCardWidth(screenWidth) * HOME_CAROUSEL_CARD_WIDTH_SCALE)
 }
 
 export interface RestaurantBrowseCardItemProps {
@@ -130,6 +122,8 @@ export function restaurantBrowseCardItemFromFeatured(
     imageUrl: r.featured_image_url,
     listingStreet: r.listing_street,
     address: r.address,
+    listingCategories: normalizeCuisineList(r.cuisines),
+    categories: normalizeCategoryList(r.categories),
     rating: r.average_rating,
     reviewCount: r.ratings_count,
   }

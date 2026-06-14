@@ -9,10 +9,11 @@ import {
   View,
 } from 'react-native'
 import RenderHTML from 'react-native-render-html'
-import { useLocalSearchParams } from 'expo-router'
+import { Stack, useLocalSearchParams } from 'expo-router'
 
 import { ArticleCategoryTag } from '@/components/articles/ArticleCategoryTag'
 import { ArticleRelatedRestaurantsSection } from '@/components/articles/ArticleRelatedRestaurantsSection'
+import { ReviewDetailTopNav } from '@/components/review/ReviewDetailTopNav'
 import {
   BORDER_SUBTLE,
   BRAND_PRIMARY,
@@ -25,7 +26,7 @@ import { stripHtml } from '@/lib/restaurantDetailUtils'
 import {
   fetchArticleByPkId,
   fetchArticleBySlug,
-  mapArticleAssociationsToSectionItems,
+  mapArticleAssociationsToFeatured,
   type ArticleDetail,
 } from '@/services/articleDetailService'
 
@@ -82,8 +83,8 @@ export default function ArticleDetailScreen() {
     return '<p></p>'
   }, [article])
 
-  const articleRestaurantSectionItems = useMemo(
-    () => mapArticleAssociationsToSectionItems(article?.article_restaurant_associations),
+  const articleRestaurants = useMemo(
+    () => mapArticleAssociationsToFeatured(article?.article_restaurant_associations),
     [article?.article_restaurant_associations],
   )
 
@@ -175,6 +176,8 @@ export default function ArticleDetailScreen() {
   if (!segment) {
     return (
       <View className="flex-1 bg-white">
+        <Stack.Screen options={{ headerShown: false }} />
+        <ReviewDetailTopNav title="Article" />
         <View className="flex-1 items-center justify-center px-8">
           <Text style={{ color: TEXT_MUTED }}>Invalid article link.</Text>
         </View>
@@ -184,6 +187,8 @@ export default function ArticleDetailScreen() {
 
   return (
     <View className="flex-1 bg-white">
+      <Stack.Screen options={{ headerShown: false }} />
+      <ReviewDetailTopNav title="Article" />
       {loading ? (
         <View className="flex-1 items-center justify-center pt-8">
           <ActivityIndicator color={BRAND_PRIMARY} size="large" />
@@ -255,7 +260,7 @@ export default function ArticleDetailScreen() {
           </View>
 
           <ArticleRelatedRestaurantsSection
-            items={articleRestaurantSectionItems}
+            restaurants={articleRestaurants}
             fallbackAssociationCount={associationCountRaw}
           />
 

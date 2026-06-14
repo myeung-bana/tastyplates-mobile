@@ -45,7 +45,7 @@ export function HomeArticlesSection() {
   }
 
   return (
-    <HomeSectionCard title="Articles" className="pb-8">
+    <HomeSectionCard title="Articles" className="pb-8" shadowed={false} padded={false}>
       {loading ? (
         <View className="items-center py-12">
           <ActivityIndicator color={BRAND_PRIMARY} />

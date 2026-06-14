@@ -3,19 +3,24 @@ import { geoQueryFromCityCenter, isWithinRadiusKm, CITY_SEARCH_RADIUS_KM } from 
 import {
   autocompletePlacesEstablishments,
   fetchGooglePlaceDetails,
+  getNearbyRestaurants,
 } from '@/lib/googlePlaces'
 import type { NearbyPlaceRow } from '@/lib/googlePlaces'
 import { mergeRestaurantResults } from '@/lib/restaurantSearchMerge'
 import { splitDiscoveryResults } from '@/lib/restaurantDiscoveryHelpers'
 import {
   limitForHybridSearchMode,
+  MERGE_GOOGLE_LIMIT_IDLE,
   MERGE_GOOGLE_LIMIT_SEARCH,
+  MERGE_SUPPRESS_TP_COUNT_IDLE,
   MERGE_SUPPRESS_TP_COUNT_SEARCH,
+  NEARBY_PICKER_RADIUS_METERS,
   type HybridSearchGeoMode,
   type HybridSearchMode,
 } from '@/lib/restaurantSearchConfig'
 import { getRestaurants } from '@/services/restaurantsV2Service'
 import type { RestaurantSearchResult } from '@/types/restaurantSearchResult'
+import { isGoogleResult } from '@/types/restaurantSearchResult'
 
 const GASTRONOMY_TYPES = ['restaurant', 'food', 'meal', 'cafe', 'bakery', 'bar']
 const AUTOCOMPLETE_CAP = 8
@@ -141,6 +146,8 @@ function errorFromReason(reason: unknown): string {
 export interface HybridSearchOptions {
   /** @deprecated Palate Sort uses `palateSlug` for sort context only — not sent as `palate_slugs` filter. */
   palateSlugs?: string[]
+  /** Filter TP rows by cuisine slug(s) — maps to Hasura `cuisine_slugs`. */
+  cuisineSlugs?: string[]
   limit?: number
   mode?: HybridSearchMode
   geoMode?: HybridSearchGeoMode
@@ -190,6 +197,7 @@ export async function hybridSearch(
           locationKey,
           cityName: options.cityName,
           order_by: palateSortActive ? 'smart' : undefined,
+          cuisineSlugs: options.cuisineSlugs,
           ...geo,
         })
       : Promise.resolve({ restaurants: [], meta: { cursor: null, hasMore: false } }),
@@ -281,4 +289,76 @@ export async function listPickerHybridSearch(
     mode: 'listPicker',
     geoMode: 'off',
   })
+}
+
+export interface NearbyHybridDiscoveryOptions {
+  cuisineSlugs?: string[]
+  /** Optional Google Nearby Search keyword (e.g. cuisine label). */
+  googleKeyword?: string | null
+  signal?: AbortSignal
+}
+
+export interface NearbyHybridDiscoveryResponse {
+  tpResults: RestaurantSearchResult[]
+  googlePlaces: NearbyPlaceRow[]
+  errors: HybridSearchResponse['errors']
+}
+
+/** Idle hybrid nearby — TP geo list + Google Nearby, optionally cuisine-filtered. */
+export async function nearbyHybridDiscovery(
+  locationKey: string,
+  coordinates: LocationCoordinates | null,
+  options: NearbyHybridDiscoveryOptions = {},
+): Promise<NearbyHybridDiscoveryResponse> {
+  const signal = options.signal
+  const errors: NearbyHybridDiscoveryResponse['errors'] = {}
+  const geo = geoQueryFromCityCenter(coordinates)
+
+  const [tpResult, googleResult] = await Promise.allSettled([
+    getRestaurants({
+      limit: limitForHybridSearchMode('listPicker'),
+      locationKey,
+      cuisineSlugs: options.cuisineSlugs,
+      ...geo,
+    }),
+    coordinates
+      ? getNearbyRestaurants(
+          coordinates,
+          NEARBY_PICKER_RADIUS_METERS,
+          options.googleKeyword ?? null,
+        )
+      : Promise.resolve([]),
+  ])
+
+  if (tpResult.status === 'rejected') {
+    errors.tp = errorFromReason(tpResult.reason)
+  }
+  if (googleResult.status === 'rejected') {
+    errors.google = errorFromReason(googleResult.reason)
+  }
+
+  const tpRows = tpResult.status === 'fulfilled' ? tpResult.value.restaurants : []
+  const googleRows = googleResult.status === 'fulfilled' ? googleResult.value : []
+
+  const merged = mergeRestaurantResults(tpRows, googleRows, {
+    googleLimit: MERGE_GOOGLE_LIMIT_IDLE,
+    suppressGoogleWhenTPCount: MERGE_SUPPRESS_TP_COUNT_IDLE,
+  })
+
+  const { tpResults, googleResults } = splitDiscoveryResults(merged)
+
+  if (signal?.aborted) {
+    return { tpResults: [], googlePlaces: [], errors }
+  }
+
+  const shownGooglePlaceIds = new Set(
+    googleResults.filter(isGoogleResult).map((row) => row.place_id),
+  )
+  const googlePlaces = googleRows.filter((row) => shownGooglePlaceIds.has(row.place_id))
+
+  return {
+    tpResults,
+    googlePlaces,
+    errors,
+  }
 }

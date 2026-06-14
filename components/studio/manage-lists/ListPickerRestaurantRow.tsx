@@ -2,22 +2,11 @@ import { ActivityIndicator, Image, Pressable, Text, View } from 'react-native'
 import { AppIcon } from '@/components/ui/AppIcon'
 
 import { BRAND_PRIMARY } from '@/constants/brand'
-import { STAR_FILLED } from '@/constants/images'
 import {
   googlePlacePhotoUrl,
   type NearbyPlaceRow,
   type PlacesAutocompletePrediction,
 } from '@/lib/googlePlaces'
-
-function StarRating({ value }: { value: number }): JSX.Element {
-  const StarIcon = STAR_FILLED
-  return (
-    <View className="flex-row items-center gap-1">
-      <StarIcon width={11} height={11} />
-      <Text className="font-neusans text-[11px] text-gray-400">{value.toFixed(1)}</Text>
-    </View>
-  )
-}
 
 function AddButton({
   onPress,
@@ -81,7 +70,6 @@ export function ListPickerNearbyRow({
             {row.address}
           </Text>
         ) : null}
-        {typeof row.google_rating === 'number' ? <StarRating value={row.google_rating} /> : null}
       </View>
       <AddButton onPress={onAdd} disabled={disabled} busy={adding} />
     </View>

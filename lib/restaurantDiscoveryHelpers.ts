@@ -1,4 +1,5 @@
 import type { SavedLocationPreference } from '@/constants/locations'
+import { QUICK_FINDS } from '@/constants/quickFinds'
 import {
   formatRestaurantCardAddress,
   formatShortFormattedAddress,
@@ -35,6 +36,20 @@ export function splitDiscoveryResults(results: RestaurantSearchResult[]): {
     else if (isGoogleResult(row)) googleResults.push(row)
   }
   return { tpResults, googleResults }
+}
+
+/** Maps a Quick Finds pill slug to TP `cuisine_slugs` query values. */
+export function cuisineSlugsForFilter(slug: string | null | undefined): string[] | undefined {
+  const trimmed = slug?.trim()
+  if (!trimmed) return undefined
+  return [trimmed]
+}
+
+/** Optional Google Nearby / text hint from a cuisine pill slug. */
+export function googleKeywordForCuisine(slug: string | null | undefined): string | null {
+  const trimmed = slug?.trim()
+  if (!trimmed) return null
+  return QUICK_FINDS.find((item) => item.slug === trimmed)?.label ?? null
 }
 
 export function discoveryErrorMessage(errors: { tp?: string; google?: string }): string | null {

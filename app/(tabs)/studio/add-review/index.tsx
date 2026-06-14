@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { AppIcon } from '@/components/ui/AppIcon'
 import {
   ActivityIndicator,
@@ -14,13 +14,9 @@ import { router, useLocalSearchParams } from 'expo-router'
 
 import { CuisineFilterPills } from '@/components/studio/add-review/CuisineFilterPills'
 import {
-  NearbyEmptyState,
-  NearbyRestaurantRow,
-  NearbySkeletonList,
-  SearchEmptyState,
-  SearchPredictionRow,
-  SectionHeader,
-} from '@/components/studio/add-review/RestaurantSearchRows'
+  RestaurantDiscoveryNearby,
+  RestaurantDiscoveryResults,
+} from '@/components/restaurant-search/RestaurantDiscoveryResults'
 import { ReviewSearchHelpFooter } from '@/components/reviews/RestaurantMatchInlineMobile'
 import { BRAND_PRIMARY, mergeTextInputBodyTypography } from '@/constants/brand'
 import {
@@ -29,48 +25,15 @@ import {
 } from '@/constants/screens'
 import { useLocation } from '@/contexts/LocationContext'
 import { useRequireAuthOnMount } from '@/hooks/useRequireAuthOnMount'
+import { useRestaurantDiscoverySearch } from '@/hooks/useRestaurantDiscoverySearch'
 import { matchRestaurantForPlace } from '@/lib/findTastyPlatesMatch'
-import { NEARBY_PICKER_RADIUS_METERS } from '@/lib/restaurantSearchConfig'
-import {
-  autocompletePlacesEstablishments,
-  fetchGooglePlaceDetails,
-  getNearbyRestaurants,
-  type NearbyPlaceRow,
-  type PlacesAutocompletePrediction,
-} from '@/lib/googlePlaces'
+import type { NearbyPlaceRow } from '@/lib/googlePlaces'
+import { fetchGooglePlaceDetails } from '@/lib/googlePlaces'
 import { castHref, firstSegmentParam } from '@/lib/routeParams'
+import type { RestaurantSearchResult } from '@/types/restaurantSearchResult'
+import { isGoogleResult, isTPResult } from '@/types/restaurantSearchResult'
 import { formatLocationDisplay } from '@/utils/locationUtils'
 import { toast } from '@/utils/toast'
-
-const DEBOUNCE_MS = 300
-
-const GASTRONOMY_TYPES = ['restaurant', 'food', 'meal', 'cafe', 'bakery', 'bar']
-
-function gastronomyScore(types: string[] | undefined): number {
-  if (!types?.length) return 0
-  let v = 0
-  if (types.some((x) => x.includes('restaurant'))) v += 3
-  if (types.some((x) => GASTRONOMY_TYPES.some((k) => k !== 'restaurant' && x.includes(k)))) v += 2
-  if (types.some((x) => x.includes('establishment'))) v += 1
-  return v
-}
-
-function filterAndSortEstablishments(rows: PlacesAutocompletePrediction[]): PlacesAutocompletePrediction[] {
-  const filtered = rows.filter((p) => {
-    const types = p.types ?? []
-    if (types.length === 0) return true
-    return types.some((t) => GASTRONOMY_TYPES.some((k) => t.includes(k)))
-  })
-  return filtered.sort((a, b) => gastronomyScore(b.types) - gastronomyScore(a.types))
-}
-
-function filterNearbyByCuisine(rows: NearbyPlaceRow[], slug: string | null): NearbyPlaceRow[] {
-  if (!slug) return rows
-  return rows.filter((row) => {
-    const types = row.types ?? []
-    return types.some((t) => t.includes(slug.replace(/-/g, '_')))
-  })
-}
 
 export default function AddReviewSearchScreen(): JSX.Element {
   useRequireAuthOnMount()
@@ -88,80 +51,37 @@ export default function AddReviewSearchScreen(): JSX.Element {
   const localityLine = formatLocationDisplay(location, hierarchyCountries)
 
   const [query, setQuery] = useState('')
-  const [predictions, setPredictions] = useState<PlacesAutocompletePrediction[]>([])
-  const [searchingPlaces, setSearchingPlaces] = useState(false)
-  const [nearbyPlaces, setNearbyPlaces] = useState<NearbyPlaceRow[]>([])
-  const [nearbyLoading, setNearbyLoading] = useState(false)
   const [activeCuisineFilter, setActiveCuisineFilter] = useState<string | null>(null)
   const [matching, setMatching] = useState(false)
 
-  const debouncingRef = useRef<ReturnType<typeof globalThis.setTimeout> | undefined>(undefined)
   const placeSelectSeqRef = useRef(0)
 
-  const hasQuery = query.trim().length > 0
+  const hasQuery = query.trim().length >= 2
   const idleSearch = !hasQuery && !matching
 
-  const filteredNearby = useMemo(
-    () => filterNearbyByCuisine(nearbyPlaces, activeCuisineFilter),
-    [nearbyPlaces, activeCuisineFilter],
-  )
-
-  useEffect(() => {
-    let cancelled = false
-    const coords = location.coordinates
-    if (
-      coords == null ||
-      !Number.isFinite(coords.latitude) ||
-      !Number.isFinite(coords.longitude)
-    ) {
-      setNearbyPlaces([])
-      setNearbyLoading(false)
-      return
-    }
-    setNearbyLoading(true)
-    void getNearbyRestaurants(coords, NEARBY_PICKER_RADIUS_METERS).then((rows) => {
-      if (!cancelled) setNearbyPlaces(rows)
-      if (!cancelled) setNearbyLoading(false)
-    })
-    return () => {
-      cancelled = true
-    }
-  }, [location.key, location.coordinates?.latitude, location.coordinates?.longitude])
-
-  useEffect(() => {
-    if (!hasQuery || matching) {
-      setSearchingPlaces(false)
-      setPredictions([])
-      return
-    }
-
-    if (debouncingRef.current) clearTimeout(debouncingRef.current)
-    setSearchingPlaces(true)
-
-    debouncingRef.current = globalThis.setTimeout(() => {
-      void (async () => {
-        try {
-          const rows = await autocompletePlacesEstablishments(query, location.coordinates)
-          setPredictions(filterAndSortEstablishments(rows))
-        } catch {
-          setPredictions([])
-        } finally {
-          setSearchingPlaces(false)
-        }
-      })()
-    }, DEBOUNCE_MS)
-
-    return () => {
-      if (debouncingRef.current) clearTimeout(debouncingRef.current)
-    }
-  }, [hasQuery, location.coordinates, query, matching])
+  const {
+    tpResults,
+    googleResults,
+    loading: searchLoading,
+    errors: searchErrors,
+    tpNearby,
+    nearbyPlaces,
+    nearbyLoading,
+    nearbyErrors,
+  } = useRestaurantDiscoverySearch({
+    query,
+    location,
+    mode: 'listPicker',
+    enabled: hasQuery && !matching,
+    loadNearby: idleSearch,
+    cuisineSlug: activeCuisineFilter,
+  })
 
   const handlePlaceSelect = useCallback(async (placeId: string, name: string) => {
     const seq = ++placeSelectSeqRef.current
 
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
     setQuery(name)
-    setPredictions([])
     setMatching(true)
 
     try {
@@ -212,6 +132,20 @@ export default function AddReviewSearchScreen(): JSX.Element {
     void handlePlaceSelect(prefillPlaceId, prefillName)
   }, [handlePlaceSelect, prefillName, prefillPlaceId])
 
+  const handleSelectResult = useCallback(
+    (result: RestaurantSearchResult) => {
+      if (isTPResult(result) && result.slug) {
+        void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
+        router.replace(castHref(studioAddReviewWritePath(result.slug)))
+        return
+      }
+      if (isGoogleResult(result)) {
+        void handlePlaceSelect(result.place_id, result.title)
+      }
+    },
+    [handlePlaceSelect],
+  )
+
   const onPickNearby = useCallback(
     (row: NearbyPlaceRow) => {
       if (!row.place_id) return
@@ -220,10 +154,15 @@ export default function AddReviewSearchScreen(): JSX.Element {
     [handlePlaceSelect],
   )
 
+  const onPickTpNearby = useCallback((result: RestaurantSearchResult) => {
+    if (!isTPResult(result) || !result.slug) return
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
+    router.replace(castHref(studioAddReviewWritePath(result.slug)))
+  }, [])
+
   const clearSearch = useCallback(() => {
     placeSelectSeqRef.current += 1
     setQuery('')
-    setPredictions([])
     setMatching(false)
   }, [])
 
@@ -244,8 +183,8 @@ export default function AddReviewSearchScreen(): JSX.Element {
             style={mergeTextInputBodyTypography({ fontSize: 16 })}
             editable={!matching}
           />
-          {searchingPlaces ? <ActivityIndicator size="small" color={BRAND_PRIMARY} /> : null}
-          {hasQuery && !searchingPlaces ? (
+          {searchLoading ? <ActivityIndicator size="small" color={BRAND_PRIMARY} /> : null}
+          {query.length > 0 && !searchLoading ? (
             <Pressable accessibilityRole="button" onPress={clearSearch} hitSlop={8}>
               <AppIcon name="x" size={16} color="#9ca3af" />
             </Pressable>
@@ -263,66 +202,39 @@ export default function AddReviewSearchScreen(): JSX.Element {
         />
       </View>
 
-      <ScrollView
-        className="flex-1"
-        keyboardShouldPersistTaps="handled"
-        contentContainerStyle={{ flexGrow: 0, paddingBottom: 24 }}
-      >
-        {matching ? (
-          <View className="items-center py-8">
-            <ActivityIndicator color={BRAND_PRIMARY} />
-            <Text className="mt-3 font-neusans text-sm text-[#6b7280]">Checking restaurant…</Text>
-          </View>
-        ) : null}
-
-        {idleSearch ? (
-          <>
-            <SectionHeader title="Nearby" />
-            {nearbyLoading ? (
-              <NearbySkeletonList />
-            ) : filteredNearby.length === 0 ? (
-              <NearbyEmptyState />
-            ) : (
-              filteredNearby.map((row) => (
-                <NearbyRestaurantRow
-                  key={row.place_id}
-                  row={row}
-                  onPress={() => onPickNearby(row)}
-                />
-              ))
-            )}
-          </>
-        ) : null}
-
-        {hasQuery && !matching ? (
-          <>
-            {searchingPlaces ? (
-              <View className="flex-row items-center gap-2 px-4 py-3">
-                <ActivityIndicator size="small" color={BRAND_PRIMARY} />
-              </View>
-            ) : (
-              <SectionHeader title="All Results" />
-            )}
-            {!searchingPlaces && predictions.length === 0 ? <SearchEmptyState /> : null}
-            {!searchingPlaces
-              ? predictions.map((p) => (
-                  <SearchPredictionRow
-                    key={p.place_id}
-                    prediction={p}
-                    onPress={() =>
-                      void handlePlaceSelect(
-                        p.place_id,
-                        p.structured_formatting?.main_text ?? p.description,
-                      )
-                    }
-                  />
-                ))
-              : null}
-          </>
-        ) : null}
-
-        {!matching ? <ReviewSearchHelpFooter /> : null}
-      </ScrollView>
+      {matching ? (
+        <View className="items-center py-8">
+          <ActivityIndicator color={BRAND_PRIMARY} />
+          <Text className="mt-3 font-neusans text-sm text-[#6b7280]">Checking restaurant…</Text>
+        </View>
+      ) : hasQuery ? (
+        <RestaurantDiscoveryResults
+          keyword={query.trim()}
+          variant="navigate"
+          loading={searchLoading}
+          tpResults={tpResults}
+          googleResults={googleResults}
+          errors={searchErrors}
+          onSelect={handleSelectResult}
+        />
+      ) : (
+        <ScrollView
+          className="flex-1"
+          keyboardShouldPersistTaps="handled"
+          contentContainerStyle={{ paddingBottom: 24 }}
+        >
+          <RestaurantDiscoveryNearby
+            tpResults={tpNearby}
+            places={nearbyPlaces}
+            loading={nearbyLoading}
+            variant="navigate"
+            errors={nearbyErrors}
+            onSelectTp={onPickTpNearby}
+            onSelectNearby={onPickNearby}
+          />
+          <ReviewSearchHelpFooter />
+        </ScrollView>
+      )}
     </SafeAreaView>
   )
 }

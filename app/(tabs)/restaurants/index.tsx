@@ -10,7 +10,7 @@ import {
   useWindowDimensions,
 } from 'react-native'
 import BottomSheet, { BottomSheetFlatList } from '@gorhom/bottom-sheet'
-import MapView, { Marker, PROVIDER_GOOGLE, type Region } from 'react-native-maps'
+import MapView, { PROVIDER_GOOGLE, type Region } from 'react-native-maps'
 import type { MapPressEvent } from 'react-native-maps'
 import * as Haptics from 'expo-haptics'
 import { useLocalSearchParams, router } from 'expo-router'
@@ -18,7 +18,7 @@ import { useLocalSearchParams, router } from 'expo-router'
 import { AppTopNav } from '@/components/layout/AppTopNav'
 import { RestaurantBrowseCard } from '@/components/restaurant/RestaurantBrowseCard'
 import { getRestaurantBrowseCardWidth } from '@/components/restaurant/RestaurantBrowseCardItem'
-import { RestaurantMapPin } from '@/components/restaurant/RestaurantMapPin'
+import { RestaurantMapMarker } from '@/components/restaurant/RestaurantMapMarker'
 import { PalateFilterChips } from '@/components/search/PalateFilterChips'
 import {
   RestaurantBrowseCardSkeleton,
@@ -59,7 +59,6 @@ import {
   dedupeRestaurantSearchResults,
   restaurantSearchResultCoords,
   restaurantSearchResultId,
-  restaurantSearchResultRating,
 } from '@/lib/restaurantSearchMerge'
 import {
   getRestaurants,
@@ -155,8 +154,10 @@ export default function RestaurantsScreen() {
   const bottomSheetRef = useRef<BottomSheet>(null)
   const sheetListRef = useRef<FlatList<RestaurantSearchResult>>(null)
   const loadMoreLockRef = useRef(false)
-  /** Skip clearing pin selection while collapsing/reopening sheet for map pin preview. */
+  /** Skip clearing pin selection while reopening sheet for map pin preview. */
   const pinPreviewSnapRef = useRef(false)
+  /** Skip redundant animateToRegion when MapView `initialRegion` already matches. */
+  const lastMapRegionKeyRef = useRef<string | null>(null)
 
   const snapPoints = useMemo(() => [SHEET_MIN, SHEET_MID, SHEET_EXPANDED], [])
 
@@ -248,8 +249,13 @@ export default function RestaurantsScreen() {
 
   useEffect(() => {
     if (!mapRef.current || !cityMapRegion) return
+    const key = `${locationKey}|${cityMapRegion.latitude}|${cityMapRegion.longitude}|${cityMapRegion.latitudeDelta}`
+    if (lastMapRegionKeyRef.current === key) return
+    const isInitial = lastMapRegionKeyRef.current === null
+    lastMapRegionKeyRef.current = key
+    if (isInitial) return
     mapRef.current.animateToRegion(cityMapRegion, 400)
-  }, [cityMapRegion])
+  }, [cityMapRegion, locationKey])
 
   const loadMore = useCallback(async () => {
     if (loadMoreLockRef.current || !hasMore || loadingMore || loading || !cursor) {
@@ -384,14 +390,10 @@ export default function RestaurantsScreen() {
   const presentPinPreview = useCallback(() => {
     pinPreviewSnapRef.current = true
     scrollSheetToTop()
-    bottomSheetRef.current?.snapToIndex(0)
-    requestAnimationFrame(() => {
-      scrollSheetToTop()
-      bottomSheetRef.current?.snapToIndex(1)
-      setTimeout(() => {
-        pinPreviewSnapRef.current = false
-      }, 350)
-    })
+    bottomSheetRef.current?.snapToIndex(1)
+    setTimeout(() => {
+      pinPreviewSnapRef.current = false
+    }, 500)
   }, [scrollSheetToTop])
 
   const clearPinSelection = useCallback(() => {
@@ -563,8 +565,8 @@ export default function RestaurantsScreen() {
   )
 
   const mapMarkers = useMemo(() => {
-    if (!coordinates) return displayRows
-    return displayRows.filter((result) => {
+    if (!coordinates) return rows
+    return rows.filter((result) => {
       const coords = restaurantSearchResultCoords(result)
       if (coords.latitude == null || coords.longitude == null) return false
       return isWithinRadiusKm(
@@ -574,7 +576,7 @@ export default function RestaurantsScreen() {
         CITY_SEARCH_RADIUS_KM,
       )
     })
-  }, [displayRows, coordinates])
+  }, [rows, coordinates])
 
   return (
     <View className="flex-1 bg-white">
@@ -591,22 +593,14 @@ export default function RestaurantsScreen() {
             onPress={handleMapPress}
           >
             {mapMarkers.map((result) => {
-              const coords = restaurantSearchResultCoords(result)
-              if (coords.latitude == null || coords.longitude == null) return null
               const id = restaurantSearchResultId(result)
               return (
-                <Marker
+                <RestaurantMapMarker
                   key={id}
-                  coordinate={{ latitude: coords.latitude, longitude: coords.longitude }}
-                  stopPropagation
-                  onPress={() => handlePinPress(result)}
-                  tracksViewChanges={false}
-                >
-                  <RestaurantMapPin
-                    isSelected={selectedId === id}
-                    rating={restaurantSearchResultRating(result)}
-                  />
-                </Marker>
+                  result={result}
+                  isSelected={selectedId === id}
+                  onPress={handlePinPress}
+                />
               )
             })}
           </MapView>

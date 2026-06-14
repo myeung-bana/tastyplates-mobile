@@ -1,11 +1,8 @@
 import { Image, Pressable, Text, View } from 'react-native'
 import { AppIcon } from '@/components/ui/AppIcon'
 
-import { BRAND_PRIMARY } from '@/constants/brand'
-import { coerceRatingNumber } from '@/lib/ratingDisplayUtils'
 import { formatRestaurantSearchResultAddress } from '@/lib/restaurantDiscoveryHelpers'
 import type { RestaurantSearchResult } from '@/types/restaurantSearchResult'
-import { isTPResult } from '@/types/restaurantSearchResult'
 
 const DEFAULT_IMAGE = 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400&q=80'
 
@@ -23,72 +20,31 @@ export function RestaurantListRow({
   const title = result.title
   const imageUrl = result.featured_image_url ?? DEFAULT_IMAGE
   const address = formatRestaurantSearchResultAddress(result)
-  const rating = isTPResult(result)
-    ? coerceRatingNumber(result.average_rating)
-    : coerceRatingNumber(result.google_rating)
-  const cuisines = isTPResult(result) ? result.cuisines.slice(0, 2) : []
 
   return (
     <Pressable
       onPress={onPress}
-      style={{
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingHorizontal: 16,
-        paddingVertical: 12,
-        gap: 12,
-        backgroundColor: isSelected ? '#fef7f0' : 'transparent',
-      }}
+      className="flex-row items-center gap-3 border-b border-gray-50 px-4 py-3 active:bg-gray-50"
+      style={{ backgroundColor: isSelected ? '#fef7f0' : undefined }}
     >
       <Image
         source={{ uri: imageUrl }}
-        style={{ width: 56, height: 56, borderRadius: 10 }}
+        style={{ width: 40, height: 40, borderRadius: 10 }}
         resizeMode="cover"
       />
 
-      <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
-        <Text
-          className="font-neusans text-[15px] font-medium text-[#31343F]"
-          style={{ flex: 1 }}
-          numberOfLines={1}
-        >
+      <View className="min-w-0 flex-1">
+        <Text className="font-neusans text-[15px] font-medium text-[#31343F]" numberOfLines={1}>
           {title}
         </Text>
-
         {address ? (
-          <Text className="font-neusans text-xs text-[#6b7280]" numberOfLines={1}>
+          <Text className="mt-0.5 font-neusans text-[13px] text-gray-500" numberOfLines={1}>
             {address}
           </Text>
         ) : null}
-
-        {cuisines.length > 0 ? (
-          <View style={{ flexDirection: 'row', gap: 4, marginTop: 2 }}>
-            {cuisines.map((c) => (
-              <View
-                key={c.slug}
-                style={{
-                  backgroundColor: BRAND_PRIMARY,
-                  borderRadius: 50,
-                  paddingHorizontal: 6,
-                  paddingVertical: 1,
-                }}
-              >
-                <Text className="font-neusans text-[9px] text-white">{c.name}</Text>
-              </View>
-            ))}
-          </View>
-        ) : null}
       </View>
 
-      <View style={{ alignItems: 'flex-end', gap: 2 }}>
-        {rating != null ? (
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
-            <AppIcon name="star" size={12} color={BRAND_PRIMARY} active />
-            <Text className="font-neusans text-[13px] text-[#31343F]">{rating.toFixed(1)}</Text>
-          </View>
-        ) : null}
-        <AppIcon name="chevron-right" size={14} color="#e5e7eb" />
-      </View>
+      <AppIcon name="chevron-right" size={16} color="#e5e7eb" />
     </Pressable>
   )
 }

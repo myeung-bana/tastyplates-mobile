@@ -12,7 +12,7 @@ export default function ArticlesLayout() {
         animation: 'slide_from_right',
       }}
     >
-      <Stack.Screen name="[slug]" options={{ headerShown: true, title: 'Article' }} />
+      <Stack.Screen name="[slug]" options={{ headerShown: false }} />
     </Stack>
   )
 }
