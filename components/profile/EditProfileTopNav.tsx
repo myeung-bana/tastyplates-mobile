@@ -8,6 +8,8 @@ export interface EditProfileTopNavProps {
   onDone: () => void
   doneEnabled: boolean
   saving?: boolean
+  /** Center title (defaults to “Edit profile”). */
+  title?: string
 }
 
 export function EditProfileTopNav({
@@ -15,6 +17,7 @@ export function EditProfileTopNav({
   onDone,
   doneEnabled,
   saving = false,
+  title = 'Edit profile',
 }: EditProfileTopNavProps): JSX.Element {
   const insets = useSafeAreaInsets()
 
@@ -49,7 +52,7 @@ export function EditProfileTopNav({
         </Pressable>
 
         <Text className="text-base font-semibold" style={{ color: TEXT_HEADING }}>
-          Edit profile
+          {title}
         </Text>
 
         <Pressable

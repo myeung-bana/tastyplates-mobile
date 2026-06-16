@@ -41,7 +41,7 @@ export default function StudioSectionLayout(): JSX.Element {
       <Stack.Screen name="add-review/create" options={{ title: 'Write review' }} />
       <Stack.Screen name="add-review/success" options={{ headerShown: false }} />
       <Stack.Screen name="review-listing" options={{ title: 'Manage Reviews' }} />
-      <Stack.Screen name="edit-review/[id]" options={{ title: 'Edit review' }} />
+      <Stack.Screen name="edit-review/[id]" options={{ headerShown: false }} />
       <Stack.Screen name="my-lists/index" options={{ title: 'To Dine / Check-Ins' }} />
       <Stack.Screen name="manage-lists/index" options={{ title: 'Manage Lists' }} />
       <Stack.Screen name="manage-lists/create" options={{ title: 'New List' }} />

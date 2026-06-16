@@ -11,6 +11,8 @@ type Props = {
   previewUris: string[]
   pending: PendingReviewPhoto[]
   onChange: (previews: string[], pending: PendingReviewPhoto[]) => void
+  /** Preview tiles at the start that are already-uploaded URLs (not in `pending`). */
+  leadingSavedCount?: number
   error?: string
 }
 
@@ -47,7 +49,13 @@ function assetToPending(asset: ImagePicker.ImagePickerAsset, index: number): Pen
   }
 }
 
-export function ReviewPhotoGrid({ previewUris, pending, onChange, error }: Props): JSX.Element {
+export function ReviewPhotoGrid({
+  previewUris,
+  pending,
+  onChange,
+  leadingSavedCount = 0,
+  error,
+}: Props): JSX.Element {
   const addAssets = (assets: ImagePicker.ImagePickerAsset[]) => {
     const nextPending = [...pending]
     const nextPreviews = [...previewUris]
@@ -96,9 +104,17 @@ export function ReviewPhotoGrid({ previewUris, pending, onChange, error }: Props
   }
 
   const removeAt = (index: number) => {
+    if (index < leadingSavedCount) {
+      onChange(
+        previewUris.filter((_, i) => i !== index),
+        pending,
+      )
+      return
+    }
+    const pendingIndex = index - leadingSavedCount
     onChange(
       previewUris.filter((_, i) => i !== index),
-      pending.filter((_, i) => i !== index),
+      pending.filter((_, i) => i !== pendingIndex),
     )
   }
 

@@ -79,6 +79,23 @@ export async function getRestaurantBySlug(slug: string): Promise<RestaurantDetai
   return data.restaurant
 }
 
+/** Single restaurant by UUID. */
+export async function getRestaurantByUuid(uuid: string): Promise<RestaurantDetailRow> {
+  const envelope = await tastyplatesFetch<GetRestaurantBySlugResponse>(
+    `restaurants-v2/get-restaurant-by-id?uuid=${encodeURIComponent(uuid)}`,
+  )
+  const data = unwrapEnvelope(envelope)
+  return data.restaurant
+}
+
+export function restaurantDisplayAddress(restaurant: RestaurantDetailRow): string {
+  const streetFromAddress =
+    restaurant.address && typeof restaurant.address.street_address === 'string'
+      ? restaurant.address.street_address.trim()
+      : ''
+  return restaurant.listing_street?.trim() || streetFromAddress
+}
+
 /**
  * Aggregate rating row from `restaurant_rating_summary` (may be null if no summaries).
  */

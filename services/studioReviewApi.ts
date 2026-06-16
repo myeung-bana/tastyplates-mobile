@@ -27,7 +27,13 @@ export async function fetchMyReviews(
 ): Promise<UserReviewsEnvelope> {
   const limit = opts?.limit ?? 40
   const offset = opts?.offset ?? 0
-  const q = `restaurant-reviews/get-user-reviews?author_id=${encodeURIComponent(userId)}&limit=${limit}&offset=${offset}`
+  const params = new URLSearchParams({
+    author_id: userId,
+    limit: String(limit),
+    offset: String(offset),
+    summary: '1',
+  })
+  const q = `restaurant-reviews/get-user-reviews?${params.toString()}`
 
   const envelope = await tastyplatesFetch<UserReviewsEnvelope>(q, {
     method: 'GET',
@@ -35,6 +41,22 @@ export async function fetchMyReviews(
   })
 
   return unwrapEnvelope(envelope)
+}
+
+/** Paginates owner reviews (draft + live) until the API reports no more pages. */
+export async function fetchAllMyReviews(userId: string): Promise<RestaurantReviewMine[]> {
+  const pageSize = 100
+  const all: RestaurantReviewMine[] = []
+  let offset = 0
+
+  for (;;) {
+    const payload = await fetchMyReviews(userId, { limit: pageSize, offset })
+    all.push(...payload.reviews)
+    if (!payload.meta.hasMore || payload.reviews.length === 0) break
+    offset += payload.reviews.length
+  }
+
+  return all
 }
 
 export interface CreateReviewPayload {
@@ -67,7 +89,7 @@ export interface UpdateReviewPayload {
   content?: string
   rating?: number | null
   status?: 'approved' | 'draft' | 'pending' | null
-  images?: string[] | null
+  images?: ReviewImage[] | null
 }
 
 export async function updateRestaurantReview(payload: UpdateReviewPayload): Promise<RestaurantReviewMine> {

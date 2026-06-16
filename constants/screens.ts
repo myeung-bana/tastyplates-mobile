@@ -119,8 +119,12 @@ export const SCREEN_OWN_PROFILE = '/(tabs)/profile' as const
 export const SCREEN_EDIT_PROFILE = '/(tabs)/profile/edit' as const
 export const SCREEN_EDIT_PROFILE_PALATES = '/(tabs)/profile/edit-palates' as const
 export const SCREEN_PUBLIC_PROFILE = '/(tabs)/profile/[userId]' as const
+export const SCREEN_PUBLIC_PROFILE_CONNECTIONS =
+  '/(tabs)/profile/[userId]/connections' as const
+/** @deprecated Use {@link SCREEN_PUBLIC_PROFILE_CONNECTIONS} with `tab: 'followers'`. */
 export const SCREEN_PUBLIC_PROFILE_FOLLOWERS =
   '/(tabs)/profile/[userId]/followers' as const
+/** @deprecated Use {@link SCREEN_PUBLIC_PROFILE_CONNECTIONS} with `tab: 'following'`. */
 export const SCREEN_PUBLIC_PROFILE_FOLLOWING =
   '/(tabs)/profile/[userId]/following' as const
 export const SCREEN_PUBLIC_PROFILE_REVIEWS =

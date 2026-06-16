@@ -80,7 +80,7 @@ function ActivityCardShell({
   headline: JSX.Element
   timeLabel: string
   onPressAuthor: () => void
-  onPressCard: () => void
+  onPressCard?: () => void
   children?: ReactNode
 }) {
   return (
@@ -113,11 +113,9 @@ function ActivityCardShell({
 function CheckinCard({
   item,
   onPressAuthor,
-  onPressCard,
 }: {
   item: FollowingFeedCheckinRow
   onPressAuthor: () => void
-  onPressCard: () => void
 }) {
   const username = resolveUsername(item.AuthorProfile)
   const restaurant = resolveRestaurantName(item.restaurant?.title)
@@ -128,7 +126,6 @@ function CheckinCard({
       profile={item.AuthorProfile}
       timeLabel={timeLabel}
       onPressAuthor={onPressAuthor}
-      onPressCard={onPressCard}
       headline={
         <Text style={styles.headlineLine} numberOfLines={2}>
           <Text style={styles.headlineUsername}>{username}</Text>
@@ -136,12 +133,7 @@ function CheckinCard({
           <Text style={styles.headlineRestaurant}>{restaurant}</Text>
         </Text>
       }
-    >
-      <View style={styles.checkinRow}>
-        <AppIcon name="map-pin" size={16} color={TEXT_MUTED} />
-        <Text style={styles.checkinHint}>Tap to view restaurant</Text>
-      </View>
-    </ActivityCardShell>
+    />
   )
 }
 
@@ -189,7 +181,6 @@ export type FollowingFeedActivityCardProps = {
   activity: FollowingFeedActivity
   onPressReview: (reviewId: string) => void
   onPressComment: (parentReviewId: string) => void
-  onPressCheckin: (slug: string | null) => void
   onPressAuthor: (authorId: string, profile: FollowingFeedAuthorProfile | null | undefined) => void
 }
 
@@ -197,7 +188,6 @@ export function FollowingFeedActivityCard({
   activity,
   onPressReview,
   onPressComment,
-  onPressCheckin,
   onPressAuthor,
 }: FollowingFeedActivityCardProps): JSX.Element {
   if (activity.type === 'review') {
@@ -216,7 +206,6 @@ export function FollowingFeedActivityCard({
       <CheckinCard
         item={activity}
         onPressAuthor={() => onPressAuthor(activity.user_id, activity.AuthorProfile)}
-        onPressCard={() => onPressCheckin(activity.restaurant?.slug ?? null)}
       />
     )
   }
@@ -312,14 +301,5 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
     color: TEXT_HEADING,
-  },
-  checkinRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  checkinHint: {
-    fontSize: 13,
-    color: TEXT_MUTED,
   },
 })

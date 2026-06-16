@@ -1,19 +1,6 @@
-import { View, Text } from 'react-native'
-import { SafeAreaView } from 'react-native-safe-area-context'
+import { ProfileConnectionsScreen } from '@/components/profile/ProfileConnectionsScreen'
 
-import { SectionTitle } from '@/components/layout/SectionTitle'
-import { TEXT_MUTED } from '@/constants/brand'
-
-/** Placeholder — `documentation/profile.md` §11 */
-export default function FollowingScreen() {
-  return (
-    <SafeAreaView className="flex-1 bg-white" edges={['bottom']}>
-      <View className="flex-1 items-center justify-center px-8">
-        <SectionTitle>Following</SectionTitle>
-        <Text style={{ color: TEXT_MUTED }} className="mt-2 text-center text-sm leading-relaxed">
-          List loading will be wired in a future pass.
-        </Text>
-      </View>
-    </SafeAreaView>
-  )
+/** @deprecated — use `connections` with `tab=following`. */
+export default function FollowingScreen(): JSX.Element {
+  return <ProfileConnectionsScreen initialTab="following" />
 }

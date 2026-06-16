@@ -8,6 +8,62 @@ import { CITY_SEARCH_RADIUS_METERS } from '@/lib/geoUtils'
 
 const GEOCODE_BASE = 'https://maps.googleapis.com/maps/api/place'
 
+/** Google `types` that indicate food / drink venues. */
+export const GASTRONOMY_PLACE_TYPES = [
+  'restaurant',
+  'food',
+  'meal',
+  'cafe',
+  'bakery',
+  'bar',
+] as const
+
+/** Lodging and similar — excluded even when Google also tags `restaurant`. */
+export const EXCLUDED_NON_RESTAURANT_PLACE_TYPES = [
+  'lodging',
+  'hotel',
+  'motel',
+  'hostel',
+  'guest_house',
+  'bed_and_breakfast',
+  'resort_hotel',
+  'extended_stay_hotel',
+  'rv_park',
+] as const
+
+function normalizePlaceTypes(types: string[] | null | undefined): string[] {
+  return (types ?? []).map((t) => t.trim().toLowerCase()).filter(Boolean)
+}
+
+/**
+ * True when a Google place should appear in restaurant discovery (nearby, autocomplete, merge).
+ * Hotels often include `restaurant` in `types` while primary category is `lodging`.
+ */
+export function isRestaurantLikeGooglePlace(
+  types: string[] | null | undefined,
+  name?: string | null,
+): boolean {
+  const normalized = normalizePlaceTypes(types)
+
+  if (
+    normalized.some((t) =>
+      EXCLUDED_NON_RESTAURANT_PLACE_TYPES.some((ex) => t === ex || t.includes(ex)),
+    )
+  ) {
+    return false
+  }
+
+  if (normalized.length === 0) {
+    const label = (name ?? '').toLowerCase()
+    if (/\b(hotel|motel|hostel|inn|resort)\b/.test(label)) return false
+    return true
+  }
+
+  return normalized.some((t) =>
+    GASTRONOMY_PLACE_TYPES.some((k) => t === k || t.includes(k)),
+  )
+}
+
 function getPlacesApiKey(): string {
   return (process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY ?? '').trim()
 }
@@ -171,7 +227,13 @@ export async function getNearbyRestaurants(
     return []
   }
 
-  const list = raw.results ?? []
+  const list = (raw.results ?? []).filter((entry) => {
+    const p = entry as Record<string, unknown>
+    const types = Array.isArray(p.types) ? (p.types as string[]) : null
+    const name = typeof p.name === 'string' ? p.name : null
+    return isRestaurantLikeGooglePlace(types, name)
+  })
+
   return list.slice(0, 10).map((entry) => {
     const p = entry as Record<string, unknown>
     const geom = p.geometry as Record<string, unknown> | undefined

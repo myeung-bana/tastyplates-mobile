@@ -1,6 +1,5 @@
 import { useCallback, useState } from 'react'
 import {
-  Image,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -8,6 +7,7 @@ import {
   TextInput,
   View,
 } from 'react-native'
+import { ReviewRestaurantHeader } from '@/components/studio/add-review/ReviewRestaurantHeader'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { router } from 'expo-router'
 import { useUserData } from '@nhost/react'
@@ -29,6 +29,7 @@ import {
   minimumImageLimit,
   requiredDescription,
   requiredRating,
+  reviewPublishedSuccess,
   savedAsDraft,
 } from '@/constants/messages'
 import {
@@ -37,10 +38,7 @@ import {
   reviewDescriptionMaxLimit,
   reviewTitleMaxLimit,
 } from '@/constants/validation'
-import {
-  SCREEN_STUDIO_ADD_REVIEW_SUCCESS,
-  SCREEN_STUDIO_REVIEW_LISTING,
-} from '@/constants/screens'
+import { SCREEN_STUDIO_REVIEW_LISTING } from '@/constants/screens'
 import { useUpload } from '@/contexts/UploadContext'
 import { transformUrlsToReviewImages } from '@/lib/reviewImageUtils'
 import type { PendingReviewPhoto } from '@/lib/uploadReviewPhotos'
@@ -54,6 +52,8 @@ export type WriteReviewRestaurant = {
   address: string
   imageUrl?: string | null
 }
+
+export type { ReviewRestaurantSummary } from '@/components/studio/add-review/ReviewRestaurantHeader'
 
 type Props = {
   restaurant: WriteReviewRestaurant
@@ -160,13 +160,10 @@ export function WriteReviewForm({ restaurant, resolveRestaurantUuid }: Props): J
 
         if (mode === 'draft') {
           toast.success(savedAsDraft)
-          router.push(SCREEN_STUDIO_REVIEW_LISTING)
         } else {
-          router.replace({
-            pathname: SCREEN_STUDIO_ADD_REVIEW_SUCCESS,
-            params: { restaurant: restaurant.name },
-          })
+          toast.success(reviewPublishedSuccess)
         }
+        router.replace(SCREEN_STUDIO_REVIEW_LISTING)
       } catch (e) {
         uploadCtx.resetUpload()
         const msg = e instanceof Error ? e.message : errorOccurred
@@ -205,30 +202,7 @@ export function WriteReviewForm({ restaurant, resolveRestaurantUuid }: Props): J
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={{ paddingBottom: 120 + insets.bottom }}
       >
-        <View className="border-b border-gray-100 bg-white px-4 pb-3 pt-4">
-          <View className="flex-row items-center gap-3">
-            {restaurant.imageUrl ? (
-              <Image
-                source={{ uri: restaurant.imageUrl }}
-                style={{ width: 52, height: 52, borderRadius: 12 }}
-                resizeMode="cover"
-                accessibilityIgnoresInvertColors
-              />
-            ) : (
-              <View className="h-[52px] w-[52px] rounded-xl bg-gray-100" />
-            )}
-            <View className="min-w-0 flex-1">
-              <Text className="font-neusans text-base font-medium text-[#31343F]" numberOfLines={1}>
-                {restaurant.name}
-              </Text>
-              {restaurant.address ? (
-                <Text className="mt-0.5 font-neusans text-xs text-gray-500" numberOfLines={1}>
-                  {restaurant.address}
-                </Text>
-              ) : null}
-            </View>
-          </View>
-        </View>
+        <ReviewRestaurantHeader restaurant={restaurant} />
 
         <HalfStarRating value={rating} onChange={setRating} error={ratingError} />
 

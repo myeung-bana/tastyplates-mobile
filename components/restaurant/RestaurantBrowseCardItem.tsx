@@ -23,11 +23,12 @@ export function getRestaurantBrowseCardWidth(screenWidth: number): number {
   return screenWidth - RESTAURANT_BROWSE_CARD_HORIZONTAL_PAD * 2
 }
 
-/** Home Recommended carousel — 15% narrower so the next card peeks on the right. */
+/** Home Recommended carousel — 15% narrower than content width so the next card peeks on the right. */
 export const HOME_CAROUSEL_CARD_WIDTH_SCALE = 0.85
 
 export function getHomeCarouselRestaurantCardWidth(screenWidth: number): number {
-  return Math.round(getRestaurantBrowseCardWidth(screenWidth) * HOME_CAROUSEL_CARD_WIDTH_SCALE)
+  const contentWidth = screenWidth - RESTAURANT_BROWSE_CARD_HORIZONTAL_PAD
+  return Math.round(contentWidth * HOME_CAROUSEL_CARD_WIDTH_SCALE)
 }
 
 export interface RestaurantBrowseCardItemProps {

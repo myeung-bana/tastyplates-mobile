@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Alert, Pressable, ScrollView, Text, View } from 'react-native'
 import * as Haptics from 'expo-haptics'
 import { FlashList } from '@shopify/flash-list'
+import { useFocusEffect } from '@react-navigation/native'
+import { useAccessToken } from '@nhost/react'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { router } from 'expo-router'
 import { Swipeable } from 'react-native-gesture-handler'
@@ -19,15 +21,17 @@ import {
   TEXT_HEADING,
   TEXT_MUTED,
 } from '@/constants/brand'
+import { errorOccurred } from '@/constants/messages'
 import { studioEditReviewPath } from '@/constants/screens'
 import { castHref } from '@/lib/routeParams'
-import { useAuth } from '@/hooks/useAuth'
+import { useSession } from '@/hooks/useSession'
 import {
   deleteRestaurantReview,
-  fetchMyReviews,
+  fetchAllMyReviews,
   type RestaurantReviewMine,
   updateRestaurantReview,
 } from '@/services/studioReviewApi'
+import { toast } from '@/utils/toast'
 
 function emptyStateMessage(filter: ReviewListingFilter): string {
   if (filter === 'draft') return 'There are no drafts currently.'
@@ -132,29 +136,52 @@ function ReviewSwipeRow(props: {
  * Bearer `restaurant-reviews/get-user-reviews` for the signed-in author.
  */
 export default function ReviewListingScreen(): JSX.Element {
-  const { authUser, loading } = useAuth()
+  const { authUser, loading, isReady } = useSession()
+  const accessToken = useAccessToken()
   const userId = authUser?.id ?? null
 
   const [reviews, setReviews] = useState<RestaurantReviewMine[]>([])
   const [fetching, setFetching] = useState(true)
+  const [loadError, setLoadError] = useState<string | null>(null)
   const [chip, setChip] = useState<ReviewListingFilter>('all')
 
   const loadReviews = useCallback(async () => {
-    if (!userId) return
+    if (!isReady || !userId || !accessToken) {
+      if (isReady && !accessToken) {
+        setReviews([])
+        setFetching(false)
+      }
+      if (isReady && !userId) {
+        setReviews([])
+        setFetching(false)
+      }
+      return
+    }
+
     setFetching(true)
+    setLoadError(null)
     try {
-      const payload = await fetchMyReviews(userId, { limit: 80 })
-      setReviews(payload.reviews)
-    } catch {
+      const rows = await fetchAllMyReviews(userId)
+      setReviews(rows)
+    } catch (e) {
+      const message = e instanceof Error ? e.message : errorOccurred
       setReviews([])
+      setLoadError(message)
+      toast.error(message)
     } finally {
       setFetching(false)
     }
-  }, [userId])
+  }, [accessToken, isReady, userId])
 
   useEffect(() => {
     void loadReviews()
   }, [loadReviews])
+
+  useFocusEffect(
+    useCallback(() => {
+      void loadReviews()
+    }, [loadReviews]),
+  )
 
   const filtered = useMemo(() => {
     const sorted = [...reviews].sort((a, b) => {
@@ -187,7 +214,7 @@ export default function ReviewListingScreen(): JSX.Element {
     }
   }
 
-  if (!loading && userId == null) {
+  if (isReady && userId == null) {
     return (
       <SafeAreaView className="flex-1 items-center justify-center bg-white px-8">
         <Text className="text-center text-sm" style={{ color: TEXT_MUTED }}>
@@ -197,11 +224,22 @@ export default function ReviewListingScreen(): JSX.Element {
     )
   }
 
-  const isLoading = fetching || loading
+  const isLoading = !isReady || fetching || loading
 
   return (
     <SafeAreaView className="flex-1 bg-white px-6" edges={['left', 'right', 'bottom']}>
       <ReviewListingFilterChips active={chip} onChange={setChip} />
+
+      {loadError ? (
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => void loadReviews()}
+          className="mt-3 rounded-xl bg-red-50 px-3 py-2"
+        >
+          <Text className="font-neusans text-xs text-red-600">{loadError}</Text>
+          <Text className="mt-1 font-neusans text-xs font-semibold text-red-700">Tap to retry</Text>
+        </Pressable>
+      ) : null}
 
       {isLoading ? (
         <ScrollView
@@ -218,6 +256,7 @@ export default function ReviewListingScreen(): JSX.Element {
         <FlashList
           data={filtered}
           style={{ flex: 1, marginTop: 24 }}
+          estimatedItemSize={140}
           keyExtractor={(review) => review.id}
           ListHeaderComponent={<ReviewListingCreateRow />}
           ListEmptyComponent={

@@ -38,6 +38,7 @@ export const requiredRating = 'Rating is required.'
 export const minimumImageLimit = (min: number) => `You must upload at least ${min} image.`
 export const maximumImageLimit = (max: number) => `You can upload a maximum of ${max} images.`
 export const savedAsDraft = 'Review saved as draft!'
+export const reviewPublishedSuccess = 'Review published!'
 export const commentDuplicateError = "Duplicate comment detected, You've already said that!"
 export const commentFloodError = 'You are posting comments too quickly. Slow down.'
 export const commentDuplicateWeekError =

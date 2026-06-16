@@ -4,6 +4,7 @@ import {
   autocompletePlacesEstablishments,
   fetchGooglePlaceDetails,
   getNearbyRestaurants,
+  isRestaurantLikeGooglePlace,
 } from '@/lib/googlePlaces'
 import type { NearbyPlaceRow } from '@/lib/googlePlaces'
 import { mergeRestaurantResults } from '@/lib/restaurantSearchMerge'
@@ -22,14 +23,14 @@ import { getRestaurants } from '@/services/restaurantsV2Service'
 import type { RestaurantSearchResult } from '@/types/restaurantSearchResult'
 import { isGoogleResult } from '@/types/restaurantSearchResult'
 
-const GASTRONOMY_TYPES = ['restaurant', 'food', 'meal', 'cafe', 'bakery', 'bar']
 const AUTOCOMPLETE_CAP = 8
 
 function gastronomyScore(types: string[] | undefined): number {
   if (!types?.length) return 0
   let v = 0
   if (types.some((x) => x.includes('restaurant'))) v += 3
-  if (types.some((x) => GASTRONOMY_TYPES.some((k) => k !== 'restaurant' && x.includes(k)))) v += 2
+  if (types.some((x) => x.includes('food') || x.includes('meal') || x.includes('cafe'))) v += 2
+  if (types.some((x) => x.includes('bakery') || x.includes('bar'))) v += 2
   if (types.some((x) => x.includes('establishment'))) v += 1
   return v
 }
@@ -38,9 +39,8 @@ function filterEstablishmentPredictions(
   rows: Awaited<ReturnType<typeof autocompletePlacesEstablishments>>,
 ): Awaited<ReturnType<typeof autocompletePlacesEstablishments>> {
   const filtered = rows.filter((p) => {
-    const types = p.types ?? []
-    if (types.length === 0) return true
-    return types.some((t) => GASTRONOMY_TYPES.some((k) => t.includes(k)))
+    const name = p.structured_formatting?.main_text ?? p.description
+    return isRestaurantLikeGooglePlace(p.types, name)
   })
   return filtered.sort((a, b) => gastronomyScore(b.types) - gastronomyScore(a.types))
 }
@@ -122,7 +122,9 @@ async function enrichGoogleCandidatesWithDetails(
     }
   })
 
-  return candidates.map((c) => enrichedByPlaceId.get(c.place_id) ?? c)
+  return candidates
+    .map((c) => enrichedByPlaceId.get(c.place_id) ?? c)
+    .filter((c) => isRestaurantLikeGooglePlace(c.types, c.name))
 }
 
 function tpGeoParams(

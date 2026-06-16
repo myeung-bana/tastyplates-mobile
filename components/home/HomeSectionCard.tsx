@@ -13,6 +13,8 @@ type Props = {
   shadowed?: boolean
   /** Inner card padding (`p-3`). @default true */
   padded?: boolean
+  /** Let children extend past the right screen edge (keeps left aligned with the title). */
+  contentBleed?: boolean
 }
 
 /** Shared home section shell — matches Quick finds card + title style. */
@@ -23,6 +25,7 @@ export function HomeSectionCard({
   className,
   shadowed = true,
   padded = true,
+  contentBleed = false,
 }: Props): JSX.Element {
   return (
     <View className={`mt-6 w-full px-4 ${className ?? ''}`}>
@@ -33,7 +36,7 @@ export function HomeSectionCard({
           <SectionTitle>{title}</SectionTitle>
           {headerRight ?? null}
         </View>
-        <View className="mt-3">{children}</View>
+        <View className={contentBleed ? 'mt-3 -mr-4' : 'mt-3'}>{children}</View>
       </View>
     </View>
   )

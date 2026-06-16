@@ -20,7 +20,6 @@ import { AppTopNav } from '@/components/layout/AppTopNav'
 import { SectionTitle } from '@/components/layout/SectionTitle'
 import { BRAND_PRIMARY, TEXT_MUTED } from '@/constants/brand'
 import {
-  restaurantDetailPath,
   SCREEN_PUBLIC_PROFILE,
   SCREEN_REVIEW_VIEWER,
 } from '@/constants/screens'
@@ -152,13 +151,6 @@ export default function FollowingScreen() {
     }
   }
 
-  const onOpenCheckin = (slug: string | null) => {
-    void Haptics.selectionAsync()
-    if (slug) {
-      router.push(restaurantDetailPath(slug) as never)
-    }
-  }
-
   if (!authLoading && !isAuthenticated) {
     return (
       <View className="flex-1 bg-white">
@@ -285,7 +277,6 @@ export default function FollowingScreen() {
               activity={item}
               onPressReview={onOpenReview}
               onPressComment={onOpenReview}
-              onPressCheckin={onOpenCheckin}
               onPressAuthor={onOpenAuthor}
             />
           </View>

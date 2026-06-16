@@ -47,8 +47,11 @@ import {
   MERGE_SUPPRESS_TP_COUNT_IDLE,
   SEARCH_BROWSE_LIMIT,
 } from '@/lib/restaurantSearchConfig'
-import type { NearbyPlaceRow } from '@/lib/googlePlaces'
-import { getNearbyRestaurants } from '@/lib/googlePlaces'
+import {
+  getNearbyRestaurants,
+  isRestaurantLikeGooglePlace,
+  type NearbyPlaceRow,
+} from '@/lib/googlePlaces'
 import { usePalatePreferenceStats } from '@/hooks/usePalatePreferenceStats'
 import { labelForPalateKey } from '@/lib/palateLabels'
 import { isNoPalateFilter, isPalateSortActive } from '@/lib/palateSearch'
@@ -85,8 +88,11 @@ function filterGooglePlacesWithinCityRadius(
   places: NearbyPlaceRow[],
   center: { latitude: number; longitude: number } | null,
 ): NearbyPlaceRow[] {
-  if (!center) return places
-  return places.filter((place) => {
+  const restaurantLike = places.filter((place) =>
+    isRestaurantLikeGooglePlace(place.types, place.name),
+  )
+  if (!center) return restaurantLike
+  return restaurantLike.filter((place) => {
     if (place.latitude == null || place.longitude == null) return true
     return isWithinRadiusKm(center, place.latitude, place.longitude, CITY_SEARCH_RADIUS_KM)
   })

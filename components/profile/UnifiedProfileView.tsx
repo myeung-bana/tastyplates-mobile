@@ -28,8 +28,7 @@ import {
 } from '@/components/profile/ProfileOtherUserReviewsPreview'
 import {
   SCREEN_EDIT_PROFILE,
-  SCREEN_PUBLIC_PROFILE_FOLLOWERS,
-  SCREEN_PUBLIC_PROFILE_FOLLOWING,
+  SCREEN_PUBLIC_PROFILE_CONNECTIONS,
 } from '@/constants/screens'
 import { capitalizePhrase } from '@/lib/profileFormatting'
 
@@ -220,8 +219,8 @@ export function UnifiedProfileView({
           onPress={() => {
             void Haptics.selectionAsync()
             router.push({
-              pathname: SCREEN_PUBLIC_PROFILE_FOLLOWERS,
-              params: { userId: routeUserId },
+              pathname: SCREEN_PUBLIC_PROFILE_CONNECTIONS,
+              params: { userId: routeUserId, tab: 'followers' },
             })
           }}
         />
@@ -233,8 +232,8 @@ export function UnifiedProfileView({
           onPress={() => {
             void Haptics.selectionAsync()
             router.push({
-              pathname: SCREEN_PUBLIC_PROFILE_FOLLOWING,
-              params: { userId: routeUserId },
+              pathname: SCREEN_PUBLIC_PROFILE_CONNECTIONS,
+              params: { userId: routeUserId, tab: 'following' },
             })
           }}
         />
