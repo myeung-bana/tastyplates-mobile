@@ -1,6 +1,8 @@
 import { tastyplatesFetch, unwrapEnvelope } from '@/lib/tastyplatesFetch'
 import type { TrendingReviewRow } from '@/services/homeReviewsService'
 
+export const PROFILE_REVIEWS_PREVIEW_LIMIT = 4
+
 export interface UserReviewsMeta {
   total: number
   limit: number

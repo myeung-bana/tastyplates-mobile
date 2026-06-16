@@ -4,7 +4,7 @@ import type { BottomTabBarButtonProps, BottomTabBarProps } from '@react-navigati
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { AppIcon, type AppIconName } from '@/components/ui/AppIcon'
-import { getTabBarStyle } from '@/constants/tabBar'
+import { getTabBarHeight, getTabBarStyle, TAB_BAR_BG } from '@/constants/tabBar'
 import { AppBottomTabBar } from '@/components/navigation/AppBottomTabBar'
 import { TabBarButton } from '@/components/navigation/TabBarButton'
 import { StudioTabAnchorButton } from '@/components/studio/StudioTabAnchorButton'
@@ -69,6 +69,13 @@ export function TabsShell({ visibleTabs, useStudioTabBar = false }: TabsShellPro
   const insets = useSafeAreaInsets()
   const { openAuthSheet } = useAuthSheet()
   const tabBarStyle = useMemo(() => getTabBarStyle(insets), [insets.bottom])
+  const sceneStyle = useMemo(
+    () => ({
+      paddingBottom: getTabBarHeight(insets),
+      backgroundColor: TAB_BAR_BG,
+    }),
+    [insets.bottom],
+  )
 
   const renderTabBar = useCallback(
     (tabBarProps: BottomTabBarProps) =>
@@ -89,10 +96,11 @@ export function TabsShell({ visibleTabs, useStudioTabBar = false }: TabsShellPro
         fontWeight: '500',
       },
       tabBarStyle,
+      sceneStyle,
       tabBarButton: renderTabBarButton,
       headerShown: false,
     }),
-    [tabBarStyle],
+    [tabBarStyle, sceneStyle],
   )
 
   return (

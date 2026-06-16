@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useLayoutEffect, useState } from 'react'
-import { ActivityIndicator, Pressable, Text, View } from 'react-native'
-import { SafeAreaView } from 'react-native-safe-area-context'
+import { Pressable, Text, View } from 'react-native'
 import { router, useLocalSearchParams, useNavigation } from 'expo-router'
 
 import { AppIcon } from '@/components/ui/AppIcon'
+import { RestaurantDetailSkeleton } from '@/components/restaurant/RestaurantDetailSkeleton'
 import { RestaurantDetailView } from '@/components/restaurant/RestaurantDetailView'
 import { BRAND_PRIMARY, TEXT_HEADING, TEXT_MUTED } from '@/constants/brand'
 import { SCREEN_RESTAURANT_DETAIL, SCREEN_RESTAURANTS } from '@/constants/screens'
@@ -94,15 +94,15 @@ export default function GooglePlaceDetailScreen(): JSX.Element {
 
   if (state.status === 'loading') {
     return (
-      <SafeAreaView className="flex-1 items-center justify-center bg-white" edges={['bottom']}>
-        <ActivityIndicator color={BRAND_PRIMARY} />
-      </SafeAreaView>
+      <View className="flex-1 bg-white">
+        <RestaurantDetailSkeleton />
+      </View>
     )
   }
 
   if (state.status === 'error') {
     return (
-      <SafeAreaView className="flex-1 items-center justify-center bg-white px-8" edges={['bottom']}>
+      <View className="flex-1 items-center justify-center bg-white px-8">
         <Text className="text-center text-sm" style={{ color: TEXT_MUTED }}>
           {state.message}
         </Text>
@@ -113,7 +113,7 @@ export default function GooglePlaceDetailScreen(): JSX.Element {
         >
           <Text className="font-semibold text-white">Retry</Text>
         </Pressable>
-      </SafeAreaView>
+      </View>
     )
   }
 

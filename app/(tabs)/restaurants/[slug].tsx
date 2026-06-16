@@ -1,9 +1,10 @@
 import { useCallback, useLayoutEffect, useMemo, useState } from 'react'
-import { ActivityIndicator, Pressable, Text, View } from 'react-native'
+import { Pressable, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useLocalSearchParams, useNavigation } from 'expo-router'
 import { AppIcon } from '@/components/ui/AppIcon'
 
+import { RestaurantDetailSkeleton } from '@/components/restaurant/RestaurantDetailSkeleton'
 import { RestaurantDetailView } from '@/components/restaurant/RestaurantDetailView'
 import { BRAND_PRIMARY, TEXT_HEADING, TEXT_MUTED } from '@/constants/brand'
 import { isNoPalateFilter } from '@/lib/palateSearch'
@@ -144,9 +145,9 @@ export default function RestaurantDetailScreen() {
 
   if (state.status === 'loading') {
     return (
-      <SafeAreaView className="flex-1 items-center justify-center bg-white" edges={['bottom']}>
-        <ActivityIndicator size="large" color={BRAND_PRIMARY} />
-      </SafeAreaView>
+      <View className="flex-1 bg-white">
+        <RestaurantDetailSkeleton />
+      </View>
     )
   }
 

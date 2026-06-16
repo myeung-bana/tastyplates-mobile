@@ -23,9 +23,15 @@ import type { BottomSheetBackdropProps } from '@gorhom/bottom-sheet'
 import RenderHTML from 'react-native-render-html'
 import { usePathname, useRouter } from 'expo-router'
 
-import { RatingDisplay } from '@/components/ui/RatingDisplay'
-import { BORDER_SUBTLE, BRAND_PRIMARY, TEXT_BODY, TEXT_HEADING, TEXT_MUTED } from '@/constants/brand'
-import { restaurantDetailPath, SCREEN_RESTAURANT_REVIEWS, SCREEN_STUDIO_ADD_REVIEW } from '@/constants/screens'
+import { HomeReviewCard } from '@/components/review/HomeReviewCard'
+import { BRAND_PRIMARY, TEXT_HEADING, TEXT_MUTED } from '@/constants/brand'
+import {
+  restaurantDetailPath,
+  SCREEN_PUBLIC_PROFILE,
+  SCREEN_RESTAURANT_REVIEWS,
+  SCREEN_REVIEW_VIEWER,
+  SCREEN_STUDIO_ADD_REVIEW,
+} from '@/constants/screens'
 import {
   buildDirectionsUrl,
   buildGoogleMapsPlaceUrl,
@@ -40,6 +46,7 @@ import {
 import { useAuth } from '@/hooks/useAuth'
 import { coerceResumeHref, pushLoginScreen } from '@/lib/authRoutes'
 import { copyToClipboard } from '@/lib/copyToClipboard'
+import { restaurantPreviewToTrendingRow } from '@/lib/restaurantReviewFeed'
 import { getMarketingWebOrigin } from '@/lib/webAssets'
 import type {
   RatingSummaryRow,
@@ -52,7 +59,12 @@ import {
   toggleCheckinBySlug,
   toggleFavoriteBySlug,
 } from '@/services/restaurantEngagementService'
+import { isRestaurantUserRouteId } from '@/services/restaurantUserService'
 import { toast } from '@/utils/toast'
+
+const REVIEW_CARD_GAP = 12
+/** `mx-4` + inner `p-4` on the reviews section (each side). */
+const REVIEW_SECTION_EDGE_INSET = 32
 
 import { RestaurantDetailSummary } from '@/components/restaurant/RestaurantDetailSummary'
 import { RestaurantRatingMetricsRow } from '@/components/restaurant/RestaurantRatingMetricsRow'
@@ -371,6 +383,41 @@ export function RestaurantDetailView({
   }
 
   const visibleReviews = reviews.filter((r) => !r.status || r.status === 'approved')
+  const reviewCardWidth = Math.max(
+    148,
+    Math.floor((windowW - REVIEW_SECTION_EDGE_INSET * 2 - REVIEW_CARD_GAP) / 2),
+  )
+
+  const openReview = (reviewId: string) => {
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
+    router.push({
+      pathname: SCREEN_REVIEW_VIEWER,
+      params: { reviewId },
+    })
+  }
+
+  const openReviewAuthor = (item: RestaurantReviewPreview) => {
+    void Haptics.selectionAsync()
+    if (!isAuthenticated) {
+      pushLoginScreen(router, { resume: coerceResumeHref(pathname) })
+      return
+    }
+    const usernameSlug = item.AuthorProfile?.username?.trim().replace(/^@/, '')
+    if (usernameSlug) {
+      router.push({
+        pathname: SCREEN_PUBLIC_PROFILE,
+        params: { userId: usernameSlug },
+      })
+      return
+    }
+    const authorId = item.AuthorProfile?.user_id?.trim()
+    if (authorId && isRestaurantUserRouteId(authorId)) {
+      router.push({
+        pathname: SCREEN_PUBLIC_PROFILE,
+        params: { userId: authorId },
+      })
+    }
+  }
 
   return (
   <>
@@ -570,23 +617,25 @@ export function RestaurantDetailView({
           </View>
         ) : (
           <>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-              {visibleReviews.map((item) => (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ paddingRight: 4 }}
+            >
+              {visibleReviews.map((item, index) => (
                 <View
                   key={item.id}
-                  className="mr-3 w-[200px] overflow-hidden rounded-lg border bg-white p-3"
-                  style={{ borderColor: BORDER_SUBTLE, maxWidth: 200 }}
+                  style={{
+                    width: reviewCardWidth,
+                    marginRight: index < visibleReviews.length - 1 ? REVIEW_CARD_GAP : 0,
+                  }}
                 >
-                  <Text className="text-sm font-normal" style={{ color: TEXT_HEADING }} numberOfLines={2}>
-                    {item.title?.trim() || 'Review'}
-                  </Text>
-                  <View className="mt-1">
-                    <RatingDisplay size="xs" value={item.rating} />
-                  </View>
-                  <Text className="mt-2 text-xs leading-snug" style={{ color: TEXT_BODY }} numberOfLines={4}>
-                    {stripHtml(item.content ?? '').slice(0, 220)}
-                    {(item.content?.length ?? 0) > 220 ? '…' : ''}
-                  </Text>
+                  <HomeReviewCard
+                    width={reviewCardWidth}
+                    review={restaurantPreviewToTrendingRow(item, restaurant.uuid)}
+                    onPressCard={() => openReview(item.id)}
+                    onPressAuthor={() => openReviewAuthor(item)}
+                  />
                 </View>
               ))}
             </ScrollView>

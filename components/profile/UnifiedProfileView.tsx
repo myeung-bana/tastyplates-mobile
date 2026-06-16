@@ -1,4 +1,4 @@
-import { type ComponentProps, type ReactNode } from 'react'
+import { type ComponentProps, type ReactNode, useCallback, useState } from 'react'
 import { AppIcon, type AppIconName } from '@/components/ui/AppIcon'
 import {
   ActivityIndicator,
@@ -14,7 +14,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import * as Haptics from 'expo-haptics'
 import { useRouter } from 'expo-router'
 
-import { SectionTitle } from '@/components/layout/SectionTitle'
 import {
   BRAND_PRIMARY,
   TEXT_BODY,
@@ -27,10 +26,18 @@ import {
   type ProfileOtherUserReviewsPreviewProps,
 } from '@/components/profile/ProfileOtherUserReviewsPreview'
 import {
+  ProfileContentTabBar,
+  type ProfileContentTab,
+} from '@/components/profile/ProfileContentTabBar'
+import { ProfilePublicListsPreview } from '@/components/profile/ProfilePublicListsPreview'
+import { useProfilePublicListsPreview } from '@/hooks/useProfilePublicListsPreview'
+import {
   SCREEN_EDIT_PROFILE,
   SCREEN_PUBLIC_PROFILE_CONNECTIONS,
+  studioManageListDetailPath,
 } from '@/constants/screens'
 import { capitalizePhrase } from '@/lib/profileFormatting'
+import { castHref } from '@/lib/routeParams'
 
 const AVATAR_SIZE = 96
 const STATS_BORDER = '#f3f4f6'
@@ -72,8 +79,8 @@ export interface UnifiedProfileViewProps {
   onPressAvatarOwn?: () => void
   followButton?: UnifiedProfileFollowButtonModel | null
   showFollowPlaceholder?: boolean
-  /** When set on another user’s profile, replaces the placeholder with a 2-review preview + CTA (`design_system.md` §5). */
-  otherUserReviews?: ProfileOtherUserReviewsPreviewProps | null
+  /** When set, shows up to four latest reviews + optional view-all CTA. */
+  reviewsPreview?: ProfileOtherUserReviewsPreviewProps | null
   belowActions?: ReactNode
 }
 
@@ -97,11 +104,27 @@ export function UnifiedProfileView({
   onPressAvatarOwn,
   followButton,
   showFollowPlaceholder = false,
-  otherUserReviews = null,
+  reviewsPreview = null,
   belowActions,
 }: UnifiedProfileViewProps) {
   const router = useRouter()
   const insets = useSafeAreaInsets()
+  const [contentTab, setContentTab] = useState<ProfileContentTab>('reviews')
+  const {
+    lists: publicLists,
+    error: publicListsError,
+    loading: publicListsLoading,
+    refresh: refreshPublicLists,
+  } = useProfilePublicListsPreview(routeUserId, {
+    enabled: contentTab === 'lists',
+  })
+
+  const handleRefresh = useCallback(async () => {
+    await onRefresh()
+    if (contentTab === 'lists') {
+      await refreshPublicLists()
+    }
+  }, [contentTab, onRefresh, refreshPublicLists])
 
   const runShare = () => {
     void Haptics.selectionAsync()
@@ -126,7 +149,7 @@ export function UnifiedProfileView({
       refreshControl={
         <RefreshControl
           refreshing={pullRefreshing}
-          onRefresh={() => void onRefresh()}
+          onRefresh={() => void handleRefresh()}
           tintColor={BRAND_PRIMARY}
         />
       }
@@ -278,17 +301,33 @@ export function UnifiedProfileView({
         className="mt-10 border-t px-2 pb-6 pt-8"
         style={{ borderTopWidth: 1, borderTopColor: STATS_BORDER }}
       >
-        <View className="mb-3 flex-row items-center gap-2">
-          <SectionTitle style={{ letterSpacing: -0.3 }}>Reviews</SectionTitle>
-        </View>
-        {!isOwnProfile && otherUserReviews ? (
-          <ProfileOtherUserReviewsPreview {...otherUserReviews} />
+        <ProfileContentTabBar activeTab={contentTab} onTabChange={setContentTab} />
+        {contentTab === 'reviews' ? (
+          reviewsPreview ? (
+            <ProfileOtherUserReviewsPreview {...reviewsPreview} />
+          ) : (
+            <Text className="text-sm leading-relaxed" style={{ color: TEXT_MUTED }}>
+              {isOwnProfile
+                ? 'Published reviews will appear here soon.'
+                : 'Reviews from this account will appear here soon.'}
+            </Text>
+          )
         ) : (
-          <Text className="text-sm leading-relaxed" style={{ color: TEXT_MUTED }}>
-            {isOwnProfile
-              ? 'Published reviews will appear in this grid. Open My reviews below to jump to TastyStudio.'
-              : 'Reviews from this account will appear here soon.'}
-          </Text>
+          <ProfilePublicListsPreview
+            error={publicListsError}
+            loading={publicListsLoading}
+            lists={publicLists}
+            emptyMessage={
+              isOwnProfile
+                ? 'Your public lists will appear here.'
+                : 'Public lists from this account will appear here soon.'
+            }
+            onPressList={(list) => {
+              router.push({
+                pathname: castHref(studioManageListDetailPath(list.uuid)) as never,
+              })
+            }}
+          />
         )}
       </View>
 

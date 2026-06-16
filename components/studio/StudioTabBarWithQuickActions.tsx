@@ -37,6 +37,7 @@ import {
   SCREEN_STUDIO_REVIEW_LISTING,
 } from '@/constants/screens'
 import { BRAND_PRIMARY, TEXT_HEADING, TEXT_MUTED } from '@/constants/brand'
+import { TabBarChrome } from '@/components/navigation/TabBarChrome'
 import { getStudioSheetBottomPadding } from '@/constants/tabBar'
 import { studioQuickMenuToggleRef } from '@/contexts/StudioQuickMenuContext'
 import { useStudioQuickMenu } from '@/contexts/StudioQuickMenuContext'
@@ -198,8 +199,10 @@ export function StudioTabBarWithQuickActions(props: BottomTabBarProps): JSX.Elem
   const orbTop = orbTopRaw - 6
 
   return (
-    <View style={styles.tabBarWrap}>
-      <BottomTabBar {...props} />
+    <>
+      <TabBarChrome>
+        <BottomTabBar {...props} />
+      </TabBarChrome>
 
       <Modal
         transparent
@@ -265,7 +268,7 @@ export function StudioTabBarWithQuickActions(props: BottomTabBarProps): JSX.Elem
           </Pressable>
         </View>
       </Modal>
-    </View>
+    </>
   )
 }
 
@@ -303,9 +306,6 @@ function QuickActionRow({
 }
 
 const styles = StyleSheet.create({
-  tabBarWrap: {
-    position: 'relative',
-  },
   modalRoot: {
     flex: 1,
     justifyContent: 'flex-end',

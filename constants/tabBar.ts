@@ -3,8 +3,9 @@ import type { ViewStyle } from 'react-native'
 import type { EdgeInsets } from 'react-native-safe-area-context'
 
 export const TAB_BAR_BG = '#ffffff'
-export const TAB_BAR_BORDER = '#f3f4f6'
-export const TAB_BAR_PADDING_TOP = 11
+/** Subtle fade zone above the tab bar — content dissolves into solid white chrome. */
+export const TAB_BAR_SCRIM_HEIGHT = 28
+export const TAB_BAR_PADDING_TOP = 5
 export const TAB_BAR_PADDING_HORIZONTAL = 4
 /** Matches React Navigation UIKit tab item row height. */
 export const TAB_BAR_CONTENT_HEIGHT = 49
@@ -22,15 +23,21 @@ function getTabBarBottomPadding(insets: Pick<EdgeInsets, 'bottom'>): number {
   return TAB_BAR_PADDING_BOTTOM_IOS + insets.bottom
 }
 
-/** Bottom tab bar style — explicit height so padding does not clip labels (guest + signed-in). */
+/** Total tab bar height including safe-area padding (guest + signed-in). */
+export function getTabBarHeight(insets: Pick<EdgeInsets, 'bottom'>): number {
+  const paddingBottom = getTabBarBottomPadding(insets)
+  return TAB_BAR_CONTENT_HEIGHT + TAB_BAR_PADDING_TOP + paddingBottom
+}
+
+/** Bottom tab bar style — white bar; top scrim is {@link TabBarChrome}. */
 export function getTabBarStyle(insets: Pick<EdgeInsets, 'bottom'>): ViewStyle {
   const paddingBottom = getTabBarBottomPadding(insets)
-  const height = TAB_BAR_CONTENT_HEIGHT + TAB_BAR_PADDING_TOP + paddingBottom
+  const height = getTabBarHeight(insets)
 
   return {
     backgroundColor: TAB_BAR_BG,
-    borderTopWidth: 1,
-    borderTopColor: TAB_BAR_BORDER,
+    borderTopWidth: 0,
+    elevation: 0,
     paddingTop: TAB_BAR_PADDING_TOP,
     paddingBottom,
     paddingHorizontal: TAB_BAR_PADDING_HORIZONTAL,

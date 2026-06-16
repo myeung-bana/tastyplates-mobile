@@ -26,8 +26,11 @@ import {
   type RestaurantUserRow,
 } from '@/services/restaurantUserService'
 import type { TrendingReviewRow } from '@/services/homeReviewsService'
-import { fetchUserReviews } from '@/services/profileUserReviewsService'
 import { fetchPublicProfileCounts } from '@/services/profileStatsService'
+import {
+  fetchUserReviews,
+  PROFILE_REVIEWS_PREVIEW_LIMIT,
+} from '@/services/profileUserReviewsService'
 
 /**
  * `[userId]` is either `auth`/profile UUID (Hasura user id, legacy `RestaurantUserRow.id`)
@@ -51,10 +54,11 @@ export default function PublicProfileIndexScreen() {
   })
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  /** Published-review preview only when browsing someone else (`get-user-reviews` public Approved). */
-  const [visitorReviewRows, setVisitorReviewRows] = useState<TrendingReviewRow[]>([])
-  const [visitorReviewsTotal, setVisitorReviewsTotal] = useState(0)
-  const [visitorReviewsError, setVisitorReviewsError] = useState<string | null>(null)
+  /** Published-review preview for any profile (`get-user-reviews` public Approved). */
+  const [reviewRows, setReviewRows] = useState<TrendingReviewRow[]>([])
+  const [reviewsTotal, setReviewsTotal] = useState(0)
+  const [reviewsError, setReviewsError] = useState<string | null>(null)
+  const [reviewsLoading, setReviewsLoading] = useState(false)
 
   const isOwnProfile = Boolean(viewerId && ru?.id && viewerId === ru.id)
 
@@ -68,13 +72,12 @@ export default function PublicProfileIndexScreen() {
     const byUuid = isRestaurantUserRouteId(slug)
 
     setError(null)
-    setVisitorReviewsError(null)
+    setReviewsError(null)
     setLoading(true)
     try {
       const user = byUuid
         ? await fetchRestaurantUserById(slug)
         : await fetchRestaurantUserByUsername(slug)
-      const isSelf = Boolean(viewerId && viewerId === user.id)
       setRu(user)
       const next = await fetchPublicProfileCounts(user.id)
       setCounts({
@@ -82,31 +85,31 @@ export default function PublicProfileIndexScreen() {
         followers: next.followers,
         following: next.following,
       })
-      if (!isSelf) {
-        try {
-          const pv = await fetchUserReviews(user.id, { limit: 2, offset: 0 })
-          setVisitorReviewRows(pv.reviews)
-          setVisitorReviewsTotal(pv.meta.total)
-          setVisitorReviewsError(null)
-        } catch {
-          setVisitorReviewRows([])
-          setVisitorReviewsTotal(0)
-          setVisitorReviewsError('Could not load reviews.')
-        }
-      } else {
-        setVisitorReviewRows([])
-        setVisitorReviewsTotal(0)
-        setVisitorReviewsError(null)
+      setReviewsLoading(true)
+      try {
+        const preview = await fetchUserReviews(user.id, {
+          limit: PROFILE_REVIEWS_PREVIEW_LIMIT,
+          offset: 0,
+        })
+        setReviewRows(preview.reviews)
+        setReviewsTotal(preview.meta.total)
+        setReviewsError(null)
+      } catch {
+        setReviewRows([])
+        setReviewsTotal(0)
+        setReviewsError('Could not load reviews.')
+      } finally {
+        setReviewsLoading(false)
       }
     } catch {
       setRu(null)
-      setVisitorReviewRows([])
-      setVisitorReviewsTotal(0)
+      setReviewRows([])
+      setReviewsTotal(0)
       setError('We could not find this profile.')
     } finally {
       setLoading(false)
     }
-  }, [slug, viewerId])
+  }, [slug])
 
   useEffect(() => {
     void loadProfile()
@@ -218,25 +221,25 @@ export default function PublicProfileIndexScreen() {
         }
         followButton={followUi}
         showFollowPlaceholder={!isAuthenticated && !isOwnProfile}
-        otherUserReviews={
-          !isOwnProfile
-            ? {
-                error: visitorReviewsError,
-                reviews: visitorReviewRows,
-                total: visitorReviewsTotal,
-                onPressReview: (reviewId) =>
-                  router.push({
-                    pathname: SCREEN_REVIEW_VIEWER,
-                    params: { reviewId },
-                  }),
-                onPressViewAll: () =>
-                  router.push({
-                    pathname: SCREEN_PUBLIC_PROFILE_REVIEWS,
-                    params: { userId: slug },
-                  }),
-              }
-            : null
-        }
+        reviewsPreview={{
+          error: reviewsError,
+          loading: reviewsLoading,
+          reviews: reviewRows,
+          total: reviewsTotal,
+          emptyMessage: isOwnProfile
+            ? 'Published reviews will appear here soon.'
+            : undefined,
+          onPressReview: (reviewId) =>
+            router.push({
+              pathname: SCREEN_REVIEW_VIEWER,
+              params: { reviewId },
+            }),
+          onPressViewAll: () =>
+            router.push({
+              pathname: SCREEN_PUBLIC_PROFILE_REVIEWS,
+              params: { userId: ru.id },
+            }),
+        }}
         belowActions={null}
       />
     </View>
