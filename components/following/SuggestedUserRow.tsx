@@ -1,7 +1,10 @@
 import { ActivityIndicator, Image, Pressable, Text, View } from 'react-native'
+import * as Haptics from 'expo-haptics'
+import { useRouter } from 'expo-router'
 import { AppIcon } from '@/components/ui/AppIcon'
 
 import { BRAND_PRIMARY, BORDER_SUBTLE, TEXT_HEADING, TEXT_MUTED } from '@/constants/brand'
+import { SCREEN_PUBLIC_PROFILE } from '@/constants/screens'
 import { useFollowTarget } from '@/hooks/useFollowTarget'
 import {
   normalizeLegacyProfileAvatar,
@@ -19,10 +22,20 @@ type SuggestedUserRowProps = {
  * Compact card for horizontal “suggested” lists — avatar, name, Follow / Following.
  */
 export function SuggestedUserRow({ user, viewerId, onFollowed }: SuggestedUserRowProps) {
+  const router = useRouter()
   const follow = useFollowTarget(user.id, viewerId, false)
   const avatarUri = normalizeLegacyProfileAvatar(user.avatarUrl, user.profile_image)
   const rawName = user.display_name?.trim() || user.username?.trim() || 'Member'
   const label = rawName
+  const handle = user.username?.trim().replace(/^@/, '')
+
+  const openProfile = () => {
+    void Haptics.selectionAsync()
+    router.push({
+      pathname: SCREEN_PUBLIC_PROFILE,
+      params: { userId: handle || user.id },
+    })
+  }
 
   const handlePress = () => {
     void (async () => {
@@ -37,21 +50,28 @@ export function SuggestedUserRow({ user, viewerId, onFollowed }: SuggestedUserRo
       className="items-center rounded-2xl border bg-white px-3 pb-3 pt-4"
       style={{ width: 132, borderColor: BORDER_SUBTLE }}
     >
-      {avatarUri ? (
-        <Image
-          accessibilityIgnoresInvertColors
-          source={{ uri: avatarUri }}
-          className="rounded-full bg-gray-100"
-          style={{ width: 72, height: 72 }}
-        />
-      ) : (
-        <View
-          className="items-center justify-center rounded-full bg-gray-100"
-          style={{ width: 72, height: 72 }}
-        >
-          <AppIcon name="user" size={32} color={TEXT_MUTED} />
-        </View>
-      )}
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={`View ${label}'s profile`}
+        onPress={openProfile}
+        className="active:opacity-90"
+      >
+        {avatarUri ? (
+          <Image
+            accessibilityIgnoresInvertColors
+            source={{ uri: avatarUri }}
+            className="rounded-full bg-gray-100"
+            style={{ width: 72, height: 72 }}
+          />
+        ) : (
+          <View
+            className="items-center justify-center rounded-full bg-gray-100"
+            style={{ width: 72, height: 72 }}
+          >
+            <AppIcon name="user" size={32} color={TEXT_MUTED} />
+          </View>
+        )}
+      </Pressable>
       <Text
         className="mt-2 w-full text-center text-xs font-medium"
         style={{ color: TEXT_HEADING }}

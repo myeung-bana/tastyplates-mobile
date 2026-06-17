@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useState, type ReactElement } from 'react'
 import {
   ActivityIndicator,
-  FlatList,
   Pressable,
   RefreshControl,
   ScrollView,
+  SectionList,
   Text,
   View,
 } from 'react-native'
@@ -15,6 +15,7 @@ import {
   FollowingFeedActivityCard,
   FollowingFeedRowSkeleton,
 } from '@/components/following/FollowingFeedActivityCard'
+import { FollowingFeedShowMore } from '@/components/following/FollowingFeedShowMore'
 import { SuggestedUserRow } from '@/components/following/SuggestedUserRow'
 import { AppTopNav } from '@/components/layout/AppTopNav'
 import { SectionTitle } from '@/components/layout/SectionTitle'
@@ -24,11 +25,11 @@ import {
   SCREEN_REVIEW_VIEWER,
 } from '@/constants/screens'
 import { useAuth } from '@/hooks/useAuth'
+import { useFollowingFeed } from '@/hooks/useFollowingFeed'
 import { pushLoginScreen } from '@/lib/authRoutes'
+import type { ActivityFeedSection } from '@/lib/followingFeedGrouping'
 import {
-  fetchFollowingFeed,
   fetchSuggestedUsers,
-  type FollowingFeedActivity,
   type FollowingFeedAuthorProfile,
 } from '@/services/followingFeedService'
 import { isRestaurantUserRouteId } from '@/services/restaurantUserService'
@@ -37,7 +38,7 @@ const GRID_GAP = 12
 
 type SuggestedUserList = Awaited<ReturnType<typeof fetchSuggestedUsers>>
 
-/** Suggested accounts — horizontal row (ScrollView avoids nesting FlatList inside the feed FlatList). */
+/** Suggested accounts — horizontal row (ScrollView avoids nesting inside the feed list). */
 function FollowingSuggestedSection({
   userId,
   suggested,
@@ -83,43 +84,45 @@ export default function FollowingScreen() {
   const { isAuthenticated, loading: authLoading, authUser } = useAuth()
   const userId = authUser?.id ?? null
 
-  const [activities, setActivities] = useState<FollowingFeedActivity[]>([])
-  const [suggested, setSuggested] = useState<Awaited<ReturnType<typeof fetchSuggestedUsers>>>([])
-  const [loading, setLoading] = useState(true)
-  const [refreshing, setRefreshing] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [suggested, setSuggested] = useState<SuggestedUserList>([])
+  const [suggestedLoading, setSuggestedLoading] = useState(true)
 
-  const loadData = useCallback(
-    async (mode: 'initial' | 'refresh') => {
-      if (!userId) return
-      if (mode === 'initial') setLoading(true)
-      if (mode === 'refresh') setRefreshing(true)
-      setError(null)
-      try {
-        const [suggestedUsers, feedRes] = await Promise.all([
-          fetchSuggestedUsers(12),
-          fetchFollowingFeed(userId, { limit: 40 }),
-        ])
-        setSuggested(suggestedUsers)
-        setActivities(feedRes.activities ?? [])
-      } catch (e) {
-        setError(e instanceof Error ? e.message : 'Could not load your following feed.')
-      } finally {
-        setLoading(false)
-        setRefreshing(false)
-      }
-    },
-    [userId],
-  )
+  const {
+    activities,
+    sections,
+    loading: feedLoading,
+    refreshing,
+    loadingMore,
+    error: feedError,
+    showEarlierCta,
+    showLoadMoreCta,
+    refresh: refreshFeed,
+    loadMore,
+    showEarlierActivity,
+    keyExtractor,
+  } = useFollowingFeed(userId)
+
+  const loadSuggested = useCallback(async () => {
+    if (!userId) return
+    setSuggestedLoading(true)
+    try {
+      const suggestedUsers = await fetchSuggestedUsers(12)
+      setSuggested(suggestedUsers)
+    } catch {
+      setSuggested([])
+    } finally {
+      setSuggestedLoading(false)
+    }
+  }, [userId])
 
   useEffect(() => {
     if (!userId) return
-    void loadData('initial')
-  }, [userId, loadData])
+    void loadSuggested()
+  }, [userId, loadSuggested])
 
-  const onRefresh = () => {
-    void loadData('refresh')
-  }
+  const onRefresh = useCallback(async () => {
+    await Promise.all([refreshFeed(), loadSuggested()])
+  }, [refreshFeed, loadSuggested])
 
   const onOpenReview = (reviewId: string) => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
@@ -150,6 +153,9 @@ export default function FollowingScreen() {
       })
     }
   }
+
+  const loading = (feedLoading || suggestedLoading) && !refreshing
+  const error = feedError
 
   if (!authLoading && !isAuthenticated) {
     return (
@@ -191,7 +197,7 @@ export default function FollowingScreen() {
       <FollowingSuggestedSection
         userId={userId}
         suggested={suggested}
-        onFollowed={() => void loadData('refresh')}
+        onFollowed={() => void onRefresh()}
       />
       <View className="mt-3 px-4 pb-2">
         <SectionTitle>Follower Activity</SectionTitle>
@@ -199,12 +205,30 @@ export default function FollowingScreen() {
     </View>
   )
 
-  if (loading && !refreshing) {
+  const feedListFooter = (
+    <>
+      {showEarlierCta ? (
+        <FollowingFeedShowMore
+          label="Show earlier activity"
+          loading={loadingMore}
+          onPress={() => void showEarlierActivity()}
+        />
+      ) : null}
+      {showLoadMoreCta ? (
+        <FollowingFeedShowMore
+          label="Load more"
+          loading={loadingMore}
+          onPress={() => void loadMore()}
+        />
+      ) : null}
+    </>
+  )
+
+  if (loading) {
     return (
       <View className="flex-1 bg-white">
         <AppTopNav />
         <ScrollView className="flex-1" contentContainerStyle={{ paddingBottom: 32 }}>
-          {pageHeader}
           <View className="px-4 pt-2">
             <SectionTitle>Suggested Users</SectionTitle>
             <View className="mt-3 h-28 rounded-2xl bg-neutral-100" />
@@ -230,16 +254,15 @@ export default function FollowingScreen() {
           className="flex-1"
           contentContainerStyle={{ flexGrow: 1, paddingBottom: 32 }}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={BRAND_PRIMARY} />
+            <RefreshControl refreshing={refreshing} onRefresh={() => void onRefresh()} tintColor={BRAND_PRIMARY} />
           }
         >
-          {pageHeader}
           <View className="mt-10 items-center px-6">
             <Text className="text-center text-sm leading-relaxed" style={{ color: TEXT_MUTED }}>
               {error}
             </Text>
             <Pressable
-              onPress={() => void loadData('initial')}
+              onPress={() => void onRefresh()}
               className="mt-4 rounded-full px-6 py-2.5 active:opacity-90"
               style={{ backgroundColor: BRAND_PRIMARY }}
             >
@@ -254,16 +277,27 @@ export default function FollowingScreen() {
   return (
     <View className="flex-1 bg-white">
       <AppTopNav />
-      <FlatList
+      <SectionList
         style={{ flex: 1 }}
-        data={activities}
-        keyExtractor={(item) => `${item.type}:${item.id}`}
+        sections={sections}
+        keyExtractor={keyExtractor}
+        stickySectionHeadersEnabled={false}
         ListHeaderComponent={feedListHeader}
+        ListFooterComponent={feedListFooter}
         ListEmptyComponent={
-          <Text className="mt-4 px-4 text-center text-sm leading-relaxed" style={{ color: TEXT_MUTED }}>
-            No activity from people you follow yet.
-          </Text>
+          activities.length === 0 ? (
+            <Text className="mt-4 px-4 text-center text-sm leading-relaxed" style={{ color: TEXT_MUTED }}>
+              No activity from people you follow yet.
+            </Text>
+          ) : null
         }
+        renderSectionHeader={({ section }: { section: ActivityFeedSection }) => (
+          <View className="bg-white px-4 pb-2 pt-4">
+            <Text className="font-neusans text-xs font-semibold uppercase tracking-wide text-gray-400">
+              {section.title}
+            </Text>
+          </View>
+        )}
         renderItem={({ item }) => (
           <View className="px-4">
             <FollowingFeedActivityCard
@@ -276,7 +310,7 @@ export default function FollowingScreen() {
         )}
         contentContainerStyle={{ flexGrow: 1, paddingBottom: 32 }}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={BRAND_PRIMARY} />
+          <RefreshControl refreshing={refreshing} onRefresh={() => void onRefresh()} tintColor={BRAND_PRIMARY} />
         }
         showsVerticalScrollIndicator={false}
       />
