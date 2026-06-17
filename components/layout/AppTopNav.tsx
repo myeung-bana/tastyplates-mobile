@@ -5,7 +5,7 @@ import { useRouter } from 'expo-router'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { GlobalLocationPill } from '@/components/navigation/GlobalLocationPill'
-import { TEXT_HEADING, TEXT_MUTED } from '@/constants/brand'
+import { NAV_ICON, TEXT_HEADING, TEXT_MUTED } from '@/constants/brand'
 import { SCREEN_PROFILE } from '@/constants/screens'
 import { useAuthSheet } from '@/contexts/AuthSheetContext'
 import { useSearchOverlay } from '@/contexts/SearchOverlayContext'
@@ -100,7 +100,7 @@ export function AppTopNav(): JSX.Element {
           }}
           className="h-9 w-9 items-center justify-center rounded-full active:bg-gray-100"
         >
-          <AppIcon name="search" size={21} color="#374151" />
+          <AppIcon name="search" size={21} color={NAV_ICON} />
         </Pressable>
         <ProfileShortcut />
       </View>

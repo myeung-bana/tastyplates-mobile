@@ -25,6 +25,7 @@ import {
   studioManageListEditPath,
 } from '@/constants/screens'
 import { useAddRestaurantOverlay } from '@/contexts/AddRestaurantOverlayContext'
+import { useAuth } from '@/hooks/useAuth'
 import { castHref } from '@/lib/routeParams'
 import { firstSegmentParam } from '@/lib/routeParams'
 import {
@@ -57,6 +58,7 @@ export default function ListDetailScreen(): JSX.Element {
   const displayPicParam = firstSegmentParam(params.display_pic)
 
   const navigation = useNavigation()
+  const { user } = useAuth()
 
   const [list, setList] = useState<RestaurantListDetail | null>(null)
   const [loading, setLoading] = useState(false)
@@ -128,6 +130,9 @@ export default function ListDetailScreen(): JSX.Element {
     return unsubscribe
   }, [navigation, fetched, fetchDetail])
 
+  const isListOwner =
+    Boolean(list?.owner_id) && Boolean(user?.id) && list?.owner_id === user?.id
+
   const handleRemoveItem = useCallback(
     async (item: RestaurantListItem) => {
       if (!list) return
@@ -162,12 +167,15 @@ export default function ListDetailScreen(): JSX.Element {
     if (!list) return
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
     const shareToken = list.share_token
+    const message = isListOwner
+      ? `Check out my restaurant list: ${list.title}`
+      : `Check out this restaurant list: ${list.title}`
     if (shareToken) {
-      void Share.share({ url: `${SHARE_BASE}/${shareToken}`, message: `Check out my restaurant list: ${list.title}` })
+      void Share.share({ url: `${SHARE_BASE}/${shareToken}`, message })
     } else {
-      void Share.share({ url: `https://tastyplates.co/lists/${list.slug}`, message: `Check out my restaurant list: ${list.title}` })
+      void Share.share({ url: `https://tastyplates.co/lists/${list.slug}`, message })
     }
-  }, [list])
+  }, [isListOwner, list])
 
   const handleDelete = useCallback(() => {
     if (!list) return
@@ -233,6 +241,7 @@ export default function ListDetailScreen(): JSX.Element {
           <ManageListItemRow
             item={item}
             swipeableRefs={swipeableRefs}
+            readOnly={!isListOwner}
             onRemove={(i) => void handleRemoveItem(i)}
           />
         )}
@@ -286,7 +295,7 @@ export default function ListDetailScreen(): JSX.Element {
                   <Text className="font-neusans text-sm text-[#374151]">Share Link</Text>
                 </Pressable>
 
-                {!list?.is_public ? (
+                {isListOwner && !list?.is_public ? (
                   <Pressable
                     accessibilityRole="button"
                     onPress={() => void handleMakePublic()}
@@ -300,43 +309,52 @@ export default function ListDetailScreen(): JSX.Element {
                   </Pressable>
                 ) : null}
 
-                <Pressable
-                  accessibilityRole="button"
-                  onPress={() => {
-                    if (!list) return
-                    router.push({
-                      pathname: castHref(studioManageListEditPath(uuid)) as never,
-                      params: {
-                        title: list.title,
-                        description: list.description ?? '',
-                        is_public: list.is_public ? 'true' : 'false',
-                        display_pic:
-                          list.display_pic?.trim() || list.cover_image_url?.trim() || '',
-                      },
-                    })
-                  }}
-                  className="flex-row items-center gap-2 rounded-[50px] border border-gray-300 bg-white px-4 py-2"
-                >
-                  <AppIcon name="edit-2" size={14} color="#374151" />
-                  <Text className="font-neusans text-sm text-[#374151]">Edit</Text>
-                </Pressable>
+                {isListOwner ? (
+                  <>
+                    <Pressable
+                      accessibilityRole="button"
+                      onPress={() => {
+                        if (!list) return
+                        router.push({
+                          pathname: castHref(studioManageListEditPath(uuid)) as never,
+                          params: {
+                            title: list.title,
+                            description: list.description ?? '',
+                            is_public: list.is_public ? 'true' : 'false',
+                            display_pic:
+                              list.display_pic?.trim() || list.cover_image_url?.trim() || '',
+                          },
+                        })
+                      }}
+                      className="flex-row items-center gap-2 rounded-[50px] border border-gray-300 bg-white px-4 py-2"
+                    >
+                      <AppIcon name="edit-2" size={14} color="#374151" />
+                      <Text className="font-neusans text-sm text-[#374151]">Edit</Text>
+                    </Pressable>
 
-                <Pressable
-                  accessibilityRole="button"
-                  onPress={handleDelete}
-                  className="flex-row items-center gap-2 rounded-[50px] border border-red-200 bg-white px-4 py-2"
-                >
-                  <AppIcon name="trash-2" size={14} color="#ef4444" />
-                  <Text className="font-neusans text-sm text-red-500">Delete</Text>
-                </Pressable>
+                    <Pressable
+                      accessibilityRole="button"
+                      onPress={handleDelete}
+                      className="flex-row items-center gap-2 rounded-[50px] border border-red-200 bg-white px-4 py-2"
+                    >
+                      <AppIcon name="trash-2" size={14} color="#ef4444" />
+                      <Text className="font-neusans text-sm text-red-500">Delete</Text>
+                    </Pressable>
+                  </>
+                ) : null}
               </View>
             </View>
 
-            <ManageListAddRestaurantRow onPress={openAddRestaurantHandler} />
+            {isListOwner ? <ManageListAddRestaurantRow onPress={openAddRestaurantHandler} /> : null}
           </View>
         }
         ListEmptyComponent={
-          isEmpty ? <ListDetailEmptyState onAddRestaurant={openAddRestaurantHandler} /> : null
+          isEmpty ? (
+            <ListDetailEmptyState
+              readOnly={!isListOwner}
+              onAddRestaurant={isListOwner ? openAddRestaurantHandler : undefined}
+            />
+          ) : null
         }
         refreshControl={
           <RefreshControl

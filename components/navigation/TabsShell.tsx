@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { AppIcon, type AppIconName } from '@/components/ui/AppIcon'
 import { getTabBarHeight, getTabBarStyle, TAB_BAR_BG } from '@/constants/tabBar'
+import { BRAND_PRIMARY, NAV_ICON } from '@/constants/brand'
 import { AppBottomTabBar } from '@/components/navigation/AppBottomTabBar'
 import { TabBarButton } from '@/components/navigation/TabBarButton'
 import { StudioTabAnchorButton } from '@/components/studio/StudioTabAnchorButton'
@@ -13,8 +14,7 @@ import { SCREEN_PROFILE } from '@/constants/screens'
 import { useAuthSheet } from '@/contexts/AuthSheetContext'
 import { studioQuickMenuToggleRef } from '@/contexts/StudioQuickMenuContext'
 
-const BRAND_PRIMARY = '#ff7c0a'
-const TAB_INACTIVE = '#9ca3af'
+const TAB_INACTIVE = NAV_ICON
 
 export interface TabConfig {
   name: string
@@ -31,7 +31,7 @@ type TabsShellProps = {
 const TAB_CONFIG_BY_NAME: Record<string, TabConfig> = {
   index: { name: 'index', title: 'Home', icon: 'home' },
   restaurants: { name: 'restaurants', title: 'Restaurants', icon: 'restaurant' },
-  following: { name: 'following', title: 'Activity', icon: 'activity' },
+  following: { name: 'following', title: 'Activity', icon: 'compass' },
   studio: { name: 'studio', title: 'Studio', icon: 'plus-square' },
   profile: { name: 'profile', title: 'Profile', icon: 'user' },
 }

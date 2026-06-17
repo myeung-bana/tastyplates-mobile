@@ -320,7 +320,7 @@ export function UnifiedProfileView({
             emptyMessage={
               isOwnProfile
                 ? 'Your public lists will appear here.'
-                : 'Public lists from this account will appear here soon.'
+                : 'There are no Lists yet'
             }
             onPressList={(list) => {
               router.push({

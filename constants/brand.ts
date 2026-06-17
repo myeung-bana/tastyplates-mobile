@@ -12,6 +12,9 @@ export const TEXT_BODY = '#494D5D'
 export const TEXT_MUTED = '#6b7280'
 export const BORDER_SUBTLE = '#e5e7eb'
 
+/** Default nav chrome icons — top search, inactive tab icons (Tailwind gray-700). */
+export const NAV_ICON = '#374151'
+
 /** Stars / aggregate rating accent — design_system §2.4 (Tailwind amber-400). Metric hero rows only. */
 export const RATING_STAR = '#f59e0b'
 

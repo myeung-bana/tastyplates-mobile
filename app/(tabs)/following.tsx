@@ -186,15 +186,8 @@ export default function FollowingScreen() {
     )
   }
 
-  const pageHeader = (
-    <View className="px-4 pt-6 pb-1">
-      <SectionTitle>Following</SectionTitle>
-    </View>
-  )
-
   const feedListHeader = (
     <View>
-      {pageHeader}
       <FollowingSuggestedSection
         userId={userId}
         suggested={suggested}

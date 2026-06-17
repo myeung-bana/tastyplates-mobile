@@ -2,9 +2,37 @@ import { Platform } from 'react-native'
 import type { ViewStyle } from 'react-native'
 import type { EdgeInsets } from 'react-native-safe-area-context'
 
+/**
+ * Tab bar background token.
+ * Used by TabBarChrome tint overlay and the SVG scrim colour.
+ * Kept as near-white so the scrim gradient still reads cleanly on light pages.
+ */
 export const TAB_BAR_BG = '#ffffff'
-/** Subtle fade zone above the tab bar — content dissolves into solid white chrome. */
-export const TAB_BAR_SCRIM_HEIGHT = 28
+
+/**
+ * Opacity of the white tint overlay rendered above the BlurView.
+ * Controls how "milky" vs "glassy" the bar feels:
+ *   0.0 = pure frosted glass (shows full colour bleed)
+ *   0.5 = milky white (close to original)
+ * 0.30 – 0.38 is the Taobao / iOS 18 sweet spot.
+ */
+export const TAB_BAR_TINT_OPACITY = 0.32
+
+/**
+ * expo-blur intensity (0–100).
+ * Higher = stronger blur / less legible content behind.
+ * 60–70 matches iOS system chrome material.
+ */
+export const TAB_BAR_BLUR_INTENSITY = 65
+
+/**
+ * Extra white opacity layered on the tint when native blur is unavailable
+ * (stale dev build, Expo Go mismatch). Keeps icons legible without BlurView.
+ */
+export const TAB_BAR_FALLBACK_OPACITY = 0.48
+
+/** Fade zone above the tab bar — content dissolves before hitting the glass edge. */
+export const TAB_BAR_SCRIM_HEIGHT = 32
 export const TAB_BAR_PADDING_TOP = 5
 export const TAB_BAR_PADDING_HORIZONTAL = 4
 /** Matches React Navigation UIKit tab item row height. */
@@ -29,13 +57,16 @@ export function getTabBarHeight(insets: Pick<EdgeInsets, 'bottom'>): number {
   return TAB_BAR_CONTENT_HEIGHT + TAB_BAR_PADDING_TOP + paddingBottom
 }
 
-/** Bottom tab bar style — white bar; top scrim is {@link TabBarChrome}. */
+/**
+ * Tab bar style passed to React Navigation's `tabBarStyle`.
+ * Background MUST be 'transparent' so the BlurView underneath shows through.
+ */
 export function getTabBarStyle(insets: Pick<EdgeInsets, 'bottom'>): ViewStyle {
   const paddingBottom = getTabBarBottomPadding(insets)
   const height = getTabBarHeight(insets)
 
   return {
-    backgroundColor: TAB_BAR_BG,
+    backgroundColor: 'transparent',
     borderTopWidth: 0,
     elevation: 0,
     paddingTop: TAB_BAR_PADDING_TOP,

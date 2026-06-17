@@ -14,6 +14,7 @@ import MapView, { PROVIDER_GOOGLE, type Region } from 'react-native-maps'
 import type { MapPressEvent } from 'react-native-maps'
 import * as Haptics from 'expo-haptics'
 import { useLocalSearchParams, router } from 'expo-router'
+import { NativeViewGestureHandler } from 'react-native-gesture-handler'
 
 import { AppTopNav } from '@/components/layout/AppTopNav'
 import { RestaurantBrowseCard } from '@/components/restaurant/RestaurantBrowseCard'
@@ -157,6 +158,7 @@ export default function RestaurantsScreen() {
   const [selectedId, setSelectedId] = useState<string | null>(null)
 
   const mapRef = useRef<MapView>(null)
+  const mapGestureRef = useRef<NativeViewGestureHandler>(null)
   const bottomSheetRef = useRef<BottomSheet>(null)
   const sheetListRef = useRef<FlatList<RestaurantSearchResult>>(null)
   const loadMoreLockRef = useRef(false)
@@ -558,9 +560,10 @@ export default function RestaurantsScreen() {
 
   const showMapLayout = cityMapRegion != null
   const showMapExperience = showMapLayout && !loading && !(error && displayRows.length === 0)
+  const hasActiveFilters = !isNoPalateFilter(palate) || Boolean(searchQuery?.trim())
 
-  const filterChips = (
-    <View className="bg-white px-4 pb-2 pt-2">
+  const filterChips = hasActiveFilters ? (
+    <View className="bg-white px-4 pb-2">
       <PalateFilterChips
         palate={palate}
         searchQuery={searchQuery}
@@ -568,7 +571,7 @@ export default function RestaurantsScreen() {
         onClearSearch={clearSearch}
       />
     </View>
-  )
+  ) : null
 
   const mapMarkers = useMemo(() => {
     if (!coordinates) return rows
@@ -587,29 +590,35 @@ export default function RestaurantsScreen() {
   return (
     <View className="flex-1 bg-white">
       {showMapExperience ? (
-        <View className="flex-1">
-          <MapView
-            ref={mapRef}
+        <View className="flex-1" style={{ pointerEvents: 'box-none' }}>
+          <NativeViewGestureHandler
+            ref={mapGestureRef}
+            disallowInterruption
             style={StyleSheet.absoluteFillObject}
-            provider={PROVIDER_GOOGLE}
-            initialRegion={cityMapRegion}
-            showsUserLocation
-            showsMyLocationButton={false}
-            mapPadding={{ top: 0, right: 0, bottom: 0, left: 0 }}
-            onPress={handleMapPress}
           >
-            {mapMarkers.map((result) => {
-              const id = restaurantSearchResultId(result)
-              return (
-                <RestaurantMapMarker
-                  key={id}
-                  result={result}
-                  isSelected={selectedId === id}
-                  onPress={handlePinPress}
-                />
-              )
-            })}
-          </MapView>
+            <MapView
+              ref={mapRef}
+              style={StyleSheet.absoluteFillObject}
+              provider={PROVIDER_GOOGLE}
+              initialRegion={cityMapRegion}
+              showsUserLocation
+              showsMyLocationButton={false}
+              mapPadding={{ top: 0, right: 0, bottom: 0, left: 0 }}
+              onPress={handleMapPress}
+            >
+              {mapMarkers.map((result) => {
+                const id = restaurantSearchResultId(result)
+                return (
+                  <RestaurantMapMarker
+                    key={id}
+                    result={result}
+                    isSelected={selectedId === id}
+                    onPress={handlePinPress}
+                  />
+                )
+              })}
+            </MapView>
+          </NativeViewGestureHandler>
 
           <View className="absolute inset-x-0 top-0 z-10" pointerEvents="box-none">
             <AppTopNav />
@@ -622,6 +631,7 @@ export default function RestaurantsScreen() {
             snapPoints={snapPoints}
             enablePanDownToClose={false}
             enableDynamicSizing={false}
+            waitFor={mapGestureRef}
             handleIndicatorStyle={{ backgroundColor: '#d1d5db', width: 40 }}
             onChange={handleSheetIndexChange}
           >

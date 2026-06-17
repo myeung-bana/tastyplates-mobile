@@ -16,9 +16,16 @@ interface Props {
   item: RestaurantListItem
   swipeableRefs: React.MutableRefObject<Map<string, Swipeable>>
   onRemove: (item: RestaurantListItem) => void
+  /** When true, row is tappable only — no swipe-to-remove. */
+  readOnly?: boolean
 }
 
-export function ManageListItemRow({ item, swipeableRefs, onRemove }: Props): JSX.Element {
+export function ManageListItemRow({
+  item,
+  swipeableRefs,
+  onRemove,
+  readOnly = false,
+}: Props): JSX.Element {
   const swipeRef = useRef<Swipeable>(null)
   const rowKey = String(item.id)
   const linked = isLinkedItem(item)
@@ -56,6 +63,42 @@ export function ManageListItemRow({ item, swipeableRefs, onRemove }: Props): JSX
     )
   }
 
+  const rowContent = (
+    <Pressable
+      accessibilityRole="button"
+      onPress={handlePress}
+      className="flex-row items-center gap-3 border-b border-gray-50 bg-white px-4 py-3"
+    >
+      <View className="h-14 w-14 flex-shrink-0 overflow-hidden rounded-xl">
+        <Image
+          source={{ uri: item.image_url ?? DEFAULT_RESTAURANT_IMAGE }}
+          style={{ width: 56, height: 56, borderRadius: 10 }}
+          resizeMode="cover"
+        />
+      </View>
+
+      <View className="min-w-0 flex-1" style={{ gap: 2 }}>
+        <Text
+          className="font-neusans text-[15px] font-medium text-[#31343F]"
+          numberOfLines={1}
+        >
+          {displayName}
+        </Text>
+        {subtitle ? (
+          <Text className="font-neusans text-[13px] text-[#6b7280]" numberOfLines={1}>
+            {subtitle}
+          </Text>
+        ) : null}
+      </View>
+
+      <AppIcon name="chevron-right" size={14} color="#e5e7eb" />
+    </Pressable>
+  )
+
+  if (readOnly) {
+    return rowContent
+  }
+
   return (
     <Swipeable
       ref={(ref) => {
@@ -75,38 +118,7 @@ export function ManageListItemRow({ item, swipeableRefs, onRemove }: Props): JSX
         })
       }}
     >
-      <Pressable
-        accessibilityRole="button"
-        onPress={handlePress}
-        className="flex-row items-center gap-3 border-b border-gray-50 bg-white px-4 py-3"
-      >
-        {/* Cover */}
-        <View className="h-14 w-14 flex-shrink-0 overflow-hidden rounded-xl">
-          <Image
-            source={{ uri: item.image_url ?? DEFAULT_RESTAURANT_IMAGE }}
-            style={{ width: 56, height: 56, borderRadius: 10 }}
-            resizeMode="cover"
-          />
-        </View>
-
-        {/* Info */}
-        <View className="min-w-0 flex-1" style={{ gap: 2 }}>
-          <Text
-            className="font-neusans text-[15px] font-medium text-[#31343F]"
-            numberOfLines={1}
-          >
-            {displayName}
-          </Text>
-          {subtitle ? (
-            <Text className="font-neusans text-[13px] text-[#6b7280]" numberOfLines={1}>
-              {subtitle}
-            </Text>
-          ) : null}
-        </View>
-
-        {/* Chevron */}
-        <AppIcon name="chevron-right" size={14} color="#e5e7eb" />
-      </Pressable>
+      {rowContent}
     </Swipeable>
   )
 }

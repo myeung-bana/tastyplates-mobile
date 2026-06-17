@@ -1,17 +1,22 @@
 import type { ReactNode } from 'react'
-import { StyleSheet, useWindowDimensions, View } from 'react-native'
+import { Platform, StyleSheet, useWindowDimensions, View } from 'react-native'
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg'
 
-import { TAB_BAR_BG, TAB_BAR_SCRIM_HEIGHT } from '@/constants/tabBar'
+import { TabBarGlassBackdrop } from '@/components/navigation/TabBarGlassBackdrop'
+import {
+  TAB_BAR_BG,
+  TAB_BAR_SCRIM_HEIGHT,
+  TAB_BAR_TINT_OPACITY,
+} from '@/constants/tabBar'
 
 type TabBarChromeProps = {
   children: ReactNode
 }
 
-/** Subtle fade above the bar only — transparent → solid white at the tab bar top edge. */
+/** Fades page content into the glass edge above the bar. */
 const TOP_SCRIM_STOPS = [
   { offset: '0%', opacity: 0 },
-  { offset: '55%', opacity: 0.45 },
+  { offset: '55%', opacity: 0.4 },
   { offset: '100%', opacity: 1 },
 ] as const
 
@@ -38,15 +43,30 @@ function TabBarTopScrim(): JSX.Element {
 }
 
 /**
- * Solid white tab bar with a light top scrim so scroll content fades in above the icons.
- * Bar background (incl. safe-area padding) comes from `getTabBarStyle()`.
+ * Liquid glass bottom tab bar chrome.
+ *
+ * Layer order (bottom → top):
+ *   1. Glass backdrop — BlurView + tint, or frosted fallback when native blur is missing
+ *   2. Top hairline — glass rim highlight at the upper edge
+ *   3. Top scrim (SVG) — content dissolve zone above the bar
+ *   4. Tab icons — React Navigation BottomTabBar (transparent bg)
  */
 export function TabBarChrome({ children }: TabBarChromeProps): JSX.Element {
+  const tintOpacity =
+    Platform.OS === 'android'
+      ? Math.min(TAB_BAR_TINT_OPACITY + 0.18, 0.72)
+      : TAB_BAR_TINT_OPACITY
+
   return (
     <View style={styles.root}>
+      <TabBarGlassBackdrop tintOpacity={tintOpacity} />
+
+      <View style={styles.topHairline} pointerEvents="none" />
+
       <View style={styles.topScrim} pointerEvents="none">
         <TabBarTopScrim />
       </View>
+
       {children}
     </View>
   )
@@ -58,6 +78,16 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
+    overflow: 'hidden',
+  },
+  topHairline: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: 'rgba(255, 255, 255, 0.65)',
+    zIndex: 1,
   },
   topScrim: {
     position: 'absolute',
@@ -66,5 +96,6 @@ const styles = StyleSheet.create({
     top: -TAB_BAR_SCRIM_HEIGHT,
     height: TAB_BAR_SCRIM_HEIGHT,
     zIndex: 0,
+    overflow: 'hidden',
   },
 })
