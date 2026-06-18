@@ -1,21 +1,27 @@
 import { useCallback, useEffect, useState } from 'react'
 import { ActivityIndicator, Text, View } from 'react-native'
+import * as Haptics from 'expo-haptics'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 
 import { AppTopNav } from '@/components/layout/AppTopNav'
+import { ProfileRecentActivityPreview } from '@/components/profile/ProfileRecentActivityPreview'
 import { UnifiedProfileView } from '@/components/profile/UnifiedProfileView'
 import { BRAND_PRIMARY, TEXT_HEADING, TEXT_MUTED } from '@/constants/brand'
 import {
   SCREEN_EDIT_PROFILE,
+  SCREEN_REVIEW_VIEWER,
+  SCREEN_SETTINGS,
 } from '@/constants/screens'
 import { useFollowTarget } from '@/hooks/useFollowTarget'
 import { useAuth } from '@/hooks/useAuth'
+import { useProfileRecentActivity } from '@/hooks/useProfileRecentActivity'
 import { useUserData } from '@nhost/react'
 import {
   formatMemberSince,
   initialsFromName,
   parseProfilePalates,
 } from '@/lib/profileFormatting'
+import { publicProfileFromAuthorFields, pushPublicProfile } from '@/lib/publicProfileNavigation'
 import {
   fetchRestaurantUserById,
   fetchRestaurantUserByUsername,
@@ -49,6 +55,7 @@ export default function PublicProfileIndexScreen() {
   const [error, setError] = useState<string | null>(null)
 
   const isOwnProfile = Boolean(viewerId && ru?.id && viewerId === ru.id)
+  const activityApi = useProfileRecentActivity(ru?.id, 3)
 
   const loadProfile = useCallback(async () => {
     if (!slug) {
@@ -94,11 +101,11 @@ export default function PublicProfileIndexScreen() {
   const onPullRefresh = useCallback(async () => {
     setPullRefreshing(true)
     try {
-      await loadProfile()
+      await Promise.all([loadProfile(), activityApi.refresh()])
     } finally {
       setPullRefreshing(false)
     }
-  }, [loadProfile])
+  }, [activityApi.refresh, loadProfile])
 
   if (!slug) {
     return (
@@ -164,6 +171,29 @@ export default function PublicProfileIndexScreen() {
         }
       : null
 
+  const openReview = (reviewId: string) => {
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
+    router.push({
+      pathname: SCREEN_REVIEW_VIEWER,
+      params: { reviewId },
+    })
+  }
+
+  const meTabExtra = (
+    <ProfileRecentActivityPreview
+      loading={activityApi.loading}
+      error={activityApi.error}
+      activities={activityApi.activities}
+      onPressReview={openReview}
+      onPressComment={openReview}
+      onPressAuthor={(authorId, profile) => {
+        void Haptics.selectionAsync()
+        pushPublicProfile(router, publicProfileFromAuthorFields(authorId, profile))
+      }}
+      emptyMessage="Recent activity from this account will appear here."
+    />
+  )
+
   return (
     <View className="flex-1 bg-white">
       <AppTopNav />
@@ -188,8 +218,10 @@ export default function PublicProfileIndexScreen() {
         onPressAvatarOwn={
           isOwnProfile ? () => router.push(SCREEN_EDIT_PROFILE) : undefined
         }
+        onPressSettings={isOwnProfile ? () => router.push(SCREEN_SETTINGS) : undefined}
         followButton={followUi}
         showFollowPlaceholder={!isAuthenticated && !isOwnProfile}
+        meTabExtra={meTabExtra}
       />
     </View>
   )

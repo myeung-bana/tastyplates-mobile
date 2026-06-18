@@ -11,6 +11,8 @@ export const TEXT_HEADING = '#31343F'
 export const TEXT_BODY = '#494D5D'
 export const TEXT_MUTED = '#6b7280'
 export const BORDER_SUBTLE = '#e5e7eb'
+/** Outlined buttons / inactive profile tabs — Share profile, settings circle, etc. */
+export const BORDER_OUTLINE = '#d1d5db'
 
 /** Default nav chrome icons — top search, inactive tab icons (Tailwind gray-700). */
 export const NAV_ICON = '#374151'

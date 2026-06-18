@@ -172,6 +172,31 @@ export async function fetchFollowingFeed(
   }
 }
 
+/** Mixed public activity for a profile (`restaurant-reviews/get-user-activity`). */
+export async function fetchUserActivity(
+  userId: string,
+  opts?: { limit?: number; offset?: number },
+): Promise<{ activities: FollowingFeedActivity[]; meta: FollowingFeedMeta }> {
+  const limit = opts?.limit ?? 3
+  const offset = opts?.offset ?? 0
+  const q = new URLSearchParams({
+    user_id: userId,
+    limit: String(Math.min(Math.max(limit, 1), 20)),
+    offset: String(offset),
+  })
+  const envelope = await tastyplatesFetch<{
+    activities?: Record<string, unknown>[]
+    meta: FollowingFeedMeta
+  }>(`restaurant-reviews/get-user-activity?${q.toString()}`)
+
+  const data = unwrapEnvelope(envelope)
+  const activities = (data.activities ?? [])
+    .map((row) => parseActivity(row))
+    .filter((row): row is FollowingFeedActivity => row != null)
+
+  return { activities, meta: data.meta }
+}
+
 /**
  * Suggested profiles to follow. Bearer recommended so the viewer is excluded from results.
  */

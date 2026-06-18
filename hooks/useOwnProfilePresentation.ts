@@ -10,6 +10,26 @@ import {
 const ruCache = new Map<string, RestaurantUserRow | null>()
 const inflight = new Map<string, Promise<RestaurantUserRow | null>>()
 
+type InvalidationListener = (userId: string | null) => void
+const invalidationListeners = new Set<InvalidationListener>()
+
+function clearRestaurantUserCache(userId?: string): void {
+  if (userId) {
+    ruCache.delete(userId)
+    inflight.delete(userId)
+  } else {
+    ruCache.clear()
+    inflight.clear()
+  }
+}
+
+function subscribeOwnRestaurantUserInvalidation(listener: InvalidationListener): () => void {
+  invalidationListeners.add(listener)
+  return () => {
+    invalidationListeners.delete(listener)
+  }
+}
+
 async function loadRestaurantUserRow(userId: string): Promise<RestaurantUserRow | null> {
   if (ruCache.has(userId)) return ruCache.get(userId) ?? null
 
@@ -33,13 +53,8 @@ async function loadRestaurantUserRow(userId: string): Promise<RestaurantUserRow 
 
 /** Call after profile edit so top nav and profile screen pick up a new avatar. */
 export function invalidateOwnRestaurantUserCache(userId?: string): void {
-  if (userId) {
-    ruCache.delete(userId)
-    inflight.delete(userId)
-  } else {
-    ruCache.clear()
-    inflight.clear()
-  }
+  clearRestaurantUserCache(userId)
+  invalidationListeners.forEach((listener) => listener(userId ?? null))
 }
 
 export type OwnProfilePresentation = {
@@ -56,7 +71,7 @@ export type OwnProfilePresentation = {
  * Signed-in user's display name and avatar for nav, profile header, etc.
  */
 export function useOwnProfilePresentation(): OwnProfilePresentation {
-  const { authUser, profile, loading: sessionLoading } = useNhostSession()
+  const { authUser, profile, loading: sessionLoading, refetchProfile } = useNhostSession()
   const userId = authUser?.id
   const [ru, setRu] = useState<RestaurantUserRow | null>(null)
   const [ruLoading, setRuLoading] = useState(false)
@@ -66,17 +81,19 @@ export function useOwnProfilePresentation(): OwnProfilePresentation {
       setRu(null)
       return
     }
-    invalidateOwnRestaurantUserCache(userId)
+    clearRestaurantUserCache(userId)
     setRuLoading(true)
     try {
-      const row = await loadRestaurantUserRow(userId)
+      const row = await fetchRestaurantUserById(userId)
+      ruCache.set(userId, row)
       setRu(row)
+      await refetchProfile()
     } catch {
       setRu(null)
     } finally {
       setRuLoading(false)
     }
-  }, [userId])
+  }, [userId, refetchProfile])
 
   useEffect(() => {
     if (!userId) {
@@ -101,6 +118,15 @@ export function useOwnProfilePresentation(): OwnProfilePresentation {
     }
   }, [userId])
 
+  useEffect(() => {
+    if (!userId) return
+    return subscribeOwnRestaurantUserInvalidation((invalidatedId) => {
+      if (invalidatedId == null || invalidatedId === userId) {
+        void refreshRestaurantUser()
+      }
+    })
+  }, [userId, refreshRestaurantUser])
+
   const displayName =
     profile?.displayName?.trim() ||
     ru?.display_name?.trim() ||
@@ -108,8 +134,8 @@ export function useOwnProfilePresentation(): OwnProfilePresentation {
     'Member'
 
   const avatarUrl =
-    profile?.avatarUrl?.trim() ||
     normalizeLegacyProfileAvatar(ru?.avatarUrl, ru?.profile_image) ||
+    profile?.avatarUrl?.trim() ||
     null
 
   return {

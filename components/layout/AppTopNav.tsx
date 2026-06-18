@@ -45,7 +45,12 @@ function ProfileShortcut(): JSX.Element {
           <AppIcon name="user" size="md" color={TEXT_MUTED} />
         </View>
       ) : (
-        <ProfileAvatarImage size={AVATAR_SIZE} avatarUrl={avatarUrl} className="h-full w-full" />
+        <ProfileAvatarImage
+          key={avatarUrl ?? 'default'}
+          size={AVATAR_SIZE}
+          avatarUrl={avatarUrl}
+          className="h-full w-full"
+        />
       )}
     </Pressable>
   )

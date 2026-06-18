@@ -45,6 +45,7 @@ export interface NhostSessionResult {
   profile: UserProfile | null
   loading: boolean
   error: Error | null
+  refetchProfile: () => Promise<unknown>
 }
 
 function mapProfileRow(row: UserProfileQueryRow | undefined): UserProfile | null {
@@ -73,7 +74,7 @@ export function useNhostSession(): NhostSessionResult {
   const { isLoading: authLoading } = useAuthenticationStatus()
   const authUser = useUserData()
 
-  const { data, loading: profileLoading, error } = useQuery<{
+  const { data, loading: profileLoading, error, refetch } = useQuery<{
     user_profiles: UserProfileQueryRow[]
   }>(GET_USER_PROFILE, {
     variables: { userId: authUser?.id },
@@ -89,5 +90,6 @@ export function useNhostSession(): NhostSessionResult {
     profile,
     loading: authLoading || profileLoading,
     error: error ?? null,
+    refetchProfile: refetch,
   }
 }

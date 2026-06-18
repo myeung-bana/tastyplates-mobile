@@ -15,6 +15,7 @@ import { useRouter } from 'expo-router'
 
 import {
   BRAND_PRIMARY,
+  BORDER_OUTLINE,
   TEXT_BODY,
   TEXT_HEADING,
   TEXT_MUTED,
@@ -75,9 +76,12 @@ export interface UnifiedProfileViewProps {
   onRefresh: () => Promise<void>
   /** Own profile — avatar taps open edit profile. */
   onPressAvatarOwn?: () => void
+  /** Own profile — settings icon beside Share. */
+  onPressSettings?: () => void
   followButton?: UnifiedProfileFollowButtonModel | null
   showFollowPlaceholder?: boolean
-  belowActions?: ReactNode
+  /** Rendered below action buttons on the Me tab (e.g. recent activity). */
+  meTabExtra?: ReactNode
 }
 
 /**
@@ -99,9 +103,10 @@ export function UnifiedProfileView({
   pullRefreshing,
   onRefresh,
   onPressAvatarOwn,
+  onPressSettings,
   followButton,
   showFollowPlaceholder = false,
-  belowActions,
+  meTabExtra,
 }: UnifiedProfileViewProps) {
   const router = useRouter()
   const insets = useSafeAreaInsets()
@@ -180,11 +185,12 @@ export function UnifiedProfileView({
             stats={stats}
             statsLoading={statsLoading}
             onPressAvatarOwn={onPressAvatarOwn}
+            onPressSettings={onPressSettings}
             followButton={followButton}
             showFollowPlaceholder={showFollowPlaceholder}
             onShare={runShare}
           />
-          {belowActions}
+          {meTabExtra}
         </ScrollView>
       ) : null}
 
@@ -278,6 +284,7 @@ function ProfileMeSection({
   followButton,
   showFollowPlaceholder,
   onShare,
+  onPressSettings,
 }: {
   isOwnProfile: boolean
   routeUserId: string
@@ -293,6 +300,7 @@ function ProfileMeSection({
   followButton?: UnifiedProfileFollowButtonModel | null
   showFollowPlaceholder?: boolean
   onShare: () => void
+  onPressSettings?: () => void
 }) {
   const router = useRouter()
 
@@ -401,6 +409,13 @@ function ProfileMeSection({
               <Text className="text-sm font-medium text-white">Edit profile</Text>
             </Pressable>
             <ProfileShareButton onPress={onShare} />
+            {onPressSettings ? (
+              <ProfileIconCircleButton
+                icon="settings"
+                accessibilityLabel="Settings"
+                onPress={onPressSettings}
+              />
+            ) : null}
           </>
         ) : (
           <>
@@ -467,12 +482,37 @@ function ProfileShareButton({ onPress }: { onPress: () => void }): JSX.Element {
       accessibilityRole="button"
       accessibilityLabel="Share profile"
       className="flex-row items-center gap-2 rounded-full border bg-white px-6 py-2.5 active:bg-gray-50"
-      style={{ borderColor: '#d1d5db', borderWidth: 1 }}
+      style={{ borderColor: BORDER_OUTLINE, borderWidth: 1 }}
     >
       <AppIcon name="share-2" size={18} color={TEXT_HEADING} />
       <Text className="text-sm font-semibold" style={{ color: TEXT_HEADING }}>
         Share profile
       </Text>
+    </Pressable>
+  )
+}
+
+function ProfileIconCircleButton({
+  icon,
+  accessibilityLabel,
+  onPress,
+}: {
+  icon: AppIconName
+  accessibilityLabel: string
+  onPress: () => void
+}): JSX.Element {
+  return (
+    <Pressable
+      onPress={() => {
+        void Haptics.selectionAsync()
+        onPress()
+      }}
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel}
+      className="items-center justify-center rounded-full border bg-white active:bg-gray-50"
+      style={{ width: 40, height: 40, borderColor: BORDER_OUTLINE, borderWidth: 1 }}
+    >
+      <AppIcon name={icon} size={18} color={TEXT_HEADING} />
     </Pressable>
   )
 }

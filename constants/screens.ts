@@ -147,6 +147,7 @@ export function hashtagFeedPath(hashtag: string): string {
 // ─── Settings ─────────────────────────────────────────────────────────────────
 
 export const SCREEN_SETTINGS = '/settings' as const
+export const SCREEN_SETTINGS_ACCOUNT_SECURITY = '/settings/account-security' as const
 export const SCREEN_SETTINGS_PROFILE = '/settings/account-security/profile' as const
 export const SCREEN_SETTINGS_PASSWORD = '/settings/account-security/password' as const
 export const SCREEN_SETTINGS_LANGUAGE = '/settings/general/language' as const

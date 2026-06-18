@@ -1,7 +1,7 @@
 import { Pressable, Text, View } from 'react-native'
 import * as Haptics from 'expo-haptics'
 
-import { BRAND_PRIMARY, BORDER_SUBTLE, TEXT_HEADING } from '@/constants/brand'
+import { BRAND_PRIMARY, BORDER_OUTLINE, TEXT_HEADING } from '@/constants/brand'
 
 export type ProfileContentTab = 'me' | 'reviews' | 'lists'
 
@@ -37,7 +37,7 @@ export function ProfileContentTabBar({ activeTab, onTabChange }: Props): JSX.Ele
             style={
               pressed
                 ? { backgroundColor: BRAND_PRIMARY, borderWidth: 1, borderColor: BRAND_PRIMARY }
-                : { backgroundColor: '#ffffff', borderWidth: 1, borderColor: BORDER_SUBTLE }
+                : { backgroundColor: '#ffffff', borderWidth: 1, borderColor: BORDER_OUTLINE }
             }
           >
             <Text
