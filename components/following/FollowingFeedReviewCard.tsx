@@ -1,6 +1,7 @@
 import type { JSX } from 'react'
 import { Image, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { ProfileAvatarImage } from '@/components/profile/ProfileAvatarImage'
+import { AppIcon } from '@/components/ui/AppIcon'
 import { RatingDisplay } from '@/components/ui/RatingDisplay'
 
 import { BORDER_SUBTLE, TEXT_BODY, TEXT_HEADING, TEXT_MUTED } from '@/constants/brand'
