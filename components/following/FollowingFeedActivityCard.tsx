@@ -1,12 +1,12 @@
 import type { JSX, ReactNode } from 'react'
 import { Image, Platform, Pressable, StyleSheet, Text, View } from 'react-native'
-import { AppIcon } from '@/components/ui/AppIcon'
-
+import { ProfileAvatarImage } from '@/components/profile/ProfileAvatarImage'
 import {
   FollowingFeedReviewCard,
 } from '@/components/following/FollowingFeedReviewCard'
 import { BORDER_SUBTLE, TEXT_BODY, TEXT_HEADING, TEXT_MUTED } from '@/constants/brand'
 import { stripHtml } from '@/lib/restaurantDetailUtils'
+import { resolveReviewAuthorLabel } from '@/lib/reviewAuthorDisplay'
 import { formatRelativeTime } from '@/lib/utils'
 import type {
   FollowingFeedActivity,
@@ -21,13 +21,7 @@ const COMMENT_EXCERPT_MAX = 160
 function resolveUsername(
   profile: FollowingFeedAuthorProfile | null | undefined,
 ): string {
-  const u = profile?.username?.trim()
-  if (u) return u.startsWith('@') ? u : `@${u}`
-  const dn = profile?.user?.displayName?.trim()
-  if (dn) return dn
-  const email = profile?.user?.email?.trim()
-  if (email?.includes('@')) return `@${email.split('@')[0]}`
-  return 'Someone'
+  return resolveReviewAuthorLabel(profile, 'Someone')
 }
 
 function resolveRestaurantName(
@@ -53,17 +47,7 @@ function Avatar({
       style={styles.avatarWrap}
       hitSlop={6}
     >
-      {avatarUrl ? (
-        <Image
-          accessibilityIgnoresInvertColors
-          source={{ uri: avatarUrl }}
-          style={styles.avatar}
-        />
-      ) : (
-        <View style={[styles.avatar, styles.avatarFallback]}>
-          <AppIcon name="user" size={20} color={TEXT_MUTED} />
-        </View>
-      )}
+      <ProfileAvatarImage size={44} avatarUrl={avatarUrl} style={styles.avatar} />
     </Pressable>
   )
 }

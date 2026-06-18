@@ -15,13 +15,10 @@ import { useNhostSession } from '@/hooks/useNhostSession'
 import { useOwnProfilePresentation } from '@/hooks/useOwnProfilePresentation'
 import { useOwnProfileStats } from '@/hooks/useOwnProfileStats'
 import type { RestaurantUserRow } from '@/services/restaurantUserService'
-import { useProfileReviewsPreview } from '@/hooks/useProfileReviewsPreview'
 import {
   SCREEN_EDIT_PROFILE,
   SCREEN_FOLLOWING,
   SCREEN_GET_STARTED,
-  SCREEN_PUBLIC_PROFILE_REVIEWS,
-  SCREEN_REVIEW_VIEWER,
   SCREEN_SETTINGS,
   SCREEN_STUDIO_REVIEW_LISTING,
 } from '@/constants/screens'
@@ -41,12 +38,11 @@ export function ProfileSignedInView() {
     refreshRestaurantUser,
   } = useOwnProfilePresentation()
   const statsApi = useOwnProfileStats(userId)
-  const reviewsPreviewApi = useProfileReviewsPreview(userId)
   const [pullRefreshing, setPullRefreshing] = useState(false)
 
   const refreshAll = useCallback(async () => {
-    await Promise.all([statsApi.refresh(), refreshRestaurantUser(), reviewsPreviewApi.refresh()])
-  }, [statsApi.refresh, refreshRestaurantUser, reviewsPreviewApi.refresh])
+    await Promise.all([statsApi.refresh(), refreshRestaurantUser()])
+  }, [statsApi.refresh, refreshRestaurantUser])
 
   const onPullRefresh = useCallback(async () => {
     setPullRefreshing(true)
@@ -185,23 +181,6 @@ export function ProfileSignedInView() {
       onRefresh={onPullRefresh}
       onPressAvatarOwn={() => router.push(SCREEN_EDIT_PROFILE)}
       followButton={null}
-      reviewsPreview={{
-        error: reviewsPreviewApi.error,
-        loading: reviewsPreviewApi.loading,
-        reviews: reviewsPreviewApi.reviews,
-        total: reviewsPreviewApi.total,
-        emptyMessage: 'Published reviews will appear here soon.',
-        onPressReview: (reviewId) =>
-          router.push({
-            pathname: SCREEN_REVIEW_VIEWER,
-            params: { reviewId },
-          }),
-        onPressViewAll: () =>
-          router.push({
-            pathname: SCREEN_PUBLIC_PROFILE_REVIEWS,
-            params: { userId: userId },
-          }),
-      }}
       belowActions={belowMenu}
     />
   )

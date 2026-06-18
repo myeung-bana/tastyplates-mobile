@@ -1,8 +1,7 @@
-import { type ComponentProps, type ReactNode, useCallback, useState } from 'react'
+import { type ReactNode, useCallback, useState } from 'react'
 import { AppIcon, type AppIconName } from '@/components/ui/AppIcon'
 import {
   ActivityIndicator,
-  Image,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -19,28 +18,27 @@ import {
   TEXT_BODY,
   TEXT_HEADING,
   TEXT_MUTED,
-  RATING_STAR,
 } from '@/constants/brand'
-import {
-  ProfileOtherUserReviewsPreview,
-  type ProfileOtherUserReviewsPreviewProps,
-} from '@/components/profile/ProfileOtherUserReviewsPreview'
+import { getTabBarHeight } from '@/constants/tabBar'
 import {
   ProfileContentTabBar,
   type ProfileContentTab,
 } from '@/components/profile/ProfileContentTabBar'
+import { ProfileAvatarImage } from '@/components/profile/ProfileAvatarImage'
 import { ProfilePublicListsPreview } from '@/components/profile/ProfilePublicListsPreview'
+import { ProfileReviewsTabPanel } from '@/components/profile/ProfileReviewsTabPanel'
 import { useProfilePublicListsPreview } from '@/hooks/useProfilePublicListsPreview'
 import {
   SCREEN_EDIT_PROFILE,
   SCREEN_PUBLIC_PROFILE_CONNECTIONS,
+  SCREEN_REVIEW_VIEWER,
   studioManageListDetailPath,
 } from '@/constants/screens'
 import { capitalizePhrase } from '@/lib/profileFormatting'
 import { castHref } from '@/lib/routeParams'
 
 const AVATAR_SIZE = 96
-const STATS_BORDER = '#f3f4f6'
+const HORIZONTAL_PAD = 20
 
 function formatMetric(n: number | null): string {
   if (n === null) return '—'
@@ -79,13 +77,12 @@ export interface UnifiedProfileViewProps {
   onPressAvatarOwn?: () => void
   followButton?: UnifiedProfileFollowButtonModel | null
   showFollowPlaceholder?: boolean
-  /** When set, shows up to four latest reviews + optional view-all CTA. */
-  reviewsPreview?: ProfileOtherUserReviewsPreviewProps | null
   belowActions?: ReactNode
 }
 
 /**
  * Unified profile chrome — `documentation/profile.md` §4 + design tokens (`constants/brand`).
+ * Top pill tabs: Me · Reviews · Lists.
  */
 export function UnifiedProfileView({
   isOwnProfile,
@@ -104,12 +101,13 @@ export function UnifiedProfileView({
   onPressAvatarOwn,
   followButton,
   showFollowPlaceholder = false,
-  reviewsPreview = null,
   belowActions,
 }: UnifiedProfileViewProps) {
   const router = useRouter()
   const insets = useSafeAreaInsets()
-  const [contentTab, setContentTab] = useState<ProfileContentTab>('reviews')
+  const [contentTab, setContentTab] = useState<ProfileContentTab>('me')
+  const scrollBottomPad = getTabBarHeight(insets) + 32
+
   const {
     lists: publicLists,
     error: publicListsError,
@@ -119,12 +117,9 @@ export function UnifiedProfileView({
     enabled: contentTab === 'lists',
   })
 
-  const handleRefresh = useCallback(async () => {
+  const handleMeRefresh = useCallback(async () => {
     await onRefresh()
-    if (contentTab === 'lists') {
-      await refreshPublicLists()
-    }
-  }, [contentTab, onRefresh, refreshPublicLists])
+  }, [onRefresh])
 
   const runShare = () => {
     void Haptics.selectionAsync()
@@ -137,23 +132,172 @@ export function UnifiedProfileView({
     })
   }
 
+  const openReview = (reviewId: string) => {
+    router.push({
+      pathname: SCREEN_REVIEW_VIEWER,
+      params: { reviewId },
+    })
+  }
+
+  return (
+    <View className="flex-1 bg-white">
+      <View
+        style={{
+          paddingHorizontal: HORIZONTAL_PAD,
+          paddingTop: 12,
+          paddingBottom: 8,
+        }}
+      >
+        <ProfileContentTabBar activeTab={contentTab} onTabChange={setContentTab} />
+      </View>
+
+      {contentTab === 'me' ? (
+        <ScrollView
+          className="flex-1 bg-white"
+          keyboardShouldPersistTaps="handled"
+          contentContainerStyle={{
+            paddingHorizontal: HORIZONTAL_PAD,
+            paddingTop: 20,
+            paddingBottom: scrollBottomPad,
+          }}
+          refreshControl={
+            <RefreshControl
+              refreshing={pullRefreshing}
+              onRefresh={() => void handleMeRefresh()}
+              tintColor={BRAND_PRIMARY}
+            />
+          }
+        >
+          <ProfileMeSection
+            isOwnProfile={isOwnProfile}
+            routeUserId={routeUserId}
+            headlineHandle={headlineHandle}
+            avatarUrl={avatarUrl}
+            initials={initials}
+            bio={bio}
+            palates={palates}
+            memberSinceLabel={memberSinceLabel}
+            stats={stats}
+            statsLoading={statsLoading}
+            onPressAvatarOwn={onPressAvatarOwn}
+            followButton={followButton}
+            showFollowPlaceholder={showFollowPlaceholder}
+            onShare={runShare}
+          />
+          {belowActions}
+        </ScrollView>
+      ) : null}
+
+      {contentTab === 'reviews' ? (
+        <ProfileReviewsTabPanel
+          userId={routeUserId}
+          onPressReview={openReview}
+          emptyMessage={
+            isOwnProfile
+              ? 'Published reviews will appear here soon.'
+              : 'Reviews from this account will appear here soon.'
+          }
+        />
+      ) : null}
+
+      {contentTab === 'lists' ? (
+        <ProfileListsTabScroll onRefresh={refreshPublicLists} scrollBottomPad={scrollBottomPad}>
+          <ProfilePublicListsPreview
+            error={publicListsError}
+            loading={publicListsLoading}
+            lists={publicLists}
+            emptyMessage={
+              isOwnProfile ? 'Your public lists will appear here.' : 'There are no Lists yet'
+            }
+            onPressList={(list) => {
+              router.push({
+                pathname: castHref(studioManageListDetailPath(list.uuid)) as never,
+              })
+            }}
+          />
+        </ProfileListsTabScroll>
+      ) : null}
+    </View>
+  )
+}
+
+function ProfileListsTabScroll({
+  children,
+  onRefresh,
+  scrollBottomPad,
+}: {
+  children: ReactNode
+  onRefresh: () => Promise<void>
+  scrollBottomPad: number
+}) {
+  const [listsRefreshing, setListsRefreshing] = useState(false)
+
+  const handleRefresh = useCallback(async () => {
+    setListsRefreshing(true)
+    try {
+      await onRefresh()
+    } finally {
+      setListsRefreshing(false)
+    }
+  }, [onRefresh])
+
   return (
     <ScrollView
       className="flex-1 bg-white"
-      keyboardShouldPersistTaps="handled"
       contentContainerStyle={{
-        paddingHorizontal: 20,
-        paddingTop: 20,
-        paddingBottom: Math.max(insets.bottom, 20) + 32,
+        paddingHorizontal: HORIZONTAL_PAD,
+        paddingTop: 12,
+        paddingBottom: scrollBottomPad,
+        flexGrow: 1,
       }}
       refreshControl={
         <RefreshControl
-          refreshing={pullRefreshing}
+          refreshing={listsRefreshing}
           onRefresh={() => void handleRefresh()}
           tintColor={BRAND_PRIMARY}
         />
       }
     >
+      {children}
+    </ScrollView>
+  )
+}
+
+function ProfileMeSection({
+  isOwnProfile,
+  routeUserId,
+  headlineHandle,
+  avatarUrl,
+  initials: _initials,
+  bio,
+  palates,
+  memberSinceLabel,
+  stats,
+  statsLoading,
+  onPressAvatarOwn,
+  followButton,
+  showFollowPlaceholder,
+  onShare,
+}: {
+  isOwnProfile: boolean
+  routeUserId: string
+  headlineHandle: string
+  avatarUrl: string | null
+  initials: string
+  bio: string | null
+  palates: string[]
+  memberSinceLabel: string
+  stats: UnifiedProfileStatModel
+  statsLoading: boolean
+  onPressAvatarOwn?: () => void
+  followButton?: UnifiedProfileFollowButtonModel | null
+  showFollowPlaceholder?: boolean
+  onShare: () => void
+}) {
+  const router = useRouter()
+
+  return (
+    <>
       <View className="items-center">
         <Pressable
           accessibilityRole={isOwnProfile ? 'button' : 'none'}
@@ -164,28 +308,11 @@ export function UnifiedProfileView({
             onPressAvatarOwn?.()
           }}
         >
-          {avatarUrl ? (
-            <Image
-              accessibilityIgnoresInvertColors
-              source={{ uri: avatarUrl }}
-              style={{ width: AVATAR_SIZE, height: AVATAR_SIZE, borderRadius: AVATAR_SIZE / 2 }}
-              className="bg-gray-100"
-              resizeMode="cover"
-            />
-          ) : (
-            <View
-              className="items-center justify-center rounded-full bg-gray-100"
-              style={{ width: AVATAR_SIZE, height: AVATAR_SIZE }}
-            >
-              <Text
-                className="text-2xl font-semibold"
-                style={{ color: TEXT_HEADING }}
-                maxFontSizeMultiplier={1.2}
-              >
-                {initials}
-              </Text>
-            </View>
-          )}
+          <ProfileAvatarImage
+            size={AVATAR_SIZE}
+            avatarUrl={avatarUrl}
+            className="bg-gray-100"
+          />
         </Pressable>
 
         <Text
@@ -229,11 +356,7 @@ export function UnifiedProfileView({
       </View>
 
       <View className="mt-6 flex-row items-start justify-between px-1">
-        <ProfileStatColumn
-          label="Posts"
-          value={stats.posts}
-          loading={statsLoading}
-        />
+        <ProfileStatColumn label="Posts" value={stats.posts} loading={statsLoading} />
         <ProfileStatColumn
           label="Followers"
           value={stats.followers}
@@ -277,7 +400,7 @@ export function UnifiedProfileView({
             >
               <Text className="text-sm font-medium text-white">Edit profile</Text>
             </Pressable>
-            <ProfileShareButton onPress={runShare} />
+            <ProfileShareButton onPress={onShare} />
           </>
         ) : (
           <>
@@ -292,47 +415,11 @@ export function UnifiedProfileView({
                 Sign in to follow this creator.
               </Text>
             ) : null}
-            <ProfileShareButton onPress={runShare} />
+            <ProfileShareButton onPress={onShare} />
           </>
         )}
       </View>
-
-      <View
-        className="mt-10 border-t px-2 pb-6 pt-8"
-        style={{ borderTopWidth: 1, borderTopColor: STATS_BORDER }}
-      >
-        <ProfileContentTabBar activeTab={contentTab} onTabChange={setContentTab} />
-        {contentTab === 'reviews' ? (
-          reviewsPreview ? (
-            <ProfileOtherUserReviewsPreview {...reviewsPreview} />
-          ) : (
-            <Text className="text-sm leading-relaxed" style={{ color: TEXT_MUTED }}>
-              {isOwnProfile
-                ? 'Published reviews will appear here soon.'
-                : 'Reviews from this account will appear here soon.'}
-            </Text>
-          )
-        ) : (
-          <ProfilePublicListsPreview
-            error={publicListsError}
-            loading={publicListsLoading}
-            lists={publicLists}
-            emptyMessage={
-              isOwnProfile
-                ? 'Your public lists will appear here.'
-                : 'There are no Lists yet'
-            }
-            onPressList={(list) => {
-              router.push({
-                pathname: castHref(studioManageListDetailPath(list.uuid)) as never,
-              })
-            }}
-          />
-        )}
-      </View>
-
-      {belowActions}
-    </ScrollView>
+    </>
   )
 }
 
@@ -486,4 +573,3 @@ export function ProfileMenuRow({
     </Pressable>
   )
 }
-

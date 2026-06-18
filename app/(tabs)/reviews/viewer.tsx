@@ -11,6 +11,7 @@ import {
 import * as Haptics from 'expo-haptics'
 import { router, Stack, useLocalSearchParams } from 'expo-router'
 
+import { ProfileAvatarImage } from '@/components/profile/ProfileAvatarImage'
 import { ReviewDetailTopNav } from '@/components/review/ReviewDetailTopNav'
 
 import { ReplyItem } from '@/components/review/ReplyItem'
@@ -204,21 +205,11 @@ function ReviewViewerBody({
             disabled={!canOpenProfile}
             className="active:opacity-80"
           >
-            {authorAvatarUrl ? (
-              <Image
-                accessibilityIgnoresInvertColors
-                source={{ uri: authorAvatarUrl }}
-                className="rounded-full bg-gray-200"
-                style={{ width: 44, height: 44 }}
-              />
-            ) : (
-              <View
-                className="items-center justify-center rounded-full bg-gray-100"
-                style={{ width: 44, height: 44 }}
-              >
-                <AppIcon name="user" size={22} color={TEXT_MUTED} />
-              </View>
-            )}
+            <ProfileAvatarImage
+              size={44}
+              avatarUrl={authorAvatarUrl}
+              className="rounded-full bg-gray-200"
+            />
           </Pressable>
 
           <View className="min-w-0 flex-1">

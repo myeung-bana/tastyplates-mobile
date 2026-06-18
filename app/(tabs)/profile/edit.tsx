@@ -19,6 +19,7 @@ import { AppIcon } from '@/components/ui/AppIcon'
 
 import { EditProfilePalateSummary } from '@/components/profile/EditProfilePalateSummary'
 import { EditProfileTopNav } from '@/components/profile/EditProfileTopNav'
+import { ProfileAvatarImage } from '@/components/profile/ProfileAvatarImage'
 import {
   BORDER_SUBTLE,
   BRAND_PRIMARY,
@@ -39,7 +40,6 @@ import { useAuth } from '@/hooks/useAuth'
 import { invalidateOwnRestaurantUserCache } from '@/hooks/useOwnProfilePresentation'
 import { pickProfilePhoto } from '@/lib/pickProfilePhoto'
 import { palateKeysFromProfile } from '@/lib/profilePalateKeys'
-import { initialsFromName } from '@/lib/profileFormatting'
 import {
   fetchRestaurantUserById,
   normalizeLegacyProfileAvatar,
@@ -233,7 +233,6 @@ export default function EditProfileScreen(): JSX.Element {
   }
 
   const previewHandle = username ? `@${username}` : '@member'
-  const initials = initialsFromName(previewHandle.replace(/^@/, ''))
 
   return (
     <View className="flex-1 bg-white">
@@ -271,10 +270,10 @@ export default function EditProfileScreen(): JSX.Element {
                 className="active:opacity-90"
               >
                 <View className="relative">
-                  {avatarPreview ? (
+                  {pendingPhoto?.uri ? (
                     <Image
                       accessibilityIgnoresInvertColors
-                      source={{ uri: avatarPreview }}
+                      source={{ uri: pendingPhoto.uri }}
                       style={{
                         width: AVATAR_SIZE,
                         height: AVATAR_SIZE,
@@ -283,12 +282,11 @@ export default function EditProfileScreen(): JSX.Element {
                       }}
                     />
                   ) : (
-                    <View
-                      className="items-center justify-center rounded-full bg-gray-100"
-                      style={{ width: AVATAR_SIZE, height: AVATAR_SIZE }}
-                    >
-                      <Text className="text-2xl font-semibold text-gray-500">{initials}</Text>
-                    </View>
+                    <ProfileAvatarImage
+                      size={AVATAR_SIZE}
+                      avatarUrl={avatarPreview}
+                      style={{ backgroundColor: '#e5e7eb' }}
+                    />
                   )}
                   <View
                     className="absolute -bottom-1 -right-1 items-center justify-center rounded-full border-2 border-white bg-white p-2 shadow-sm"

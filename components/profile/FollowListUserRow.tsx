@@ -1,12 +1,12 @@
-import { ActivityIndicator, Image, Pressable, Text, View } from 'react-native'
+import { ActivityIndicator, Pressable, Text, View } from 'react-native'
 import * as Haptics from 'expo-haptics'
 import { useRouter } from 'expo-router'
 
+import { ProfileAvatarImage } from '@/components/profile/ProfileAvatarImage'
 import { BRAND_PRIMARY, TEXT_HEADING, TEXT_MUTED } from '@/constants/brand'
 import { parseProfilePalates } from '@/lib/profileFormatting'
 import { pushPublicProfile } from '@/lib/publicProfileNavigation'
 import type { FollowListUser } from '@/services/followListService'
-import { normalizeLegacyProfileAvatar } from '@/services/restaurantUserService'
 
 type Props = {
   user: FollowListUser
@@ -32,7 +32,6 @@ export function FollowListUserRow({
   onToggleFollow,
 }: Props): JSX.Element {
   const router = useRouter()
-  const avatarUri = normalizeLegacyProfileAvatar(user.profile_image, null)
   const handle = user.username?.trim().replace(/^@/, '')
   const label =
     user.display_name?.trim() || user.username?.trim()?.replace(/^@/, '') || 'Member'
@@ -56,22 +55,7 @@ export function FollowListUserRow({
         onPress={openProfile}
         className="mt-0.5"
       >
-        {avatarUri ? (
-          <Image
-            accessibilityIgnoresInvertColors
-            source={{ uri: avatarUri }}
-            style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: '#f3f4f6' }}
-          />
-        ) : (
-          <View
-            className="items-center justify-center rounded-full bg-gray-100"
-            style={{ width: 44, height: 44 }}
-          >
-            <Text className="text-sm font-semibold" style={{ color: TEXT_MUTED }}>
-              {label.charAt(0).toUpperCase()}
-            </Text>
-          </View>
-        )}
+        <ProfileAvatarImage size={44} avatarUrl={user.profile_image} />
       </Pressable>
 
       <Pressable

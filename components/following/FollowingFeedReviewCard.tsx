@@ -1,6 +1,6 @@
 import type { JSX } from 'react'
 import { Image, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
-import { AppIcon } from '@/components/ui/AppIcon'
+import { ProfileAvatarImage } from '@/components/profile/ProfileAvatarImage'
 import { RatingDisplay } from '@/components/ui/RatingDisplay'
 
 import { BORDER_SUBTLE, TEXT_BODY, TEXT_HEADING, TEXT_MUTED } from '@/constants/brand'
@@ -57,17 +57,7 @@ export function FollowingFeedReviewCard({
           style={styles.avatarWrap}
           hitSlop={6}
         >
-          {avatarUrl ? (
-            <Image
-              accessibilityIgnoresInvertColors
-              source={{ uri: avatarUrl }}
-              style={styles.avatar}
-            />
-          ) : (
-            <View style={[styles.avatar, styles.avatarFallback]}>
-              <AppIcon name="user" size={20} color={TEXT_MUTED} />
-            </View>
-          )}
+          <ProfileAvatarImage size={44} avatarUrl={avatarUrl} style={styles.avatar} />
         </Pressable>
 
         <Pressable

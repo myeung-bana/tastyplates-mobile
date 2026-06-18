@@ -1,11 +1,13 @@
-import { Image, Pressable, Text, View } from 'react-native'
+import { Pressable, Text, View } from 'react-native'
 import { router } from 'expo-router'
 import * as Haptics from 'expo-haptics'
 import { AppIcon } from '@/components/ui/AppIcon'
 
+import { ProfileAvatarImage } from '@/components/profile/ProfileAvatarImage'
 import { TEXT_MUTED } from '@/constants/brand'
 import { parseProfilePalates } from '@/lib/profileFormatting'
 import { publicProfileFromAuthorFields, pushPublicProfile } from '@/lib/publicProfileNavigation'
+import { resolveReviewAuthorAvatarUrl, resolveReviewAuthorLabel } from '@/lib/reviewAuthorDisplay'
 import {
   capitalizeWords,
   formatLikeCount,
@@ -23,20 +25,8 @@ function replyAuthorProfile(reply: ReplyRow) {
   return reply.AuthorProfile ?? reply.author ?? null
 }
 
-function replyAuthorName(reply: ReplyRow): string {
-  const profile = replyAuthorProfile(reply)
-  const username = profile?.username?.trim()
-  if (username) return username.startsWith('@') ? username : `@${username}`
-  const display = profile?.user?.displayName?.trim()
-  if (display) return display
-  const email = profile?.user?.email?.trim()
-  if (email?.includes('@')) return email.split('@')[0] ?? 'Member'
-  return 'Member'
-}
-
 function replyAvatarUrl(reply: ReplyRow): string | null {
-  const url = replyAuthorProfile(reply)?.user?.avatarUrl?.trim()
-  return url || null
+  return resolveReviewAuthorAvatarUrl(replyAuthorProfile(reply))
 }
 
 function replyPalateLabels(reply: ReplyRow): string[] {
@@ -66,7 +56,7 @@ export function ReplyItem({
   const profile = replyAuthorProfile(reply)
   const authorId = profile?.user_id ?? reply.author_id
   const avatarUrl = replyAvatarUrl(reply)
-  const name = replyAuthorName(reply)
+  const name = resolveReviewAuthorLabel(profile)
   const body = capitalizeWords(stripTags(reply.content ?? ''))
   const palates = replyPalateLabels(reply)
   const count = likesCount ?? reply.likes_count ?? 0
@@ -95,26 +85,7 @@ export function ReplyItem({
     <View style={{ marginBottom: 16 }}>
       <View style={{ flexDirection: 'row', gap: 10 }}>
         <Pressable onPress={openProfile} hitSlop={6} accessibilityRole="button">
-          {avatarUrl ? (
-            <Image
-              source={{ uri: avatarUrl }}
-              style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: '#e5e7eb' }}
-              accessibilityIgnoresInvertColors
-            />
-          ) : (
-            <View
-              style={{
-                width: 32,
-                height: 32,
-                borderRadius: 16,
-                backgroundColor: '#f3f4f6',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              <AppIcon name="user" size={16} color={TEXT_MUTED} />
-            </View>
-          )}
+          <ProfileAvatarImage size={32} avatarUrl={avatarUrl} style={{ backgroundColor: '#e5e7eb' }} />
         </Pressable>
 
         <View style={{ flex: 1, minWidth: 0 }}>

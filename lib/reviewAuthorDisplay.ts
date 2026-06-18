@@ -11,13 +11,11 @@ import {
 
 export type ReviewAuthorProfileLike = TrendingReviewAuthor | null | undefined
 
-/** displayName → @username → email local part → fallback (home review cards). */
+/** `user_profiles.username` → email local part → fallback. Never uses auth `displayName`. */
 export function resolveReviewAuthorLabel(
   profile: ReviewAuthorProfileLike,
   fallback = 'Member',
 ): string {
-  const dn = profile?.user?.displayName?.trim()
-  if (dn) return dn
   const u = profile?.username?.trim()
   if (u) return u.startsWith('@') ? u : `@${u}`
   const email = profile?.user?.email?.trim()
@@ -92,9 +90,5 @@ function labelFromRestaurantUserRow(
 ): string {
   const u = author.username?.trim()
   if (u) return u.startsWith('@') ? u : `@${u}`
-  const dn = author.display_name?.trim()
-  if (dn) return dn
-  const email = author.email?.trim()
-  if (email?.includes('@')) return email.split('@')[0] ?? 'Member'
   return resolveReviewAuthorLabel(profileFallback)
 }

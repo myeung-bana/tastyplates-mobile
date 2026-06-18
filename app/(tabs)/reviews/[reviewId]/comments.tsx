@@ -16,6 +16,7 @@ import * as Haptics from 'expo-haptics'
 import { Stack, router, useLocalSearchParams } from 'expo-router'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
+import { ProfileAvatarImage } from '@/components/profile/ProfileAvatarImage'
 import { ReplyItem } from '@/components/review/ReplyItem'
 import { ReplySkeleton } from '@/components/ui/Skeleton/ReplySkeleton'
 import { BRAND_PRIMARY, TEXT_MUTED } from '@/constants/brand'
@@ -191,7 +192,7 @@ export default function ReviewCommentsScreen() {
       created_at: new Date().toISOString(),
       AuthorProfile: {
         user_id: authUser.id,
-        username: profile?.displayName ?? null,
+        username: profile?.username ?? null,
         palates: null,
         user: {
           avatarUrl: profile?.avatarUrl ?? null,
@@ -249,7 +250,6 @@ export default function ReviewCommentsScreen() {
   ])
 
   const canSend = commentText.trim().length > 0 && cooldown === 0 && !submitting
-  const userAvatar = profile?.avatarUrl?.trim()
 
   return (
     <>
@@ -327,25 +327,7 @@ export default function ReviewCommentsScreen() {
         >
           {isAuthenticated ? (
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-              {userAvatar ? (
-                <Image
-                  source={{ uri: userAvatar }}
-                  style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: '#e5e7eb' }}
-                />
-              ) : (
-                <View
-                  style={{
-                    width: 32,
-                    height: 32,
-                    borderRadius: 16,
-                    backgroundColor: '#f3f4f6',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}
-                >
-                  <AppIcon name="user" size={16} color={TEXT_MUTED} />
-                </View>
-              )}
+              <ProfileAvatarImage size={32} avatarUrl={profile?.avatarUrl} style={{ backgroundColor: '#e5e7eb' }} />
 
               <TextInput
                 value={commentText}

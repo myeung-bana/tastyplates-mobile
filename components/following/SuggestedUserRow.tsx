@@ -1,15 +1,12 @@
-import { ActivityIndicator, Image, Pressable, Text, View } from 'react-native'
+import { ActivityIndicator, Pressable, Text, View } from 'react-native'
 import * as Haptics from 'expo-haptics'
 import { useRouter } from 'expo-router'
-import { AppIcon } from '@/components/ui/AppIcon'
 
+import { ProfileAvatarImage } from '@/components/profile/ProfileAvatarImage'
 import { BRAND_PRIMARY, BORDER_SUBTLE, TEXT_HEADING, TEXT_MUTED } from '@/constants/brand'
 import { useFollowTarget } from '@/hooks/useFollowTarget'
 import { pushPublicProfile } from '@/lib/publicProfileNavigation'
-import {
-  normalizeLegacyProfileAvatar,
-  type RestaurantUserRow,
-} from '@/services/restaurantUserService'
+import type { RestaurantUserRow } from '@/services/restaurantUserService'
 
 type SuggestedUserRowProps = {
   user: RestaurantUserRow
@@ -24,10 +21,8 @@ type SuggestedUserRowProps = {
 export function SuggestedUserRow({ user, viewerId, onFollowed }: SuggestedUserRowProps) {
   const router = useRouter()
   const follow = useFollowTarget(user.id, viewerId, false)
-  const avatarUri = normalizeLegacyProfileAvatar(user.avatarUrl, user.profile_image)
-  const rawName = user.display_name?.trim() || user.username?.trim() || 'Member'
-  const label = rawName
   const handle = user.username?.trim().replace(/^@/, '')
+  const label = handle ? `@${handle}` : 'Member'
 
   const openProfile = () => {
     void Haptics.selectionAsync()
@@ -56,21 +51,12 @@ export function SuggestedUserRow({ user, viewerId, onFollowed }: SuggestedUserRo
         onPress={openProfile}
         className="active:opacity-90"
       >
-        {avatarUri ? (
-          <Image
-            accessibilityIgnoresInvertColors
-            source={{ uri: avatarUri }}
-            className="rounded-full bg-gray-100"
-            style={{ width: 72, height: 72 }}
-          />
-        ) : (
-          <View
-            className="items-center justify-center rounded-full bg-gray-100"
-            style={{ width: 72, height: 72 }}
-          >
-            <AppIcon name="user" size={32} color={TEXT_MUTED} />
-          </View>
-        )}
+        <ProfileAvatarImage
+          size={72}
+          avatarUrl={user.avatarUrl}
+          profileImage={user.profile_image}
+          className="bg-gray-100"
+        />
       </Pressable>
       <Text
         className="mt-2 w-full text-center text-xs font-medium"

@@ -1,26 +1,25 @@
-import { View, Text, Pressable, Image } from 'react-native'
+import { View, Pressable } from 'react-native'
 import * as Haptics from 'expo-haptics'
 import { AppIcon } from '@/components/ui/AppIcon'
 import { useRouter } from 'expo-router'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
+import { ProfileAvatarImage } from '@/components/profile/ProfileAvatarImage'
 import { GlobalLocationPill } from '@/components/navigation/GlobalLocationPill'
-import { NAV_ICON, TEXT_HEADING, TEXT_MUTED } from '@/constants/brand'
+import { NAV_ICON, TEXT_MUTED } from '@/constants/brand'
 import { SCREEN_PROFILE } from '@/constants/screens'
 import { useAuthSheet } from '@/contexts/AuthSheetContext'
 import { useSearchOverlay } from '@/contexts/SearchOverlayContext'
 import { FULL_SCREEN_OVERLAY_INNER_PAD } from '@/hooks/useFullScreenOverlayInsets'
 import { useOwnProfilePresentation } from '@/hooks/useOwnProfilePresentation'
-import { initialsFromName } from '@/lib/profileFormatting'
 
 const AVATAR_SIZE = 32
 
 function ProfileShortcut(): JSX.Element {
   const router = useRouter()
   const { openAuthSheet } = useAuthSheet()
-  const { authUserId, avatarUrl, displayName, loading } = useOwnProfilePresentation()
+  const { authUserId, avatarUrl } = useOwnProfilePresentation()
   const isSignedIn = Boolean(authUserId)
-  const name = displayName
 
   const goProfile = (): void => {
     void Haptics.selectionAsync()
@@ -45,23 +44,8 @@ function ProfileShortcut(): JSX.Element {
         <View className="h-full w-full items-center justify-center">
           <AppIcon name="user" size="md" color={TEXT_MUTED} />
         </View>
-      ) : avatarUrl ? (
-        <Image
-          accessibilityIgnoresInvertColors
-          source={{ uri: avatarUrl }}
-          className="h-full w-full"
-          resizeMode="cover"
-        />
       ) : (
-        <View className="h-full w-full items-center justify-center">
-          <Text
-            className="text-xs font-semibold"
-            style={{ color: TEXT_HEADING }}
-            maxFontSizeMultiplier={1.2}
-          >
-            {loading ? '…' : initialsFromName(name)}
-          </Text>
-        </View>
+        <ProfileAvatarImage size={AVATAR_SIZE} avatarUrl={avatarUrl} className="h-full w-full" />
       )}
     </Pressable>
   )

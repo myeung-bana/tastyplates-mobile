@@ -1,6 +1,5 @@
 import { Image, Pressable, Text, View } from 'react-native'
-import { AppIcon } from '@/components/ui/AppIcon'
-
+import { ProfileAvatarImage } from '@/components/profile/ProfileAvatarImage'
 import { RatingDisplay } from '@/components/ui/RatingDisplay'
 import { BORDER_SUBTLE, TEXT_BODY, TEXT_HEADING, TEXT_MUTED } from '@/constants/brand'
 import { stripHtml } from '@/lib/restaurantDetailUtils'
@@ -64,21 +63,7 @@ export function HomeReviewCard({
       <View className="px-0.5">
         <View className="mb-1 flex-row items-center gap-2">
           <Pressable onPress={onPressAuthor} hitSlop={8} accessibilityRole="button">
-            {avatarUrl ? (
-              <Image
-                accessibilityIgnoresInvertColors
-                source={{ uri: avatarUrl }}
-                className="rounded-full bg-gray-200"
-                style={{ width: 28, height: 28 }}
-              />
-            ) : (
-              <View
-                className="items-center justify-center rounded-full bg-gray-100"
-                style={{ width: 28, height: 28 }}
-              >
-                <AppIcon name="user" size={16} color={TEXT_MUTED} />
-              </View>
-            )}
+            <ProfileAvatarImage size={28} avatarUrl={avatarUrl} className="bg-gray-200" />
           </Pressable>
           <Pressable onPress={onPressAuthor} className="min-w-0 flex-1" hitSlop={4}>
             <Text className="text-[12px] font-medium" style={{ color: TEXT_HEADING }} numberOfLines={1}>
