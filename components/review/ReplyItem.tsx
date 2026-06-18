@@ -4,8 +4,8 @@ import * as Haptics from 'expo-haptics'
 import { AppIcon } from '@/components/ui/AppIcon'
 
 import { TEXT_MUTED } from '@/constants/brand'
-import { SCREEN_PUBLIC_PROFILE } from '@/constants/screens'
 import { parseProfilePalates } from '@/lib/profileFormatting'
+import { publicProfileFromAuthorFields, pushPublicProfile } from '@/lib/publicProfileNavigation'
 import {
   capitalizeWords,
   formatLikeCount,
@@ -65,7 +65,6 @@ export function ReplyItem({
 }: ReplyItemProps): JSX.Element {
   const profile = replyAuthorProfile(reply)
   const authorId = profile?.user_id ?? reply.author_id
-  const username = profile?.username?.trim().replace(/^@/, '')
   const avatarUrl = replyAvatarUrl(reply)
   const name = replyAuthorName(reply)
   const body = capitalizeWords(stripTags(reply.content ?? ''))
@@ -80,12 +79,7 @@ export function ReplyItem({
       onAuthRequired?.()
       return
     }
-    const target = username || authorId
-    if (!target) return
-    router.push({
-      pathname: SCREEN_PUBLIC_PROFILE,
-      params: { userId: target.replace(/^@/, '') },
-    })
+    pushPublicProfile(router, publicProfileFromAuthorFields(authorId, profile))
   }
 
   const handleLike = () => {

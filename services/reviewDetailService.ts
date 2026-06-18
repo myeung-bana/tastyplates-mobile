@@ -1,4 +1,5 @@
 import { tastyplatesFetch, unwrapEnvelope } from '@/lib/tastyplatesFetch'
+import type { TrendingReviewAuthor } from '@/services/homeReviewsService'
 
 /** Row returned by `restaurant-reviews/get-review-by-id`. */
 export interface ReviewDetailRow {
@@ -23,6 +24,7 @@ export interface ReviewDetailRow {
   created_at: string
   updated_at?: string | null
   published_at?: string | null
+  AuthorProfile?: TrendingReviewAuthor | null
 }
 
 interface GetReviewByIdResponse {

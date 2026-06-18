@@ -23,15 +23,14 @@ import { AppIcon } from '@/components/ui/AppIcon'
 import { BRAND_PRIMARY, TEXT_BODY, TEXT_HEADING, TEXT_MUTED } from '@/constants/brand'
 import { STACK_DETAIL_HEADER_OPTIONS } from '@/constants/stackHeader'
 import {
-  SCREEN_PUBLIC_PROFILE,
   SCREEN_RESTAURANT_DETAIL,
   SCREEN_REVIEW_VIEWER,
 } from '@/constants/screens'
 import { toRestaurantFeedReviewRow } from '@/lib/restaurantReviewFeed'
 import { stripHtml } from '@/lib/restaurantDetailUtils'
+import { publicProfileFromAuthorFields, pushPublicProfile } from '@/lib/publicProfileNavigation'
 import type { FollowingFeedReviewRow } from '@/services/followingFeedService'
 import { fetchRestaurantReviews } from '@/services/restaurantDetailService'
-import { isRestaurantUserRouteId } from '@/services/restaurantUserService'
 
 const PAGE_SIZE = 16
 const UUID_RE =
@@ -195,21 +194,7 @@ export default function RestaurantReviewsScreen() {
 
   const onOpenAuthor = (review: FollowingFeedReviewRow) => {
     void Haptics.selectionAsync()
-    const usernameSlug = review.AuthorProfile?.username?.trim().replace(/^@/, '')
-    if (usernameSlug) {
-      router.push({
-        pathname: SCREEN_PUBLIC_PROFILE,
-        params: { userId: usernameSlug },
-      })
-      return
-    }
-    const id = review.author_id?.trim()
-    if (id && isRestaurantUserRouteId(id)) {
-      router.push({
-        pathname: SCREEN_PUBLIC_PROFILE,
-        params: { userId: id },
-      })
-    }
+    pushPublicProfile(router, publicProfileFromAuthorFields(review.author_id, review.AuthorProfile))
   }
 
   const sortChips = (

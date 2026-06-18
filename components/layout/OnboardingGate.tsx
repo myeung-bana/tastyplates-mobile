@@ -46,18 +46,16 @@ export function OnboardingGate({ children }: { children: ReactNode }): JSX.Eleme
           if (!cancelled) setReady(true)
           return
         }
+
+        await ensureRestaurantUserProfile(user)
+
         const row = await fetchRestaurantUserById(user.id)
         if (cancelled) return
         if (row.onboarding_complete !== true) {
           router.replace(SCREEN_ONBOARDING)
         }
       } catch {
-        try {
-          await ensureRestaurantUserProfile(user)
-          if (!cancelled) router.replace(SCREEN_ONBOARDING)
-        } catch {
-          // Do not block the app on profile fetch errors.
-        }
+        // Do not block the app on profile fetch errors.
       } finally {
         if (!cancelled) setReady(true)
       }

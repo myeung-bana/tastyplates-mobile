@@ -93,6 +93,24 @@ interface CreateRestaurantUserResponse {
   user: RestaurantUserRow
 }
 
+interface EnsureProfileResponse {
+  user: RestaurantUserRow
+  created: boolean
+}
+
+/** Idempotent — creates `user_profiles` with `user_<random>` when missing. */
+export async function ensureRestaurantUserProfileApi(): Promise<EnsureProfileResponse> {
+  const envelope = await tastyplatesFetch<EnsureProfileResponse>(
+    'restaurant-users/ensure-profile',
+    {
+      method: 'POST',
+      withAuth: true,
+      body: JSON.stringify({}),
+    },
+  )
+  return unwrapEnvelope(envelope)
+}
+
 /** `POST restaurant-users/create-restaurant-user` — JWT user_id only; see api-guide §8.6. */
 export async function createRestaurantUserProfile(
   params: CreateRestaurantUserParams,

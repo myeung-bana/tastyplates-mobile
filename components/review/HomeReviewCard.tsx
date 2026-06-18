@@ -4,21 +4,12 @@ import { AppIcon } from '@/components/ui/AppIcon'
 import { RatingDisplay } from '@/components/ui/RatingDisplay'
 import { BORDER_SUBTLE, TEXT_BODY, TEXT_HEADING, TEXT_MUTED } from '@/constants/brand'
 import { stripHtml } from '@/lib/restaurantDetailUtils'
+import { resolveReviewAuthorAvatarUrl, resolveReviewAuthorLabel } from '@/lib/reviewAuthorDisplay'
 import { firstReviewImageUri, reviewHashtagLabels } from '@/lib/reviewDisplayUtils'
 import type { TrendingReviewRow } from '@/services/homeReviewsService'
 
 const DEFAULT_COVER =
   'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=800&q=80'
-
-function displayName(review: TrendingReviewRow): string {
-  const dn = review.AuthorProfile?.user?.displayName?.trim()
-  if (dn) return dn
-  const u = review.AuthorProfile?.username?.trim()
-  if (u) return u.startsWith('@') ? u : `@${u}`
-  const email = review.AuthorProfile?.user?.email?.trim()
-  if (email && email.includes('@')) return email.split('@')[0] ?? 'Member'
-  return 'Member'
-}
 
 function capitalizeWords(s: string): string {
   if (!s.trim()) return ''
@@ -42,12 +33,12 @@ export function HomeReviewCard({
   onPressCard,
   onPressAuthor,
 }: HomeReviewCardProps) {
-  const avatarUrl = review.AuthorProfile?.user?.avatarUrl?.trim()
+  const avatarUrl = resolveReviewAuthorAvatarUrl(review.AuthorProfile)
   const cover = firstReviewImageUri(review.images, DEFAULT_COVER)
   const title = capitalizeWords(stripHtml(review.title ?? '').trim())
   const bodyRaw = capitalizeWords(stripHtml(review.content ?? '').trim())
   const tags = reviewHashtagLabels(review.hashtags, 3)
-  const name = displayName(review)
+  const name = resolveReviewAuthorLabel(review.AuthorProfile)
 
   return (
     <View style={{ width }} className="mb-1">

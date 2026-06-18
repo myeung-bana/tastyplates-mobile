@@ -6,12 +6,12 @@ import { HomeReviewCard, HomeReviewCardSkeleton } from '@/components/review/Home
 import { HomeSectionCard } from '@/components/home/HomeSectionCard'
 
 import { BRAND_PRIMARY, TEXT_MUTED } from '@/constants/brand'
-import { SCREEN_PUBLIC_PROFILE, SCREEN_REVIEW_VIEWER } from '@/constants/screens'
+import { SCREEN_REVIEW_VIEWER } from '@/constants/screens'
 import { useAuth } from '@/hooks/useAuth'
 import { useLatestTrendingReviews } from '@/hooks/useLatestTrendingReviews'
-import type { TrendingReviewRow } from '@/services/homeReviewsService'
-import { isRestaurantUserRouteId } from '@/services/restaurantUserService'
 import { pushLoginScreen } from '@/lib/authRoutes'
+import { publicProfileFromAuthorFields, pushPublicProfile } from '@/lib/publicProfileNavigation'
+import type { TrendingReviewRow } from '@/services/homeReviewsService'
 
 const TRENDING_LIMIT = 6
 const GRID_GAP = 12
@@ -46,21 +46,7 @@ export function HomeReviewsSection({ refreshNonce = 0 }: HomeReviewsSectionProps
       pushLoginScreen(router, { resume: '/(tabs)' })
       return
     }
-    const usernameSlug = review.AuthorProfile?.username?.trim().replace(/^@/, '')
-    if (usernameSlug) {
-      router.push({
-        pathname: SCREEN_PUBLIC_PROFILE,
-        params: { userId: usernameSlug },
-      })
-      return
-    }
-    const id = review.author_id?.trim()
-    if (id && isRestaurantUserRouteId(id)) {
-      router.push({
-        pathname: SCREEN_PUBLIC_PROFILE,
-        params: { userId: id },
-      })
-    }
+    pushPublicProfile(router, publicProfileFromAuthorFields(review.author_id, review.AuthorProfile))
   }
 
   return (

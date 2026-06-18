@@ -5634,15 +5634,14 @@ PrecompileSwiftBridgingHeader normal arm64 (in target 'TastyPlates' from project
 
 SwiftDriverJobDiscovery normal arm64 Compiling bridging header (in target 'TastyPlates' from project 'TastyPlates')
 
-SwiftEmitModule normal arm64 Emitting\ module\ for\ TastyPlates (in target 'TastyPlates' from project 'TastyPlates')
-
-EmitSwiftModule normal arm64 (in target 'TastyPlates' from project 'TastyPlates')
-    cd /Users/museryeung/Documents/dev/Tastyplates-project/tastyplates-mobile/ios
-    
-
 SwiftCompile normal arm64 Compiling\ ExpoModulesProvider.swift /Users/museryeung/Documents/dev/Tastyplates-project/tastyplates-mobile/ios/Pods/Target\ Support\ Files/Pods-TastyPlates/ExpoModulesProvider.swift (in target 'TastyPlates' from project 'TastyPlates')
 
 SwiftCompile normal arm64 /Users/museryeung/Documents/dev/Tastyplates-project/tastyplates-mobile/ios/Pods/Target\ Support\ Files/Pods-TastyPlates/ExpoModulesProvider.swift (in target 'TastyPlates' from project 'TastyPlates')
+    cd /Users/museryeung/Documents/dev/Tastyplates-project/tastyplates-mobile/ios
+    
+
+SwiftEmitModule normal arm64 Emitting\ module\ for\ TastyPlates (in target 'TastyPlates' from project 'TastyPlates')
+EmitSwiftModule normal arm64 (in target 'TastyPlates' from project 'TastyPlates')
     cd /Users/museryeung/Documents/dev/Tastyplates-project/tastyplates-mobile/ios
     
 
@@ -6320,7 +6319,7 @@ PhaseScriptExecution [CP]\ Copy\ Pods\ Resources /Users/museryeung/Library/Devel
 Transfer starting: 474 files
 EXConstants.bundle/app.config
 
-sent 52613 bytes  received 42 bytes  2279437 bytes/sec
+sent 52613 bytes  received 42 bytes  1942988 bytes/sec
 total size is 2537579  speedup is 48.19
 
 CopySwiftLibs /Users/museryeung/Library/Developer/Xcode/DerivedData/TastyPlates-gfcboeqrzbqbwvdcpmzhnbqaahsl/Build/Products/Debug-iphonesimulator/TastyPlates.app (in target 'TastyPlates' from project 'TastyPlates')
@@ -6330,8 +6329,8 @@ CopySwiftLibs /Users/museryeung/Library/Developer/Xcode/DerivedData/TastyPlates-
 ExtractAppIntentsMetadata (in target 'TastyPlates' from project 'TastyPlates')
     cd /Users/museryeung/Documents/dev/Tastyplates-project/tastyplates-mobile/ios
     /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/appintentsmetadataprocessor --toolchain-dir /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain --module-name TastyPlates --sdk-root /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.5.sdk --xcode-version 17F42 --platform-family iOS --deployment-target 15.1 --bundle-identifier com.bana.tastyplates-dev --output /Users/museryeung/Library/Developer/Xcode/DerivedData/TastyPlates-gfcboeqrzbqbwvdcpmzhnbqaahsl/Build/Products/Debug-iphonesimulator/TastyPlates.app --target-triple arm64-apple-ios15.1-simulator --binary-file /Users/museryeung/Library/Developer/Xcode/DerivedData/TastyPlates-gfcboeqrzbqbwvdcpmzhnbqaahsl/Build/Products/Debug-iphonesimulator/TastyPlates.app/TastyPlates --dependency-file /Users/museryeung/Library/Developer/Xcode/DerivedData/TastyPlates-gfcboeqrzbqbwvdcpmzhnbqaahsl/Build/Intermediates.noindex/TastyPlates.build/Debug-iphonesimulator/TastyPlates.build/Objects-normal/arm64/TastyPlates_dependency_info.dat --stringsdata-file /Users/museryeung/Library/Developer/Xcode/DerivedData/TastyPlates-gfcboeqrzbqbwvdcpmzhnbqaahsl/Build/Intermediates.noindex/TastyPlates.build/Debug-iphonesimulator/TastyPlates.build/Objects-normal/arm64/ExtractedAppShortcutsMetadata.stringsdata --source-file-list /Users/museryeung/Library/Developer/Xcode/DerivedData/TastyPlates-gfcboeqrzbqbwvdcpmzhnbqaahsl/Build/Intermediates.noindex/TastyPlates.build/Debug-iphonesimulator/TastyPlates.build/Objects-normal/arm64/TastyPlates.SwiftFileList --metadata-file-list /Users/museryeung/Library/Developer/Xcode/DerivedData/TastyPlates-gfcboeqrzbqbwvdcpmzhnbqaahsl/Build/Intermediates.noindex/TastyPlates.build/Debug-iphonesimulator/TastyPlates.build/TastyPlates.DependencyMetadataFileList --static-metadata-file-list /Users/museryeung/Library/Developer/Xcode/DerivedData/TastyPlates-gfcboeqrzbqbwvdcpmzhnbqaahsl/Build/Intermediates.noindex/TastyPlates.build/Debug-iphonesimulator/TastyPlates.build/TastyPlates.DependencyStaticMetadataFileList --swift-const-vals-list /Users/museryeung/Library/Developer/Xcode/DerivedData/TastyPlates-gfcboeqrzbqbwvdcpmzhnbqaahsl/Build/Intermediates.noindex/TastyPlates.build/Debug-iphonesimulator/TastyPlates.build/Objects-normal/arm64/TastyPlates.SwiftConstValuesFileList --compile-time-extraction --deployment-aware-processing --validate-assistant-intents --no-app-shortcuts-localization
-2026-06-17 23:08:28.623 appintentsmetadataprocessor[10370:1565935] Starting appintentsmetadataprocessor export
-2026-06-17 23:08:28.628 appintentsmetadataprocessor[10370:1565935] warning: Metadata extraction skipped. No AppIntents.framework dependency found.
+2026-06-18 22:07:13.592 appintentsmetadataprocessor[91672:4474315] Starting appintentsmetadataprocessor export
+2026-06-18 22:07:13.598 appintentsmetadataprocessor[91672:4474315] warning: Metadata extraction skipped. No AppIntents.framework dependency found.
 
 GenerateDSYMFile /Users/museryeung/Library/Developer/Xcode/DerivedData/TastyPlates-gfcboeqrzbqbwvdcpmzhnbqaahsl/Build/Products/Debug-iphonesimulator/TastyPlates.app.dSYM /Users/museryeung/Library/Developer/Xcode/DerivedData/TastyPlates-gfcboeqrzbqbwvdcpmzhnbqaahsl/Build/Products/Debug-iphonesimulator/TastyPlates.app/TastyPlates (in target 'TastyPlates' from project 'TastyPlates')
     cd /Users/museryeung/Documents/dev/Tastyplates-project/tastyplates-mobile/ios

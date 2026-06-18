@@ -3,8 +3,8 @@ import * as Haptics from 'expo-haptics'
 import { useRouter } from 'expo-router'
 
 import { BRAND_PRIMARY, TEXT_HEADING, TEXT_MUTED } from '@/constants/brand'
-import { SCREEN_PUBLIC_PROFILE } from '@/constants/screens'
 import { parseProfilePalates } from '@/lib/profileFormatting'
+import { pushPublicProfile } from '@/lib/publicProfileNavigation'
 import type { FollowListUser } from '@/services/followListService'
 import { normalizeLegacyProfileAvatar } from '@/services/restaurantUserService'
 
@@ -40,10 +40,9 @@ export function FollowListUserRow({
 
   const openProfile = () => {
     void Haptics.selectionAsync()
-    const key = handle || user.id
-    router.push({
-      pathname: SCREEN_PUBLIC_PROFILE,
-      params: { userId: key },
+    pushPublicProfile(router, {
+      authorId: user.id,
+      username: handle,
     })
   }
 

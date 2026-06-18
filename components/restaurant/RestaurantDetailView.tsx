@@ -27,7 +27,6 @@ import { HomeReviewCard } from '@/components/review/HomeReviewCard'
 import { BRAND_PRIMARY, TEXT_HEADING, TEXT_MUTED } from '@/constants/brand'
 import {
   restaurantDetailPath,
-  SCREEN_PUBLIC_PROFILE,
   SCREEN_RESTAURANT_REVIEWS,
   SCREEN_REVIEW_VIEWER,
   SCREEN_STUDIO_ADD_REVIEW,
@@ -45,6 +44,7 @@ import {
 } from '@/lib/restaurantDetailUtils'
 import { useAuth } from '@/hooks/useAuth'
 import { coerceResumeHref, pushLoginScreen } from '@/lib/authRoutes'
+import { pushPublicProfile } from '@/lib/publicProfileNavigation'
 import { copyToClipboard } from '@/lib/copyToClipboard'
 import { restaurantPreviewToTrendingRow } from '@/lib/restaurantReviewFeed'
 import { getMarketingWebOrigin } from '@/lib/webAssets'
@@ -59,7 +59,6 @@ import {
   toggleCheckinBySlug,
   toggleFavoriteBySlug,
 } from '@/services/restaurantEngagementService'
-import { isRestaurantUserRouteId } from '@/services/restaurantUserService'
 import { toast } from '@/utils/toast'
 
 const REVIEW_CARD_GAP = 12
@@ -402,21 +401,10 @@ export function RestaurantDetailView({
       pushLoginScreen(router, { resume: coerceResumeHref(pathname) })
       return
     }
-    const usernameSlug = item.AuthorProfile?.username?.trim().replace(/^@/, '')
-    if (usernameSlug) {
-      router.push({
-        pathname: SCREEN_PUBLIC_PROFILE,
-        params: { userId: usernameSlug },
-      })
-      return
-    }
-    const authorId = item.AuthorProfile?.user_id?.trim()
-    if (authorId && isRestaurantUserRouteId(authorId)) {
-      router.push({
-        pathname: SCREEN_PUBLIC_PROFILE,
-        params: { userId: authorId },
-      })
-    }
+    pushPublicProfile(router, {
+      profileUserId: item.AuthorProfile?.user_id,
+      username: item.AuthorProfile?.username,
+    })
   }
 
   return (

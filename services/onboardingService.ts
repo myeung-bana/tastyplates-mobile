@@ -6,7 +6,7 @@ import {
 } from '@/constants/locations'
 import { tastyplatesFetch, unwrapEnvelope } from '@/lib/tastyplatesFetch'
 import type { RestaurantUserRow } from '@/services/restaurantUserService'
-import { createRestaurantUserProfile } from '@/services/restaurantUserService'
+import { ensureRestaurantUserProfileApi } from '@/services/restaurantUserService'
 
 /** Draft onboarding fields between steps (AsyncStorage). */
 export const ONBOARDING_REGISTRATION_KEY = 'tastyplates_onboarding_registration_v1'
@@ -100,16 +100,26 @@ export async function completeOnboardingProfile(params: {
 
   const err = envelope.error.toLowerCase()
   if (err.includes('404') || err.includes('not found')) {
-    await createRestaurantUserProfile(payload)
+    await ensureRestaurantUserProfileApi()
+    const retry = await tastyplatesFetch<UpdateRestaurantUserResponse>(
+      'restaurant-users/update-restaurant-user',
+      {
+        method: 'POST',
+        withAuth: true,
+        body: JSON.stringify(payload),
+      },
+    )
+    unwrapEnvelope(retry)
     return
   }
 
   throw new Error(envelope.error)
 }
 
+/** Local placeholder suggestion for onboarding UI (`user_<random>`). */
 export function generateDefaultUsername(): string {
-  const n = Math.floor(1000 + Math.random() * 9000)
-  return `foodie${n}`
+  const suffix = Math.random().toString(36).slice(2, 12).replace(/[^a-z0-9]/g, '').slice(0, 10)
+  return `user_${suffix || 'placeholder'}`
 }
 
 /** Map Nhost location city node → persisted {@link SavedLocationPreference}. */

@@ -4,8 +4,8 @@ import { useRouter } from 'expo-router'
 import { AppIcon } from '@/components/ui/AppIcon'
 
 import { BRAND_PRIMARY, BORDER_SUBTLE, TEXT_HEADING, TEXT_MUTED } from '@/constants/brand'
-import { SCREEN_PUBLIC_PROFILE } from '@/constants/screens'
 import { useFollowTarget } from '@/hooks/useFollowTarget'
+import { pushPublicProfile } from '@/lib/publicProfileNavigation'
 import {
   normalizeLegacyProfileAvatar,
   type RestaurantUserRow,
@@ -31,9 +31,9 @@ export function SuggestedUserRow({ user, viewerId, onFollowed }: SuggestedUserRo
 
   const openProfile = () => {
     void Haptics.selectionAsync()
-    router.push({
-      pathname: SCREEN_PUBLIC_PROFILE,
-      params: { userId: handle || user.id },
+    pushPublicProfile(router, {
+      authorId: user.id,
+      username: handle,
     })
   }
 

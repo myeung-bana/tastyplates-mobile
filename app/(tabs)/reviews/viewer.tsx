@@ -21,12 +21,12 @@ import { BORDER_SUBTLE, BRAND_PRIMARY, TEXT_BODY, TEXT_HEADING, TEXT_MUTED } fro
 import {
   SCREEN_HASHTAG_FEED,
   SCREEN_RESTAURANT_DETAIL,
-  SCREEN_PUBLIC_PROFILE,
   SCREEN_REVIEW_COMMENTS,
 } from '@/constants/screens'
 import { useAuth } from '@/hooks/useAuth'
 import { useReviewLike } from '@/hooks/useReviewLike'
-import { parseProfilePalates } from '@/lib/profileFormatting'
+import { resolveReviewAuthorPresentation } from '@/lib/reviewAuthorDisplay'
+import { publicProfileFromAuthorFields, pushPublicProfile } from '@/lib/publicProfileNavigation'
 import { stripHtml } from '@/lib/restaurantDetailUtils'
 import { reviewHashtagLabels, reviewImageUris } from '@/lib/reviewDisplayUtils'
 import { capitalizeWords, formatLikeCount, formatRelativeTime } from '@/lib/utils'
@@ -38,11 +38,7 @@ import {
 } from '@/services/reviewDetailService'
 import { reviewService, type ReplyRow } from '@/services/reviewService'
 import type { RestaurantUserRow } from '@/services/restaurantUserService'
-import {
-  fetchRestaurantUserById,
-  isRestaurantUserRouteId,
-  normalizeLegacyProfileAvatar,
-} from '@/services/restaurantUserService'
+import { fetchRestaurantUserById } from '@/services/restaurantUserService'
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
@@ -52,32 +48,9 @@ const DEFAULT_COVER =
 
 const NEUSANS = 'Neusans'
 
-function authorDisplayName(author: RestaurantUserRow): string {
-  const u = author.username?.trim()
-  if (u) return u.startsWith('@') ? u : `@${u}`
-  const dn = author.display_name?.trim()
-  if (dn) return dn
-  const email = author.email?.trim()
-  if (email?.includes('@')) return email.split('@')[0] ?? 'Member'
-  return 'Member'
-}
-
-function openAuthorProfile(author: RestaurantUserRow, authorUuid: string) {
+function openReviewAuthorProfile(review: ReviewDetailRow) {
   void Haptics.selectionAsync()
-  const usernameSlug = author.username?.trim().replace(/^@/, '')
-  if (usernameSlug) {
-    router.push({
-      pathname: SCREEN_PUBLIC_PROFILE,
-      params: { userId: usernameSlug },
-    })
-    return
-  }
-  if (authorUuid && isRestaurantUserRouteId(authorUuid)) {
-    router.push({
-      pathname: SCREEN_PUBLIC_PROFILE,
-      params: { userId: authorUuid },
-    })
-  }
+  pushPublicProfile(router, publicProfileFromAuthorFields(review.author_id, review.AuthorProfile))
 }
 
 interface ReviewViewerBodyProps {
@@ -179,17 +152,13 @@ function ReviewViewerBody({
   const title = capitalizeWords(stripHtml(review.title ?? '').trim())
   const body = capitalizeWords(stripHtml(review.content ?? '').trim())
   const hashtags = reviewHashtagLabels(review.hashtags, 12)
-  const palates = useMemo(() => {
-    const fromProfile = author ? parseProfilePalates(author.palates) : []
-    const fromReview = parseProfilePalates(review.palates)
-    const list = fromProfile.length > 0 ? fromProfile : fromReview
-    return list.slice(0, 2)
-  }, [author, review.palates])
+  const authorPresentation = useMemo(
+    () => resolveReviewAuthorPresentation(review, author),
+    [review, author],
+  )
+  const { label: authorLabel, avatarUrl: authorAvatarUrl, palates, canOpenProfile } =
+    authorPresentation
   const when = formatRelativeTime(review.published_at ?? review.created_at ?? new Date())
-
-  const authorAvatarUrl = author
-    ? normalizeLegacyProfileAvatar(author.avatarUrl ?? null, author.profile_image)
-    : null
 
   const metaBits: string[] = []
   if (review.replies_count != null && review.replies_count > 0) {
@@ -199,6 +168,15 @@ function ReviewViewerBody({
 
   const statusLabel =
     review.status && review.status !== 'approved' ? review.status.replace(/_/g, ' ') : null
+
+  const openAuthor = () => {
+    if (!canOpenProfile) return
+    if (!isAuthenticated) {
+      promptSignIn()
+      return
+    }
+    openReviewAuthorProfile(review)
+  }
 
   const openComments = () => {
     void Haptics.selectionAsync()
@@ -222,14 +200,8 @@ function ReviewViewerBody({
             accessibilityRole="button"
             accessibilityLabel="Open reviewer profile"
             hitSlop={6}
-            onPress={() => {
-              if (!author) return
-              if (!isAuthenticated) {
-                promptSignIn()
-                return
-              }
-              openAuthorProfile(author, review.author_id)
-            }}
+            onPress={openAuthor}
+            disabled={!canOpenProfile}
             className="active:opacity-80"
           >
             {authorAvatarUrl ? (
@@ -251,15 +223,8 @@ function ReviewViewerBody({
 
           <View className="min-w-0 flex-1">
             <Pressable
-              onPress={() => {
-                if (!author) return
-                if (!isAuthenticated) {
-                  promptSignIn()
-                  return
-                }
-                openAuthorProfile(author, review.author_id)
-              }}
-              disabled={!author}
+              onPress={openAuthor}
+              disabled={!canOpenProfile}
               className="active:opacity-80"
             >
               <View className="flex-row flex-wrap items-center gap-1.5">
@@ -268,7 +233,7 @@ function ReviewViewerBody({
                   style={{ color: TEXT_HEADING }}
                   numberOfLines={1}
                 >
-                  {author ? authorDisplayName(author) : 'Member'}
+                  {authorLabel}
                 </Text>
                 {palates.map((label) => (
                   <View

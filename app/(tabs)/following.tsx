@@ -21,18 +21,17 @@ import { AppTopNav } from '@/components/layout/AppTopNav'
 import { SectionTitle } from '@/components/layout/SectionTitle'
 import { BRAND_PRIMARY, TEXT_MUTED } from '@/constants/brand'
 import {
-  SCREEN_PUBLIC_PROFILE,
   SCREEN_REVIEW_VIEWER,
 } from '@/constants/screens'
 import { useAuth } from '@/hooks/useAuth'
 import { useFollowingFeed } from '@/hooks/useFollowingFeed'
 import { pushLoginScreen } from '@/lib/authRoutes'
 import type { ActivityFeedSection } from '@/lib/followingFeedGrouping'
+import { publicProfileFromAuthorFields, pushPublicProfile } from '@/lib/publicProfileNavigation'
 import {
   fetchSuggestedUsers,
   type FollowingFeedAuthorProfile,
 } from '@/services/followingFeedService'
-import { isRestaurantUserRouteId } from '@/services/restaurantUserService'
 
 const GRID_GAP = 12
 
@@ -137,21 +136,7 @@ export default function FollowingScreen() {
     profile: FollowingFeedAuthorProfile | null | undefined,
   ) => {
     void Haptics.selectionAsync()
-    const usernameSlug = profile?.username?.trim().replace(/^@/, '')
-    if (usernameSlug) {
-      router.push({
-        pathname: SCREEN_PUBLIC_PROFILE,
-        params: { userId: usernameSlug },
-      })
-      return
-    }
-    const id = authorId.trim()
-    if (id && isRestaurantUserRouteId(id)) {
-      router.push({
-        pathname: SCREEN_PUBLIC_PROFILE,
-        params: { userId: id },
-      })
-    }
+    pushPublicProfile(router, publicProfileFromAuthorFields(authorId, profile))
   }
 
   const loading = (feedLoading || suggestedLoading) && !refreshing

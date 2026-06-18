@@ -39,8 +39,8 @@ export function stripTags(input: string): string {
 }
 
 /**
- * Public profile under the tab navigator (UUID or username slug after `/profile/`).
- * e.g. "/(tabs)/profile/550e8400-e29b-..." or "/(tabs)/profile/janedoe"
+ * Public profile under the tab navigator (UUID **or** username slug after `/profile/`).
+ * Prefer passing the auth UUID when available — see {@link resolvePublicProfileRouteSegment}.
  */
 export function generateProfileUrl(userIdOrUsername: string): string {
   return `/(tabs)/profile/${encodeURIComponent(userIdOrUsername.replace(/^@/, ''))}`
