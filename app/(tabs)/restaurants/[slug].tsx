@@ -5,29 +5,21 @@ import { useLocalSearchParams, useNavigation } from 'expo-router'
 import { AppIcon } from '@/components/ui/AppIcon'
 
 import { RestaurantDetailSkeleton } from '@/components/restaurant/RestaurantDetailSkeleton'
+import { RestaurantDetailShareHeaderButton } from '@/components/restaurant/RestaurantDetailShareHeaderButton'
 import { RestaurantDetailView } from '@/components/restaurant/RestaurantDetailView'
 import { BRAND_PRIMARY, TEXT_HEADING, TEXT_MUTED } from '@/constants/brand'
-import { isNoPalateFilter } from '@/lib/palateSearch'
+import { cuisineParamFromRouteParams, useRestaurantScores } from '@/hooks/useRestaurantScores'
 import {
-  getRatingSummary,
   getRestaurantBySlug,
   getRestaurantReviewsPreview,
-  type RatingSummaryRow,
   type RestaurantDetailRow,
   type RestaurantReviewPreview,
 } from '@/services/restaurantDetailService'
-import {
-  getPreferenceStatsByPalate,
-  type PreferenceStat,
-} from '@/services/preferenceStatsService'
 
 type ReadyState = {
   restaurant: RestaurantDetailRow
-  summary: RatingSummaryRow | null
   reviews: RestaurantReviewPreview[]
   reviewTotal: number
-  searchAvg: number | null
-  searchCount: number
 }
 
 type ScreenState =
@@ -41,26 +33,45 @@ function slugFromParams(slug: string | string[] | undefined): string {
   return Array.isArray(slug) ? (slug[0] ?? '') : slug
 }
 
-function palateFromParams(palate: string | string[] | undefined): string | null {
-  const raw = palate == null ? null : Array.isArray(palate) ? palate[0] : palate
-  if (isNoPalateFilter(raw)) return null
-  return raw!.trim()
-}
-
 /**
- * Restaurant detail — palate-aware Search score via `get-preference-stats`.
+ * Restaurant detail — cuisine-aware Search / Your score via trust-set preference stats.
  */
 export default function RestaurantDetailScreen() {
   const navigation = useNavigation()
-  const raw = useLocalSearchParams<{ slug: string | string[]; palate?: string | string[] }>()
+  const raw = useLocalSearchParams<{
+    slug: string | string[]
+    cuisine?: string | string[]
+    palate?: string | string[]
+  }>()
   const slug = slugFromParams(raw.slug)
-  const palateSlug = useMemo(() => palateFromParams(raw.palate), [raw.palate])
+  const cuisineParam = useMemo(() => cuisineParamFromRouteParams(raw), [raw.cuisine, raw.palate])
   const hasSlug = slug.trim().length > 0
 
   const [refreshing, setRefreshing] = useState(false)
   const [state, setState] = useState<ScreenState>({ status: 'loading' })
 
-  // Stay inside the restaurants stack — `Redirect`/`router.replace` fires on focus and breaks tab nav.
+  const restaurantUuid =
+    state.status === 'ready' ? state.restaurant.uuid : null
+
+  const {
+    summary,
+    searchAvg,
+    searchCount,
+    sharedAvg,
+    sharedCount,
+    sharedUnlocked,
+    isPersonalised,
+    trustSet,
+    cuisineFilterActive,
+    loading: scoresLoading,
+    error: scoresError,
+    refresh: refreshScores,
+  } = useRestaurantScores({
+    restaurantUuid,
+    cuisineParam,
+    enabled: state.status === 'ready',
+  })
+
   useLayoutEffect(() => {
     if (!hasSlug) {
       navigation.navigate('index')
@@ -79,22 +90,12 @@ export default function RestaurantDetailScreen() {
       }
       try {
         const restaurant = await getRestaurantBySlug(slug.trim())
-        const [summary, reviewsPayload, prefMap] = await Promise.all([
-          getRatingSummary(restaurant.uuid),
-          getRestaurantReviewsPreview(restaurant.uuid, 8),
-          palateSlug
-            ? getPreferenceStatsByPalate(palateSlug)
-            : Promise.resolve(new Map<string, PreferenceStat>()),
-        ])
-        const pref = prefMap.get(restaurant.uuid)
+        const reviewsPayload = await getRestaurantReviewsPreview(restaurant.uuid, 8)
         setState({
           status: 'ready',
           restaurant,
-          summary,
           reviews: reviewsPayload.reviews,
           reviewTotal: reviewsPayload.meta.total,
-          searchAvg: pref?.avg ?? null,
-          searchCount: pref?.count ?? 0,
         })
       } catch (e) {
         const msg = e instanceof Error ? e.message : 'Failed to load restaurant'
@@ -107,13 +108,18 @@ export default function RestaurantDetailScreen() {
         if (mode === 'refresh') setRefreshing(false)
       }
     },
-    [slug, palateSlug],
+    [slug],
   )
 
   useLayoutEffect(() => {
     if (!hasSlug) return
     void fetchRestaurant('initial')
   }, [fetchRestaurant, hasSlug])
+
+  const handleRefresh = useCallback(() => {
+    void fetchRestaurant('refresh')
+    void refreshScores()
+  }, [fetchRestaurant, refreshScores])
 
   useLayoutEffect(() => {
     const title = state.status === 'ready' ? state.restaurant.title : 'Restaurant'
@@ -136,8 +142,17 @@ export default function RestaurantDetailScreen() {
           <AppIcon name="chevron-left" size={28} color={TEXT_HEADING} />
         </Pressable>
       ),
+      headerRight:
+        state.status === 'ready'
+          ? () => (
+              <RestaurantDetailShareHeaderButton
+                title={state.restaurant.title}
+                slug={slug}
+              />
+            )
+          : undefined,
     })
-  }, [navigation, state])
+  }, [navigation, slug, state])
 
   if (!hasSlug) {
     return null
@@ -186,14 +201,21 @@ export default function RestaurantDetailScreen() {
       <RestaurantDetailView
         slug={slug}
         restaurant={state.restaurant}
-        summary={state.summary}
+        summary={summary}
         reviews={state.reviews}
         reviewTotal={state.reviewTotal}
-        palateSlug={palateSlug}
-        searchAvg={state.searchAvg}
-        searchCount={state.searchCount}
+        searchAvg={searchAvg}
+        searchCount={searchCount}
+        sharedAvg={sharedAvg}
+        sharedCount={sharedCount}
+        sharedUnlocked={sharedUnlocked}
+        isPersonalised={isPersonalised}
+        trustSet={trustSet}
+        cuisineFilterActive={cuisineFilterActive}
+        scoresLoading={scoresLoading}
+        scoresError={scoresError}
         refreshing={refreshing}
-        onRefresh={() => void fetchRestaurant('refresh')}
+        onRefresh={handleRefresh}
       />
     </View>
   )

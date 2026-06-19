@@ -46,7 +46,7 @@ export interface RestaurantBrowseCardProps {
   slug?: string
   /** Cuisine pills overlaid on the image (maps from API `cuisines`). */
   listingCategories?: RestaurantListCuisine[]
-  /** Establishment categories; parent rows render as `A / B`. */
+  /** Establishment categories; parent rows render as orange dot-separated labels. */
   categories?: RestaurantListCategory[]
   initialSavedStatus?: boolean | null
   onWishlistChange?: (isSaved: boolean) => void
@@ -186,8 +186,6 @@ export function RestaurantBrowseCard({
   const parentCategories = categoryList.filter(
     (cat) => cat.parent_id === null || cat.parent_id === undefined,
   )
-  const categoryLine =
-    parentCategories.length > 0 ? parentCategories.map((cat) => cat.name).join(' / ') : null
 
   const visibleCuisines = cuisineList.slice(0, 2)
   const cuisineOverflow = Math.max(0, cuisineList.length - 2)
@@ -446,20 +444,45 @@ export function RestaurantBrowseCard({
             </Text>
           ) : null}
 
-          {categoryLine ? (
-            <Text
+          {parentCategories.length > 0 ? (
+            <View
               style={{
                 marginTop: 4,
-                fontFamily: NEUSANS,
-                fontSize: categorySize,
-                fontWeight: '400',
-                color: TEXT_COLOR,
-                letterSpacing: 0.025 * categorySize,
+                flexDirection: 'row',
+                flexWrap: 'wrap',
+                alignItems: 'center',
               }}
-              numberOfLines={1}
             >
-              {categoryLine}
-            </Text>
+              {parentCategories.map((category, index) => (
+                <View
+                  key={category.slug || String(category.id)}
+                  style={{ flexDirection: 'row', alignItems: 'center' }}
+                >
+                  {index > 0 ? (
+                    <Text
+                      style={{
+                        fontFamily: NEUSANS,
+                        fontSize: categorySize,
+                        color: BRAND_PRIMARY,
+                      }}
+                    >
+                      {' · '}
+                    </Text>
+                  ) : null}
+                  <Text
+                    style={{
+                      fontFamily: NEUSANS,
+                      fontSize: categorySize,
+                      fontWeight: '400',
+                      color: BRAND_PRIMARY,
+                    }}
+                    numberOfLines={1}
+                  >
+                    {category.name}
+                  </Text>
+                </View>
+              ))}
+            </View>
           ) : null}
         </View>
       </Pressable>

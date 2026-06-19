@@ -1,15 +1,34 @@
-import { View, Text } from 'react-native'
-import { SafeAreaView } from 'react-native-safe-area-context'
-import { useLocalSearchParams } from 'expo-router'
+import { useEffect } from 'react'
+import { ActivityIndicator, View } from 'react-native'
+import { Redirect, useLocalSearchParams, useRouter } from 'expo-router'
 
-export default function CuisineBrowseScreen() {
-  const { slug } = useLocalSearchParams<{ slug: string }>()
-  return (
-    <SafeAreaView className="flex-1 bg-white">
-      <View className="flex-1 items-center justify-center">
-        <Text className="text-lg font-semibold text-gray-800">Cuisine</Text>
-        <Text className="mt-2 text-sm text-gray-500">{slug}</Text>
+import { BRAND_PRIMARY } from '@/constants/brand'
+import { SCREEN_RESTAURANTS } from '@/constants/screens'
+
+function singleParam(v: string | string[] | undefined): string {
+  if (v == null) return ''
+  return Array.isArray(v) ? (v[0] ?? '') : v
+}
+
+/** Deep link shim — `/restaurants/cuisines/:slug` → Explore tab with `?cuisine=`. */
+export default function CuisineBrowseRedirectScreen() {
+  const router = useRouter()
+  const { slug } = useLocalSearchParams<{ slug: string | string[] }>()
+  const cuisine = singleParam(slug).trim()
+
+  useEffect(() => {
+    if (!cuisine) {
+      router.replace(SCREEN_RESTAURANTS)
+    }
+  }, [cuisine, router])
+
+  if (!cuisine) {
+    return (
+      <View className="flex-1 items-center justify-center bg-white">
+        <ActivityIndicator color={BRAND_PRIMARY} />
       </View>
-    </SafeAreaView>
-  )
+    )
+  }
+
+  return <Redirect href={{ pathname: SCREEN_RESTAURANTS, params: { cuisine } }} />
 }

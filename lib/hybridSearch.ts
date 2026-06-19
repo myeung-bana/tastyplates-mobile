@@ -189,7 +189,9 @@ export async function hybridSearch(
   const signal = options.signal
   const errors: HybridSearchResponse['errors'] = {}
 
+  const cuisineFilterActive = Boolean(options.cuisineSlugs?.length)
   const palateSortActive = Boolean(options.palateSlug?.trim())
+  const palateSlug = options.palateSlug ?? null
 
   const [tpResult, googlePredictions] = await Promise.allSettled([
     hasTextQuery
@@ -198,7 +200,7 @@ export async function hybridSearch(
           limit,
           locationKey,
           cityName: options.cityName,
-          order_by: palateSortActive ? 'smart' : undefined,
+          order_by: cuisineFilterActive ? 'rating_desc' : palateSortActive ? 'smart' : undefined,
           cuisineSlugs: options.cuisineSlugs,
           ...geo,
         })
@@ -236,9 +238,10 @@ export async function hybridSearch(
     googleCandidates = predictionsToCandidates(googlePredictions.value)
   }
 
-  const palateSlug = options.palateSlug ?? null
   const suppressGoogle =
-    Boolean(palateSlug?.trim()) || tpRows.length >= MERGE_SUPPRESS_TP_COUNT_SEARCH
+    cuisineFilterActive ||
+    palateSortActive ||
+    tpRows.length >= MERGE_SUPPRESS_TP_COUNT_SEARCH
 
   if (!suppressGoogle && googleCandidates.length > 0) {
     googleCandidates = await enrichGoogleCandidatesWithDetails(

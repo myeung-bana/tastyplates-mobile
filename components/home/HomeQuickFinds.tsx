@@ -16,7 +16,7 @@ const ROW_GAP = 10
 const ICON_SIZE = 50
 
 /**
- * Cuisine shortcuts → Restaurants tab with `palate` param (aligned with web Quick Finds).
+ * Cuisine shortcuts → Restaurants tab with `cuisine` param.
  * Icons load from bundled `assets/icons/cuisines/*.png`.
  */
 export function HomeQuickFinds() {
@@ -40,7 +40,7 @@ export function HomeQuickFinds() {
                 onPress={() =>
                   router.push({
                     pathname: SCREEN_RESTAURANTS,
-                    params: { palate: item.slug },
+                    params: { cuisine: item.slug },
                   })
                 }
                 style={{ width: cellWidth }}

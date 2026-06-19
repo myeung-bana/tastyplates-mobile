@@ -4,6 +4,7 @@ import { router, useLocalSearchParams, useNavigation } from 'expo-router'
 
 import { AppIcon } from '@/components/ui/AppIcon'
 import { RestaurantDetailSkeleton } from '@/components/restaurant/RestaurantDetailSkeleton'
+import { RestaurantDetailShareHeaderButton } from '@/components/restaurant/RestaurantDetailShareHeaderButton'
 import { RestaurantDetailView } from '@/components/restaurant/RestaurantDetailView'
 import { BRAND_PRIMARY, TEXT_HEADING, TEXT_MUTED } from '@/constants/brand'
 import { SCREEN_RESTAURANT_DETAIL, SCREEN_RESTAURANTS } from '@/constants/screens'
@@ -89,8 +90,18 @@ export default function GooglePlaceDetailScreen(): JSX.Element {
           <AppIcon name="chevron-left" size={28} color={TEXT_HEADING} />
         </Pressable>
       ),
+      headerRight:
+        state.status === 'ready' && placeId
+          ? () => (
+              <RestaurantDetailShareHeaderButton
+                title={title}
+                slug=""
+                googlePlaceId={placeId}
+              />
+            )
+          : undefined,
     })
-  }, [navigation, state])
+  }, [navigation, placeId, state])
 
   if (state.status === 'loading') {
     return (

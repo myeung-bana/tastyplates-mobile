@@ -1,4 +1,5 @@
 import type { SavedLocationPreference } from '@/constants/locations'
+import { expandCuisineParamToSlugs } from '@/lib/palateSearch'
 import { QUICK_FINDS } from '@/constants/quickFinds'
 import {
   formatRestaurantCardAddress,
@@ -38,11 +39,10 @@ export function splitDiscoveryResults(results: RestaurantSearchResult[]): {
   return { tpResults, googleResults }
 }
 
-/** Maps a Quick Finds pill slug to TP `cuisine_slugs` query values. */
+/** Maps a cuisine pill slug or region key to TP `cuisine_slugs` query values. */
 export function cuisineSlugsForFilter(slug: string | null | undefined): string[] | undefined {
-  const trimmed = slug?.trim()
-  if (!trimmed) return undefined
-  return [trimmed]
+  const expanded = expandCuisineParamToSlugs(slug)
+  return expanded.length > 0 ? expanded : undefined
 }
 
 /** Optional Google Nearby / text hint from a cuisine pill slug. */

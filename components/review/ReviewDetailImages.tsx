@@ -1,14 +1,19 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   Image,
   NativeScrollEvent,
   NativeSyntheticEvent,
+  Pressable,
   ScrollView,
-  Text,
   useWindowDimensions,
   View,
 } from 'react-native'
 
+import {
+  ImageGalleryCounterBadge,
+  ImageGalleryLightbox,
+  ImageGalleryPageDots,
+} from '@/components/ui/ImageGalleryChrome'
 import { useImageAspectRatios } from '@/hooks/useImageAspectRatios'
 import {
   clampReviewImageAspect,
@@ -29,30 +34,50 @@ function ReviewDetailImageFrame({
   layoutWidth,
   aspect,
   maxHeight,
+  onPress,
+  accessibilityLabel,
 }: {
   uri: string
   layoutWidth: number
   aspect: number
   maxHeight: number
+  onPress?: () => void
+  accessibilityLabel?: string
 }): JSX.Element {
   const clamped = clampReviewImageAspect(aspect)
   const height = reviewImageHeightForWidth(layoutWidth, clamped, maxHeight)
 
+  const image = (
+    <Image
+      accessibilityIgnoresInvertColors
+      source={{ uri }}
+      accessibilityLabel={accessibilityLabel}
+      style={{ width: layoutWidth, height }}
+      resizeMode="cover"
+    />
+  )
+
+  if (!onPress) {
+    return (
+      <View style={{ width: layoutWidth, height, backgroundColor: '#f3f4f6' }}>{image}</View>
+    )
+  }
+
   return (
-    <View style={{ width: layoutWidth, height, backgroundColor: '#f3f4f6' }}>
-      <Image
-        accessibilityIgnoresInvertColors
-        source={{ uri }}
-        style={{ width: layoutWidth, height }}
-        resizeMode="cover"
-      />
-    </View>
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel}
+      onPress={onPress}
+      style={{ width: layoutWidth, height, backgroundColor: '#f3f4f6' }}
+    >
+      {image}
+    </Pressable>
   )
 }
 
 /**
- * Review detail hero — adapts height per photo (portrait vs landscape).
- * Multiple images: horizontal paging gallery with per-slide aspect.
+ * Review detail hero — portrait/landscape-aware heights with gallery chrome
+ * (counter badge, dot indicators, lightbox) matching restaurant detail.
  */
 export function ReviewDetailImages({
   images,
@@ -61,6 +86,7 @@ export function ReviewDetailImages({
   const { width: windowWidth, height: windowHeight } = useWindowDimensions()
   const layoutWidth = windowWidth
   const maxFrameHeight = windowHeight * GALLERY_MAX_HEIGHT_RATIO
+  const scrollRef = useRef<ScrollView>(null)
 
   const uris = useMemo(() => {
     const list = images.filter((u) => u.trim().length > 0)
@@ -71,9 +97,11 @@ export function ReviewDetailImages({
 
   const aspects = useImageAspectRatios(uris)
   const [pageIndex, setPageIndex] = useState(0)
+  const [lightboxOpen, setLightboxOpen] = useState(false)
 
   useEffect(() => {
     setPageIndex(0)
+    scrollRef.current?.scrollTo({ x: 0, animated: false })
   }, [uris.join('\0')])
 
   const slideHeights = useMemo(
@@ -91,7 +119,18 @@ export function ReviewDetailImages({
     return Math.max(...slideHeights)
   }, [slideHeights])
 
-  if (uris.length === 0) return null
+  const openLightbox = useCallback((index: number) => {
+    setPageIndex(index)
+    setLightboxOpen(true)
+  }, [])
+
+  const goToPage = useCallback(
+    (index: number) => {
+      setPageIndex(index)
+      scrollRef.current?.scrollTo({ x: layoutWidth * index, animated: true })
+    },
+    [layoutWidth],
+  )
 
   const onScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
     const x = e.nativeEvent.contentOffset.x
@@ -99,68 +138,77 @@ export function ReviewDetailImages({
     if (next !== pageIndex && next >= 0 && next < uris.length) setPageIndex(next)
   }
 
-  if (uris.length === 1) {
-    const uri = uris[0]!
+  if (uris.length === 0) return null
+
+  const renderSlide = (uri: string, index: number) => {
     const aspect = aspects[uri] ?? REVIEW_IMAGE_DEFAULT_ASPECT
+    const frameHeight = slideHeights[index] ?? galleryHeight
+    const topPad = uris.length > 1 ? Math.max(0, (galleryHeight - frameHeight) / 2) : 0
+
     return (
-      <ReviewDetailImageFrame
-        uri={uri}
-        layoutWidth={layoutWidth}
-        aspect={aspect}
-        maxHeight={maxFrameHeight}
-      />
+      <View
+        key={`${uri}-${index}`}
+        style={
+          uris.length > 1
+            ? { width: layoutWidth, height: galleryHeight, justifyContent: 'flex-start' }
+            : undefined
+        }
+      >
+        <View style={uris.length > 1 ? { paddingTop: topPad } : undefined}>
+          <ReviewDetailImageFrame
+            uri={uri}
+            layoutWidth={layoutWidth}
+            aspect={aspect}
+            maxHeight={maxFrameHeight}
+            onPress={() => openLightbox(index)}
+            accessibilityLabel={`Review photo ${index + 1} of ${uris.length}`}
+          />
+        </View>
+      </View>
     )
   }
 
   return (
-    <View>
-      <View style={{ width: layoutWidth, height: galleryHeight, backgroundColor: '#f3f4f6' }}>
-        <ScrollView
-          horizontal
-          pagingEnabled
-          showsHorizontalScrollIndicator={false}
-          onScroll={onScroll}
-          scrollEventThrottle={16}
-          decelerationRate="fast"
-        >
-          {uris.map((uri, index) => {
-            const aspect = aspects[uri] ?? REVIEW_IMAGE_DEFAULT_ASPECT
-            const frameHeight = slideHeights[index] ?? galleryHeight
-            const topPad = Math.max(0, (galleryHeight - frameHeight) / 2)
-            return (
-              <View
-                key={`${uri}-${index}`}
-                style={{ width: layoutWidth, height: galleryHeight, justifyContent: 'flex-start' }}
-              >
-                <View style={{ paddingTop: topPad }}>
-                  <ReviewDetailImageFrame
-                    uri={uri}
-                    layoutWidth={layoutWidth}
-                    aspect={aspect}
-                    maxHeight={maxFrameHeight}
-                  />
-                </View>
-              </View>
-            )
-          })}
-        </ScrollView>
+    <>
+      <View className="relative w-full" style={{ height: galleryHeight, backgroundColor: '#f3f4f6' }}>
+        {uris.length === 1 ? (
+          renderSlide(uris[0]!, 0)
+        ) : (
+          <ScrollView
+            ref={scrollRef}
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+            onScroll={onScroll}
+            scrollEventThrottle={16}
+            decelerationRate="fast"
+            style={{ height: galleryHeight }}
+          >
+            {uris.map((uri, index) => renderSlide(uri, index))}
+          </ScrollView>
+        )}
+
+        <ImageGalleryCounterBadge
+          currentIndex={pageIndex}
+          total={uris.length}
+          onPress={() => openLightbox(pageIndex)}
+        />
+
+        <ImageGalleryPageDots
+          count={uris.length}
+          currentIndex={pageIndex}
+          onSelect={goToPage}
+        />
       </View>
-      <View className="flex-row items-center justify-center gap-1.5 py-2">
-        {uris.map((uri, index) => (
-          <View
-            key={`dot-${uri}-${index}`}
-            style={{
-              width: index === pageIndex ? 8 : 6,
-              height: index === pageIndex ? 8 : 6,
-              borderRadius: 4,
-              backgroundColor: index === pageIndex ? '#31343F' : '#d1d5db',
-            }}
-          />
-        ))}
-        <Text className="ml-2 text-xs" style={{ color: '#6b7280' }}>
-          {pageIndex + 1} / {uris.length}
-        </Text>
-      </View>
-    </View>
+
+      <ImageGalleryLightbox
+        visible={lightboxOpen}
+        images={uris}
+        currentIndex={pageIndex}
+        onIndexChange={setPageIndex}
+        onClose={() => setLightboxOpen(false)}
+        title="Review photo"
+      />
+    </>
   )
 }

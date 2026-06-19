@@ -33,8 +33,6 @@ import {
 import { useLocation } from '@/contexts/LocationContext'
 import {
   CITY_SEARCH_RADIUS_KM,
-  CITY_SEARCH_RADIUS_METERS,
-  geoQueryFromCityCenter,
   isWithinRadiusKm,
   mapRegionForRadiusKm,
 } from '@/lib/geoUtils'
@@ -42,37 +40,17 @@ import {
   cityNameFromLocation,
   formatRestaurantSearchResultAddress,
 } from '@/lib/restaurantDiscoveryHelpers'
-import { hybridSearch } from '@/lib/hybridSearch'
-import {
-  MERGE_GOOGLE_LIMIT_IDLE,
-  MERGE_SUPPRESS_TP_COUNT_IDLE,
-  SEARCH_BROWSE_LIMIT,
-} from '@/lib/restaurantSearchConfig'
-import {
-  getNearbyRestaurants,
-  isRestaurantLikeGooglePlace,
-  type NearbyPlaceRow,
-} from '@/lib/googlePlaces'
-import { usePalatePreferenceStats } from '@/hooks/usePalatePreferenceStats'
+import { usePersonalisedRestaurants, preferenceStatForSearchResult } from '@/hooks/usePersonalisedRestaurants'
 import { labelForPalateKey } from '@/lib/palateLabels'
-import { isNoPalateFilter, isPalateSortActive } from '@/lib/palateSearch'
-import { sortRestaurantsByPalateMatch } from '@/lib/sortByPalateMatch'
+import { isCuisineFilterActive, isNoCuisineFilter, readCuisineParam } from '@/lib/palateSearch'
 import { coerceRatingNumber } from '@/lib/ratingDisplayUtils'
 import {
-  mergeRestaurantResults,
-  dedupeRestaurantSearchResults,
   restaurantSearchResultCoords,
   restaurantSearchResultId,
 } from '@/lib/restaurantSearchMerge'
-import {
-  getRestaurants,
-  normalizeCategoryList,
-  normalizeCuisineList,
-} from '@/services/restaurantsV2Service'
 import type { RestaurantSearchResult } from '@/types/restaurantSearchResult'
 import { isGoogleResult, isTPResult } from '@/types/restaurantSearchResult'
 
-const PAGE_SIZE = SEARCH_BROWSE_LIMIT
 const ROW_GAP = 12
 /** Collapsed — maximizes map for pinch/zoom; shows handle + list header peek. */
 const SHEET_MIN = '18%'
@@ -83,20 +61,6 @@ const SHEET_EXPANDED = '72%'
 function singleParam(v: string | string[] | undefined): string | undefined {
   if (v == null) return undefined
   return Array.isArray(v) ? v[0] : v
-}
-
-function filterGooglePlacesWithinCityRadius(
-  places: NearbyPlaceRow[],
-  center: { latitude: number; longitude: number } | null,
-): NearbyPlaceRow[] {
-  const restaurantLike = places.filter((place) =>
-    isRestaurantLikeGooglePlace(place.types, place.name),
-  )
-  if (!center) return restaurantLike
-  return restaurantLike.filter((place) => {
-    if (place.latitude == null || place.longitude == null) return true
-    return isWithinRadiusKm(center, place.latitude, place.longitude, CITY_SEARCH_RADIUS_KM)
-  })
 }
 
 /**
@@ -113,7 +77,6 @@ export default function RestaurantsScreen() {
     [screenWidth],
   )
 
-  const geoParams = useMemo(() => geoQueryFromCityCenter(coordinates), [coordinates])
   const cityName = useMemo(() => cityNameFromLocation(location), [location.label, location.key])
 
   const cityMapRegion: Region | undefined = useMemo(() => {
@@ -122,12 +85,13 @@ export default function RestaurantsScreen() {
   }, [coordinates?.latitude, coordinates?.longitude])
 
   const raw = useLocalSearchParams<{
+    cuisine?: string | string[]
     palate?: string | string[]
     search?: string | string[]
     listing?: string | string[]
   }>()
 
-  const palate = singleParam(raw.palate)
+  const cuisine = readCuisineParam(raw)
   const search = singleParam(raw.search)
   const listing = singleParam(raw.listing)
 
@@ -138,23 +102,30 @@ export default function RestaurantsScreen() {
     return a ?? b ?? undefined
   }, [search, listing])
 
-  const palateSortActive = isPalateSortActive(palate)
-  const listOrderBy = palateSortActive ? 'smart' : undefined
+  const cuisineFilterActive = isCuisineFilterActive(cuisine)
 
   const {
-    loading: palateStatsLoading,
-    error: palateStatsError,
-    statsMap,
+    displayRows,
+    loading,
+    loadingMore,
+    refreshing,
+    error,
+    hasMore,
+    isPersonalised,
+    trustSet,
+    prefStatsLoading,
+    prefStatsError,
     getForRestaurantUuid,
-  } = usePalatePreferenceStats(palate)
+    refresh,
+    loadMore,
+  } = usePersonalisedRestaurants({
+    cuisineParam: cuisine,
+    searchQuery,
+    locationKey,
+    coordinates,
+    cityName,
+  })
 
-  const [rows, setRows] = useState<RestaurantSearchResult[]>([])
-  const [cursor, setCursor] = useState<string | null>(null)
-  const [hasMore, setHasMore] = useState(false)
-  const [loading, setLoading] = useState(true)
-  const [loadingMore, setLoadingMore] = useState(false)
-  const [refreshing, setRefreshing] = useState(false)
-  const [error, setError] = useState<string | null>(null)
   const [selectedId, setSelectedId] = useState<string | null>(null)
 
   const mapRef = useRef<MapView>(null)
@@ -169,92 +140,6 @@ export default function RestaurantsScreen() {
 
   const snapPoints = useMemo(() => [SHEET_MIN, SHEET_MID, SHEET_EXPANDED], [])
 
-  const mergeOptions = useMemo(
-    () => ({
-      googleLimit: MERGE_GOOGLE_LIMIT_IDLE,
-      suppressGoogleWhenTPCount: MERGE_SUPPRESS_TP_COUNT_IDLE,
-      palateSlug: palate ?? null,
-    }),
-    [palate],
-  )
-
-  const fetchFirstPage = useCallback(
-    async (options?: { isPullRefresh?: boolean }) => {
-      const isPull = options?.isPullRefresh ?? false
-      if (isPull) {
-        setRefreshing(true)
-      } else {
-        setLoading(true)
-        setCursor(null)
-      }
-      setError(null)
-      setSelectedId(null)
-
-      try {
-        if (searchQuery?.trim()) {
-          const hybrid = await hybridSearch(searchQuery, locationKey, coordinates, {
-            mode: 'browse',
-            palateSlug: palate ?? null,
-            cityName,
-          })
-          setRows(dedupeRestaurantSearchResults(hybrid.results))
-          setCursor(hybrid.cursor)
-          setHasMore(hybrid.hasMore)
-        } else {
-          const [tpData, googlePlaces] = await Promise.allSettled([
-            getRestaurants({
-              search: searchQuery,
-              limit: PAGE_SIZE,
-              cursor: null,
-              locationKey,
-              order_by: listOrderBy,
-              ...geoParams,
-            }),
-            coordinates
-              ? getNearbyRestaurants(coordinates, CITY_SEARCH_RADIUS_METERS)
-              : Promise.resolve([]),
-          ])
-
-          const tpRows = tpData.status === 'fulfilled' ? (tpData.value.restaurants ?? []) : []
-          const googleRows =
-            googlePlaces.status === 'fulfilled'
-              ? filterGooglePlacesWithinCityRadius(googlePlaces.value, coordinates)
-              : []
-
-          if (tpData.status === 'fulfilled') {
-            setCursor(tpData.value.meta.cursor)
-            setHasMore(tpData.value.meta.hasMore)
-          } else {
-            setCursor(null)
-            setHasMore(false)
-          }
-
-          if (tpData.status === 'rejected' && googleRows.length === 0) {
-            throw tpData.reason
-          }
-
-          setRows(
-            dedupeRestaurantSearchResults(mergeRestaurantResults(tpRows, googleRows, mergeOptions)),
-          )
-        }
-      } catch (e) {
-        if (!isPull) {
-          setRows([])
-          setHasMore(false)
-        }
-        setError(e instanceof Error ? e.message : 'Failed to load restaurants')
-      } finally {
-        setLoading(false)
-        setRefreshing(false)
-      }
-    },
-    [searchQuery, listOrderBy, locationKey, coordinates, palate, mergeOptions, geoParams, cityName],
-  )
-
-  useEffect(() => {
-    void fetchFirstPage()
-  }, [fetchFirstPage])
-
   useEffect(() => {
     if (!mapRef.current || !cityMapRegion) return
     const key = `${locationKey}|${cityMapRegion.latitude}|${cityMapRegion.longitude}|${cityMapRegion.latitudeDelta}`
@@ -265,57 +150,13 @@ export default function RestaurantsScreen() {
     mapRef.current.animateToRegion(cityMapRegion, 400)
   }, [cityMapRegion, locationKey])
 
-  const loadMore = useCallback(async () => {
-    if (loadMoreLockRef.current || !hasMore || loadingMore || loading || !cursor) {
-      return
-    }
+  const handleLoadMore = useCallback(() => {
+    if (loadMoreLockRef.current) return
     loadMoreLockRef.current = true
-    setLoadingMore(true)
-    setError(null)
-    try {
-      const data = await getRestaurants({
-        search: searchQuery,
-        limit: PAGE_SIZE,
-        cursor,
-        locationKey,
-        order_by: listOrderBy,
-        cityName: searchQuery?.trim() ? cityName : undefined,
-        ...(searchQuery?.trim() ? {} : geoParams),
-      })
-      setRows((prev) => {
-        const existingIds = new Set(prev.map((r) => restaurantSearchResultId(r)))
-        const newTpRows = (data.restaurants ?? []).filter((r) => {
-          const id = r.uuid?.trim() || r.slug?.trim() || String(r.id)
-          return !existingIds.has(id)
-        })
-        const fresh = mergeRestaurantResults(newTpRows, [], mergeOptions)
-        return dedupeRestaurantSearchResults([...prev, ...fresh])
-      })
-      setCursor(data.meta.cursor)
-      setHasMore(data.meta.hasMore)
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to load more')
-    } finally {
+    void loadMore().finally(() => {
       loadMoreLockRef.current = false
-      setLoadingMore(false)
-    }
-  }, [
-    cursor,
-    hasMore,
-    loadingMore,
-    loading,
-    searchQuery,
-    listOrderBy,
-    locationKey,
-    mergeOptions,
-    geoParams,
-    cityName,
-  ])
-
-  const displayRows = useMemo(() => {
-    if (!palateSortActive || !statsMap) return rows
-    return sortRestaurantsByPalateMatch(rows, statsMap)
-  }, [rows, palateSortActive, statsMap])
+    })
+  }, [loadMore])
 
   const selectedPinResult = useMemo(() => {
     if (!selectedId) return null
@@ -329,11 +170,12 @@ export default function RestaurantsScreen() {
   }, [displayRows, selectedId])
 
   const onRefresh = useCallback(() => {
-    void fetchFirstPage({ isPullRefresh: true })
-  }, [fetchFirstPage])
+    setSelectedId(null)
+    void refresh({ isPullRefresh: true })
+  }, [refresh])
 
-  const clearPalate = useCallback(() => {
-    router.setParams({ palate: undefined })
+  const clearCuisine = useCallback(() => {
+    router.setParams({ cuisine: undefined, palate: undefined })
   }, [])
 
   const clearSearch = useCallback(() => {
@@ -345,8 +187,8 @@ export default function RestaurantsScreen() {
       if (isTPResult(result)) {
         const s = result.slug.trim()
         if (!s) return
-        const params: { slug: string; palate?: string } = { slug: s }
-        if (!isNoPalateFilter(palate)) params.palate = palate!
+        const params: { slug: string; cuisine?: string } = { slug: s }
+        if (!isNoCuisineFilter(cuisine)) params.cuisine = cuisine!
         router.push({
           pathname: SCREEN_RESTAURANT_DETAIL,
           params,
@@ -358,7 +200,7 @@ export default function RestaurantsScreen() {
         params: { place_id: result.place_id },
       })
     },
-    [palate],
+    [cuisine],
   )
 
   const panMapToResult = useCallback((result: RestaurantSearchResult) => {
@@ -431,25 +273,36 @@ export default function RestaurantsScreen() {
     [clearPinSelection],
   )
 
+  const trustSetReviewerLabel = useMemo(() => {
+    if (trustSet.length === 0) return null
+    return trustSet.map((slug) => labelForPalateKey(slug)).join(' & ')
+  }, [trustSet])
+
   const listHeaderText = useMemo(() => {
     const count = displayRows.length
     const locality = location.label?.trim() || 'your area'
     const title = `${count} listing${count === 1 ? '' : 's'} within ${CITY_SEARCH_RADIUS_KM} km of ${locality}`
-    if (!isNoPalateFilter(palate)) {
+    if (isPersonalised && trustSetReviewerLabel) {
       return {
         title,
-        subtitle: `Sorted by ${labelForPalateKey(palate ?? null)} match`,
+        subtitle: `✦ Ranked for your palate — based on ${trustSetReviewerLabel} reviewers`,
+      }
+    }
+    if (cuisineFilterActive) {
+      return {
+        title,
+        subtitle: 'Sort: Highest Rated',
       }
     }
     return { title, subtitle: null as string | null }
-  }, [displayRows.length, location.label, palate])
+  }, [displayRows.length, location.label, isPersonalised, trustSetReviewerLabel, cuisineFilterActive])
 
   const emptyMessage = useMemo(() => {
-    if (searchQuery || palateSortActive) {
-      return 'No restaurants match your search. Try adjusting keywords or palate.'
+    if (searchQuery || cuisineFilterActive) {
+      return 'No restaurants match your search. Try adjusting keywords or cuisine.'
     }
     return `No restaurants found within ${CITY_SEARCH_RADIUS_KM} km. Try another city.`
-  }, [searchQuery, palateSortActive])
+  }, [searchQuery, cuisineFilterActive])
 
   const renderResultCard = useCallback(
     (item: RestaurantSearchResult) => {
@@ -457,10 +310,9 @@ export default function RestaurantsScreen() {
         ? coerceRatingNumber(item.google_rating)
         : coerceRatingNumber(item.average_rating)
 
-      const palateStat =
-        palateSortActive && statsMap && isTPResult(item)
-          ? getForRestaurantUuid(item.uuid)
-          : null
+      const palateStat = isPersonalised
+        ? preferenceStatForSearchResult(item, getForRestaurantUuid)
+        : null
 
       return (
         <RestaurantBrowseCard
@@ -476,7 +328,7 @@ export default function RestaurantsScreen() {
               ? (item.ratings_count ?? undefined)
               : (item.google_review_count ?? undefined)
           }
-          ratingMode={palateSortActive ? 'palate-match' : 'overall'}
+          ratingMode={isPersonalised ? 'palate-match' : 'overall'}
           searchPalateRating={palateStat?.avg ?? null}
           searchPalateReviewCount={palateStat?.count}
           containerStyle={cardWidth != null ? { width: cardWidth } : undefined}
@@ -485,7 +337,7 @@ export default function RestaurantsScreen() {
         />
       )
     },
-    [cardWidth, getForRestaurantUuid, handleCardPress, palateSortActive, statsMap],
+    [cardWidth, getForRestaurantUuid, handleCardPress, isPersonalised],
   )
 
   const renderBrowseCard = useCallback(
@@ -508,10 +360,10 @@ export default function RestaurantsScreen() {
           {error && displayRows.length > 0 ? (
             <Text className="mt-2 text-center text-xs text-red-600">{error}</Text>
           ) : null}
-          {palateStatsError && palateSortActive ? (
-            <Text className="mt-2 text-center text-xs text-amber-700">{palateStatsError}</Text>
+          {prefStatsError && isPersonalised ? (
+            <Text className="mt-2 text-center text-xs text-amber-700">{prefStatsError}</Text>
           ) : null}
-          {palateStatsLoading && palateSortActive ? (
+          {prefStatsLoading && isPersonalised ? (
             <Text className="mt-0.5 font-neusans text-xs text-gray-500">Updating match order…</Text>
           ) : null}
         </View>
@@ -549,9 +401,9 @@ export default function RestaurantsScreen() {
       error,
       listHeaderText.subtitle,
       listHeaderText.title,
-      palateSortActive,
-      palateStatsError,
-      palateStatsLoading,
+      prefStatsError,
+      prefStatsLoading,
+      isPersonalised,
       renderResultCard,
       selectedPinResult,
       sheetListData.length,
@@ -560,22 +412,23 @@ export default function RestaurantsScreen() {
 
   const showMapLayout = cityMapRegion != null
   const showMapExperience = showMapLayout && !loading && !(error && displayRows.length === 0)
-  const hasActiveFilters = !isNoPalateFilter(palate) || Boolean(searchQuery?.trim())
+  const hasActiveFilters = cuisineFilterActive || Boolean(searchQuery?.trim())
 
   const filterChips = hasActiveFilters ? (
     <View className="bg-white px-4 pb-2">
       <PalateFilterChips
-        palate={palate}
+        cuisine={cuisine}
         searchQuery={searchQuery}
-        onClearPalate={clearPalate}
+        onClearCuisine={clearCuisine}
         onClearSearch={clearSearch}
+        isPersonalised={isPersonalised}
       />
     </View>
   ) : null
 
   const mapMarkers = useMemo(() => {
-    if (!coordinates) return rows
-    return rows.filter((result) => {
+    if (!coordinates) return displayRows
+    return displayRows.filter((result) => {
       const coords = restaurantSearchResultCoords(result)
       if (coords.latitude == null || coords.longitude == null) return false
       return isWithinRadiusKm(
@@ -585,7 +438,7 @@ export default function RestaurantsScreen() {
         CITY_SEARCH_RADIUS_KM,
       )
     })
-  }, [rows, coordinates])
+  }, [displayRows, coordinates])
 
   return (
     <View className="flex-1 bg-white">
@@ -657,7 +510,7 @@ export default function RestaurantsScreen() {
               refreshControl={
                 <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={BRAND_PRIMARY} />
               }
-              onEndReached={() => void loadMore()}
+              onEndReached={handleLoadMore}
               onEndReachedThreshold={0.35}
               contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 32 }}
             />
@@ -686,16 +539,21 @@ export default function RestaurantsScreen() {
                 ItemSeparatorComponent={() => <View style={{ height: ROW_GAP }} />}
                 contentContainerStyle={{ paddingBottom: 24 }}
                 ListHeaderComponent={
-                  listHeaderText.subtitle || palateStatsLoading || palateStatsError ? (
+                  listHeaderText.subtitle || prefStatsLoading || prefStatsError ? (
                     <View className="pb-2">
                       {listHeaderText.subtitle ? (
                         <Text className="font-neusans text-xs" style={{ color: BRAND_PRIMARY }}>
                           {listHeaderText.subtitle}
                         </Text>
                       ) : null}
-                      {palateStatsLoading && palateSortActive ? (
+                      {prefStatsLoading && isPersonalised ? (
                         <Text className="mt-0.5 font-neusans text-xs text-gray-500">
                           Updating match order…
+                        </Text>
+                      ) : null}
+                      {prefStatsError && isPersonalised ? (
+                        <Text className="mt-0.5 font-neusans text-xs text-amber-700">
+                          {prefStatsError}
                         </Text>
                       ) : null}
                     </View>
@@ -714,7 +572,7 @@ export default function RestaurantsScreen() {
                 refreshControl={
                   <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={BRAND_PRIMARY} />
                 }
-                onEndReached={() => void loadMore()}
+                onEndReached={handleLoadMore}
                 onEndReachedThreshold={0.35}
               />
             </View>

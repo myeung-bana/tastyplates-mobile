@@ -70,7 +70,7 @@ export function SearchOverlay({ initialOpts, onClose }: SearchOverlayProps) {
 
       const params: Record<string, string | undefined> = {}
       if (q) params.listing = q
-      if (p) params.palate = p
+      if (p) params.cuisine = p
 
       onClose()
 
@@ -106,9 +106,11 @@ export function SearchOverlay({ initialOpts, onClose }: SearchOverlayProps) {
       onClose()
       setTimeout(() => {
         if (isTPResult(result)) {
+          const params: { slug: string; cuisine?: string } = { slug: result.slug }
+          if (selectedPalateKey) params.cuisine = selectedPalateKey
           router.push({
             pathname: SCREEN_RESTAURANT_DETAIL,
-            params: { slug: result.slug },
+            params,
           })
         } else {
           router.push({
@@ -118,7 +120,7 @@ export function SearchOverlay({ initialOpts, onClose }: SearchOverlayProps) {
         }
       }, 120)
     },
-    [debouncedKeyword, addRecent, onClose],
+    [debouncedKeyword, addRecent, onClose, selectedPalateKey],
   )
 
   const showResults = debouncedKeyword.trim().length >= 2
@@ -180,7 +182,11 @@ export function SearchOverlay({ initialOpts, onClose }: SearchOverlayProps) {
         </View>
 
         {showResults ? (
-          <HybridSearchResults keyword={debouncedKeyword} onSelect={handleResultSelect} />
+          <HybridSearchResults
+            keyword={debouncedKeyword}
+            cuisineSlug={selectedPalateKey}
+            onSelect={handleResultSelect}
+          />
         ) : (
           <ScrollView
             className="flex-1"
@@ -213,7 +219,7 @@ export function SearchOverlay({ initialOpts, onClose }: SearchOverlayProps) {
             <View className={recents.length > 0 ? 'pt-6' : 'pt-5'}>
               <View className="mb-2.5 px-4">
                 <Text className="font-neusans text-xs font-semibold uppercase tracking-wide text-gray-400">
-                  Search by Palate
+                  Search by Cuisine
                 </Text>
               </View>
               <PalatePickerScrollPanel

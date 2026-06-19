@@ -1,10 +1,8 @@
-import { Pressable, Text, View } from 'react-native'
-import { useRouter } from 'expo-router'
+import { Text, View } from 'react-native'
 import { AppIcon } from '@/components/ui/AppIcon'
 
 import { RestaurantImageCarousel } from '@/components/restaurant/RestaurantImageCarousel'
 import { BRAND_PRIMARY, TEXT_HEADING } from '@/constants/brand'
-import { cuisineBrowsePath } from '@/constants/screens'
 import {
   buildRestaurantImageGallery,
   extractCategoryNodes,
@@ -24,7 +22,6 @@ export type RestaurantDetailSummaryProps = {
  * Sections 1–2: full-bleed image gallery + restaurant header card.
  */
 export function RestaurantDetailSummary({ restaurant }: RestaurantDetailSummaryProps): JSX.Element {
-  const router = useRouter()
   const images = buildRestaurantImageGallery(restaurant)
   const { primaryPalate } = restaurantPalateAndCategoryLabels(restaurant)
   const categories = extractCategoryNodes(restaurant.categories)
@@ -80,21 +77,18 @@ export function RestaurantDetailSummary({ restaurant }: RestaurantDetailSummaryP
         </View>
 
         {categories.length > 0 ? (
-          <View className="mb-2 flex-row flex-wrap gap-1">
-            {categories.map((category) => (
-              <Pressable
-                key={category.slug}
-                accessibilityRole="button"
-                onPress={() => router.push(cuisineBrowsePath(category.slug) as never)}
-                className="active:opacity-90"
-              >
-                <View
-                  className="rounded-[20px] px-[10px] py-1"
-                  style={{ backgroundColor: BRAND_PRIMARY }}
-                >
-                  <Text className="font-neusans text-[13px] font-normal text-white">{category.name}</Text>
-                </View>
-              </Pressable>
+          <View className="mb-2 flex-row flex-wrap items-center">
+            {categories.map((category, index) => (
+              <View key={category.slug} className="flex-row items-center">
+                {index > 0 ? (
+                  <Text className="font-neusans text-[13px]" style={{ color: BRAND_PRIMARY }}>
+                    {' · '}
+                  </Text>
+                ) : null}
+                <Text className="font-neusans text-[13px] font-normal" style={{ color: BRAND_PRIMARY }}>
+                  {category.name}
+                </Text>
+              </View>
             ))}
           </View>
         ) : null}

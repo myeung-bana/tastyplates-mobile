@@ -107,6 +107,8 @@ export interface MergeRestaurantResultsOptions {
   suppressGoogleWhenTPCount?: number
   /** When set, Google rows are suppressed — palate scores are TP-only. */
   palateSlug?: string | null
+  /** When true, Google rows are suppressed during cuisine-filtered browse. */
+  cuisineFilterActive?: boolean
 }
 
 /**
@@ -122,12 +124,13 @@ export function mergeRestaurantResults(
     googleLimit = 10,
     suppressGoogleWhenTPCount = 20,
     palateSlug = null,
+    cuisineFilterActive = false,
   } = options
 
   const uniqueTpRows = dedupeTpRows(tpRows)
   const merged: RestaurantSearchResult[] = uniqueTpRows.map(toTPResult)
 
-  if (palateSlug?.trim()) {
+  if (palateSlug?.trim() || cuisineFilterActive) {
     return merged
   }
 

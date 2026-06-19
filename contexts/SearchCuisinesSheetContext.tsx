@@ -83,8 +83,8 @@ export function SearchCuisinesSheetProvider({ children }: PropsWithChildren) {
       router.navigate({
         pathname: SCREEN_RESTAURANTS,
         params: palateKey
-          ? { palate: palateKey, search: undefined, listing: undefined }
-          : { palate: undefined, search: undefined, listing: undefined },
+          ? { cuisine: palateKey, search: undefined, listing: undefined, palate: undefined }
+          : { cuisine: undefined, palate: undefined, search: undefined, listing: undefined },
       })
     },
     [router],

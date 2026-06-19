@@ -1,40 +1,50 @@
 import { Pressable, Text, View } from 'react-native'
 import { AppIcon } from '@/components/ui/AppIcon'
 
+import { BRAND_PRIMARY } from '@/constants/brand'
 import { labelForPalateKey } from '@/lib/palateLabels'
-import { isNoPalateFilter } from '@/lib/palateSearch'
+import { isNoCuisineFilter } from '@/lib/palateSearch'
 
 export type PalateFilterChipsProps = {
-  palate: string | null | undefined
+  cuisine: string | null | undefined
   searchQuery: string | null | undefined
-  onClearPalate: () => void
+  onClearCuisine: () => void
   onClearSearch: () => void
+  isPersonalised?: boolean
 }
 
 /**
- * Active palate / text filters on the Restaurants tab.
+ * Active cuisine / text filters on the Restaurants tab.
  */
 export function PalateFilterChips({
-  palate,
+  cuisine,
   searchQuery,
-  onClearPalate,
+  onClearCuisine,
   onClearSearch,
+  isPersonalised = false,
 }: PalateFilterChipsProps): JSX.Element | null {
-  const showPalate = !isNoPalateFilter(palate)
+  const showCuisine = !isNoCuisineFilter(cuisine)
   const showSearch = Boolean(searchQuery?.trim())
 
-  if (!showPalate && !showSearch) return null
+  if (!showCuisine && !showSearch) return null
 
   return (
-    <View className="flex-row flex-wrap gap-2" style={{ marginTop: -5 }}>
-      {showPalate ? (
-        <FilterChip
-          label={`Palate: ${labelForPalateKey(palate ?? null)}`}
-          onDismiss={onClearPalate}
-        />
-      ) : null}
-      {showSearch ? (
-        <FilterChip label={`Search: ${searchQuery!.trim()}`} onDismiss={onClearSearch} />
+    <View>
+      <View className="flex-row flex-wrap gap-2" style={{ marginTop: -5 }}>
+        {showCuisine ? (
+          <FilterChip
+            label={labelForPalateKey(cuisine ?? null)}
+            onDismiss={onClearCuisine}
+          />
+        ) : null}
+        {showSearch ? (
+          <FilterChip label={`Search: ${searchQuery!.trim()}`} onDismiss={onClearSearch} />
+        ) : null}
+      </View>
+      {isPersonalised ? (
+        <Text className="mt-1.5 font-neusans text-[11px]" style={{ color: BRAND_PRIMARY }}>
+          ✦ Ranked for your palate
+        </Text>
       ) : null}
     </View>
   )

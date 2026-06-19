@@ -15,6 +15,10 @@ import { ProfileAvatarImage } from '@/components/profile/ProfileAvatarImage'
 import { ReviewDetailTopNav } from '@/components/review/ReviewDetailTopNav'
 
 import { ReplyItem } from '@/components/review/ReplyItem'
+import {
+  ReviewCommentsSheet,
+  type ReviewCommentsSheetHandle,
+} from '@/components/review/ReviewCommentsSheet'
 import { ReviewDetailImages } from '@/components/review/ReviewDetailImages'
 import { ReplySkeleton } from '@/components/ui/Skeleton/ReplySkeleton'
 import { RatingDisplay } from '@/components/ui/RatingDisplay'
@@ -22,9 +26,10 @@ import { BORDER_SUBTLE, BRAND_PRIMARY, TEXT_BODY, TEXT_HEADING, TEXT_MUTED } fro
 import {
   SCREEN_HASHTAG_FEED,
   SCREEN_RESTAURANT_DETAIL,
-  SCREEN_REVIEW_COMMENTS,
+  SCREEN_REVIEW_VIEWER,
 } from '@/constants/screens'
 import { useAuth } from '@/hooks/useAuth'
+import { useReviewComments } from '@/hooks/useReviewComments'
 import { useReviewLike } from '@/hooks/useReviewLike'
 import { resolveReviewAuthorPresentation } from '@/lib/reviewAuthorDisplay'
 import { publicProfileFromAuthorFields, pushPublicProfile } from '@/lib/publicProfileNavigation'
@@ -37,7 +42,7 @@ import {
   fetchReviewById,
   type ReviewDetailRow,
 } from '@/services/reviewDetailService'
-import { reviewService, type ReplyRow } from '@/services/reviewService'
+import { reviewService } from '@/services/reviewService'
 import type { RestaurantUserRow } from '@/services/restaurantUserService'
 import { fetchRestaurantUserById } from '@/services/restaurantUserService'
 
@@ -68,17 +73,23 @@ function ReviewViewerBody({
   initialLiked,
 }: ReviewViewerBodyProps) {
   const { isAuthenticated } = useAuth()
+  const commentsSheetRef = useRef<ReviewCommentsSheetHandle>(null)
 
-  const [previewReplies, setPreviewReplies] = useState<ReplyRow[]>([])
-  const [commentsTotal, setCommentsTotal] = useState(review.replies_count ?? 0)
-  const [commentsLoading, setCommentsLoading] = useState(true)
-  const [replyLikes, setReplyLikes] = useState<Record<string, number>>({})
-  const [replyUserLiked, setReplyUserLiked] = useState<Record<string, boolean>>({})
-  const replyLikeInFlight = useRef<Record<string, boolean>>({})
+  const comments = useReviewComments({
+    reviewId: review.id,
+    restaurantUuid: review.restaurant_uuid,
+    initialTotalCount: review.replies_count ?? 0,
+    replyLimit: 100,
+    resumePath: { pathname: SCREEN_REVIEW_VIEWER, params: { reviewId: review.id } },
+  })
+
+  const previewReplies = useMemo(() => comments.replies.slice(0, 2), [comments.replies])
 
   const promptSignIn = useCallback(() => {
-    pushLoginScreen(router, { resume: '/(tabs)' })
-  }, [])
+    pushLoginScreen(router, {
+      resume: { pathname: SCREEN_REVIEW_VIEWER, params: { reviewId: review.id } },
+    })
+  }, [review.id])
 
   const { isLiked, likesCount, toggleLike } = useReviewLike({
     reviewId: review.id,
@@ -87,67 +98,10 @@ function ReviewViewerBody({
     onAuthRequired: promptSignIn,
   })
 
-  useEffect(() => {
-    let cancelled = false
-    setCommentsLoading(true)
-    void reviewService
-      .fetchCommentReplies(review.id, { limit: 2 })
-      .then((data) => {
-        if (cancelled) return
-        setPreviewReplies(data.replies)
-        setCommentsTotal(data.meta.total)
-        const likes: Record<string, number> = {}
-        const liked: Record<string, boolean> = {}
-        data.replies.forEach((row) => {
-          likes[row.id] = row.likes_count ?? 0
-          liked[row.id] = Boolean(row.user_liked)
-        })
-        setReplyLikes(likes)
-        setReplyUserLiked(liked)
-      })
-      .catch(() => {
-        if (!cancelled) setPreviewReplies([])
-      })
-      .finally(() => {
-        if (!cancelled) setCommentsLoading(false)
-      })
-    return () => {
-      cancelled = true
-    }
-  }, [review.id])
-
-  const handleReplyLike = useCallback(
-    (reply: ReplyRow) => {
-      if (!isAuthenticated) {
-        promptSignIn()
-        return
-      }
-      const id = reply.id
-      if (replyLikeInFlight.current[id]) return
-
-      const currentLiked = replyUserLiked[id] ?? false
-      const currentCount = replyLikes[id] ?? reply.likes_count ?? 0
-
-      replyLikeInFlight.current[id] = true
-      setReplyUserLiked((m) => ({ ...m, [id]: !currentLiked }))
-      setReplyLikes((m) => ({
-        ...m,
-        [id]: currentLiked ? Math.max(0, currentCount - 1) : currentCount + 1,
-      }))
-
-      void reviewService
-        .toggleReviewLike(id)
-        .then((result) => setReplyUserLiked((m) => ({ ...m, [id]: result.liked })))
-        .catch(() => {
-          setReplyUserLiked((m) => ({ ...m, [id]: currentLiked }))
-          setReplyLikes((m) => ({ ...m, [id]: currentCount }))
-        })
-        .finally(() => {
-          replyLikeInFlight.current[id] = false
-        })
-    },
-    [isAuthenticated, promptSignIn, replyLikes, replyUserLiked],
-  )
+  const openComments = useCallback((focusComposer = false) => {
+    void Haptics.selectionAsync()
+    commentsSheetRef.current?.present({ focusComposer })
+  }, [])
 
   const imageUris = reviewImageUris(review.images, 8)
   const title = capitalizeWords(stripHtml(review.title ?? '').trim())
@@ -162,8 +116,8 @@ function ReviewViewerBody({
   const when = formatRelativeTime(review.published_at ?? review.created_at ?? new Date())
 
   const metaBits: string[] = []
-  if (review.replies_count != null && review.replies_count > 0) {
-    metaBits.push(`${review.replies_count} repl${review.replies_count === 1 ? 'y' : 'ies'}`)
+  if (comments.totalCount > 0) {
+    metaBits.push(`${comments.totalCount} repl${comments.totalCount === 1 ? 'y' : 'ies'}`)
   }
   metaBits.push(when)
 
@@ -179,15 +133,11 @@ function ReviewViewerBody({
     openReviewAuthorProfile(review)
   }
 
-  const openComments = () => {
-    void Haptics.selectionAsync()
-    router.push({
-      pathname: SCREEN_REVIEW_COMMENTS,
-      params: { reviewId: review.id },
-    })
-  }
+  const openCommentsBrowse = () => openComments(false)
+  const openCommentsCompose = () => openComments(true)
 
   return (
+    <>
     <ScrollView
       className="flex-1"
       contentContainerStyle={{ paddingBottom: 32 }}
@@ -357,11 +307,25 @@ function ReviewViewerBody({
               </Text>
             ) : null}
           </Pressable>
+          <Pressable
+            onPress={openCommentsCompose}
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel={`${comments.totalCount} comments`}
+            className="ml-4 flex-row items-center gap-1.5 active:opacity-80"
+          >
+            <AppIcon name="message-circle" size={22} color="#31343F" />
+            {comments.totalCount > 0 ? (
+              <Text style={{ fontFamily: NEUSANS, fontSize: 14, color: '#31343F' }}>
+                {formatLikeCount(comments.totalCount)}
+              </Text>
+            ) : null}
+          </Pressable>
         </View>
       </View>
 
       <View className="px-5 pt-4">
-        {commentsLoading ? (
+        {comments.loading ? (
           <ReplySkeleton count={2} />
         ) : previewReplies.length === 0 ? (
           <View className="items-center py-6">
@@ -377,9 +341,10 @@ function ReviewViewerBody({
             <ReplyItem
               key={reply.id}
               reply={reply}
-              likesCount={replyLikes[reply.id]}
-              userLiked={replyUserLiked[reply.id]}
-              onLike={handleReplyLike}
+              likesCount={comments.replyLikes[reply.id]}
+              userLiked={comments.replyUserLiked[reply.id]}
+              isLikeLoading={comments.replyLikeBusy[reply.id]}
+              onLike={comments.handleReplyLike}
               isAuthenticated={isAuthenticated}
               onAuthRequired={promptSignIn}
             />
@@ -387,9 +352,9 @@ function ReviewViewerBody({
         )}
 
         <Pressable
-          onPress={openComments}
+          onPress={openCommentsBrowse}
           accessibilityRole="button"
-          accessibilityLabel={`View all comments, ${commentsTotal} total`}
+          accessibilityLabel={`View all comments, ${comments.totalCount} total`}
           className="mt-2 w-full items-center active:opacity-90"
           style={{
             borderWidth: 1,
@@ -400,11 +365,14 @@ function ReviewViewerBody({
           }}
         >
           <Text style={{ fontFamily: NEUSANS, fontSize: 14, color: '#31343F' }}>
-            View All Comments ({commentsTotal})
+            View All Comments ({comments.totalCount})
           </Text>
         </Pressable>
       </View>
     </ScrollView>
+
+    <ReviewCommentsSheet ref={commentsSheetRef} comments={comments} />
+    </>
   )
 }
 

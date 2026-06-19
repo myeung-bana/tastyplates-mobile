@@ -198,7 +198,7 @@ export default function RestaurantReviewsScreen() {
   }
 
   const sortChips = (
-    <View className="border-b border-gray-100 py-3">
+    <View className="border-b border-gray-100 px-4 py-3">
       <RestaurantReviewSortChips active={sortFilter} onChange={setSortFilter} />
     </View>
   )

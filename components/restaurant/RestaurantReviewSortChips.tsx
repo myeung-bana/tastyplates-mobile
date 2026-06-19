@@ -1,15 +1,12 @@
-import { Pressable, ScrollView, Text } from 'react-native'
-import * as Haptics from 'expo-haptics'
-
-import { BRAND_PRIMARY, TEXT_HEADING } from '@/constants/brand'
+import { PillTabBar } from '@/components/ui/PillTabBar'
 
 export type RestaurantReviewSortFilter = 'all' | 'asc' | 'desc' | 'highest'
 
-const TABS: { key: RestaurantReviewSortFilter; label: string }[] = [
-  { key: 'all', label: 'All' },
-  { key: 'asc', label: 'ASC' },
-  { key: 'desc', label: 'DESC' },
-  { key: 'highest', label: 'Highest Rated' },
+const TABS = [
+  { key: 'all' as const, label: 'All' },
+  { key: 'asc' as const, label: 'Oldest first', icon: 'arrow-up' as const, iconOnly: true },
+  { key: 'desc' as const, label: 'Newest first', icon: 'arrow-down' as const, iconOnly: true },
+  { key: 'highest' as const, label: 'Highest Rated' },
 ]
 
 type Props = {
@@ -17,34 +14,7 @@ type Props = {
   onChange: (filter: RestaurantReviewSortFilter) => void
 }
 
-/** Pill sort controls for restaurant review list. */
+/** Sort tabs for the restaurant reviews list. */
 export function RestaurantReviewSortChips({ active, onChange }: Props): JSX.Element {
-  return (
-    <ScrollView
-      horizontal
-      showsHorizontalScrollIndicator={false}
-      contentContainerStyle={{ paddingHorizontal: 16, gap: 8, paddingBottom: 4 }}
-    >
-      {TABS.map((tab) => {
-        const pressed = active === tab.key
-        return (
-          <Pressable
-            key={tab.key}
-            accessibilityRole="button"
-            accessibilityState={{ selected: pressed }}
-            onPress={() => {
-              void Haptics.selectionAsync()
-              onChange(tab.key)
-            }}
-            className="rounded-full px-5 py-2"
-            style={{ backgroundColor: pressed ? BRAND_PRIMARY : '#f3f4f6' }}
-          >
-            <Text style={{ fontWeight: '700', color: pressed ? '#ffffff' : TEXT_HEADING }}>
-              {tab.label}
-            </Text>
-          </Pressable>
-        )
-      })}
-    </ScrollView>
-  )
+  return <PillTabBar tabs={TABS} activeTab={active} onTabChange={onChange} />
 }

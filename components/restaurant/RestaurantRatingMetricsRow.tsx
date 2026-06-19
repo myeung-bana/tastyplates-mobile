@@ -1,8 +1,8 @@
 import { ScrollView, Text, View } from 'react-native'
 import { AppIcon } from '@/components/ui/AppIcon'
 
-import { BRAND_PRIMARY, TEXT_HEADING, TEXT_MUTED } from '@/constants/brand'
-import { isNoPalateFilter } from '@/lib/palateSearch'
+import { BRAND_PRIMARY, TEXT_HEADING } from '@/constants/brand'
+import { labelForPalateKey } from '@/lib/palateLabels'
 
 export type RestaurantRatingMetricsRowProps = {
   overallAvg: number | null
@@ -11,8 +11,13 @@ export type RestaurantRatingMetricsRowProps = {
   authenticCount: number
   searchAvg: number | null
   searchCount: number
-  palateSlug: string | null | undefined
   isAuthenticated: boolean
+  cuisineFilterActive: boolean
+  isPersonalised: boolean
+  trustSet: string[]
+  sharedAvg: number | null
+  sharedCount: number
+  sharedUnlocked: boolean
   /** When true, omit outer border — parent provides the white card shell. */
   embedded?: boolean
 }
@@ -37,21 +42,37 @@ export function RestaurantRatingMetricsRow({
   authenticCount,
   searchAvg,
   searchCount,
-  palateSlug,
   isAuthenticated,
+  cuisineFilterActive,
+  isPersonalised,
+  trustSet,
+  sharedAvg,
+  sharedCount,
+  sharedUnlocked,
   embedded = false,
 }: RestaurantRatingMetricsRowProps): JSX.Element {
-  const palateActive = !isNoPalateFilter(palateSlug)
-  const showSearchValues = isAuthenticated || palateActive
+  const searchUnlocked = cuisineFilterActive
 
-  const searchSubtitle =
-    showSearchValues && palateActive && !isAuthenticated
-      ? 'Avg. from reviewers\nwith this palate'
-      : showSearchValues
-        ? "How much we'd\nthink you'd like"
-        : 'Sign in to see\nyour score'
+  const searchTitle = isPersonalised ? 'Your Score' : 'Search Score'
 
-  const sharedUnlocked = isAuthenticated
+  const trustReviewerLabel =
+    trustSet.length > 0 ? trustSet.map((slug) => labelForPalateKey(slug)).join(' & ') : null
+
+  const searchSubtitle = !cuisineFilterActive
+    ? isAuthenticated
+      ? 'Browse by cuisine\nto unlock'
+      : 'Sign in to see\nyour score'
+    : isPersonalised && trustReviewerLabel
+      ? `Rated by ${trustReviewerLabel}\nreviewers`
+      : !isAuthenticated
+        ? 'Avg. from reviewers\nwith this cuisine'
+        : "How much we'd\nthink you'd like"
+
+  const sharedSubtitle = sharedUnlocked
+    ? 'What shared\npreference users think'
+    : isAuthenticated
+      ? 'Not enough reviews\nfrom your palate'
+      : 'Sign in to see\nshared score'
 
   return (
     <View className={embedded ? 'py-6' : 'border-t px-0 py-4'} style={embedded ? undefined : { borderTopColor: '#e5e7eb' }}>
@@ -71,11 +92,11 @@ export function RestaurantRatingMetricsRow({
         />
         <Divider />
         <MetricColumn
-          title="Search Score"
-          value={showSearchValues ? formatRating(searchAvg) : null}
-          count={showSearchValues ? formatCount(searchCount) : undefined}
+          title={searchTitle}
+          value={searchUnlocked ? formatRating(searchAvg) : null}
+          count={searchUnlocked ? formatCount(searchCount) : undefined}
           subtitle={searchSubtitle}
-          locked={!showSearchValues}
+          locked={!searchUnlocked}
         />
         <Divider />
         <MetricColumn
@@ -87,11 +108,9 @@ export function RestaurantRatingMetricsRow({
         <Divider />
         <MetricColumn
           title="Shared Score"
-          value={sharedUnlocked ? '—' : null}
-          count={sharedUnlocked ? '0' : undefined}
-          subtitle={
-            sharedUnlocked ? 'What shared\npreference users think' : 'Sign in to see\nshared score'
-          }
+          value={sharedUnlocked ? formatRating(sharedAvg) : null}
+          count={sharedUnlocked ? formatCount(sharedCount) : undefined}
+          subtitle={sharedSubtitle}
           locked={!sharedUnlocked}
         />
       </ScrollView>
@@ -118,33 +137,27 @@ function MetricColumn({
 }): JSX.Element {
   return (
     <View className="min-w-[132px] items-center px-1 py-1">
-      <Text className="mb-0.5 text-center text-sm font-semibold" style={{ color: TEXT_HEADING }}>
+      <Text className="mb-0.5 text-center font-neusans text-sm font-semibold text-gray-800">
         {title}
       </Text>
-      <View className="items-center">
-        <View className="relative mb-1 items-center justify-center" style={{ minHeight: 32 }}>
-          {locked ? (
-            <AppIcon name="lock" size={24} color="#9ca3af" />
-          ) : (
-            <>
-              <Text className="text-2xl font-bold" style={{ color: TEXT_HEADING }}>
-                {value ?? '—'}
-              </Text>
-              {count != null && value != null && value !== '—' ? (
-                <View
-                  className="absolute -bottom-0.5 -right-4 h-5 w-5 items-center justify-center rounded-full"
-                  style={{ backgroundColor: BRAND_PRIMARY }}
-                >
-                  <Text className="text-[10px] font-bold text-white">{count}</Text>
-                </View>
-              ) : null}
-            </>
-          )}
-        </View>
-        <Text className="text-center text-[11px] leading-tight" style={{ color: TEXT_MUTED }}>
-          {subtitle}
-        </Text>
+      <View className="mb-1 items-center">
+        {locked ? (
+          <AppIcon name="lock" size={24} color="#9ca3af" />
+        ) : (
+          <View className="relative mb-1 pr-4">
+            <Text className="font-neusans text-2xl font-bold text-gray-800">{value ?? '—'}</Text>
+            {count != null ? (
+              <View
+                className="absolute -bottom-0.5 -right-4 h-5 w-5 items-center justify-center rounded-full"
+                style={{ backgroundColor: BRAND_PRIMARY }}
+              >
+                <Text className="font-neusans text-[10px] font-bold text-white">{count}</Text>
+              </View>
+            ) : null}
+          </View>
+        )}
       </View>
+      <Text className="text-center font-neusans text-[11px] leading-tight text-gray-500">{subtitle}</Text>
     </View>
   )
 }

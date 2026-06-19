@@ -1,14 +1,11 @@
-import { Pressable, Text, View } from 'react-native'
-import * as Haptics from 'expo-haptics'
-
-import { BRAND_PRIMARY, TEXT_HEADING } from '@/constants/brand'
+import { PillTabBar } from '@/components/ui/PillTabBar'
 
 export type ReviewListingFilter = 'all' | 'draft' | 'live'
 
-const TABS: { key: ReviewListingFilter; label: string }[] = [
-  { key: 'all', label: 'All' },
-  { key: 'draft', label: 'Drafts' },
-  { key: 'live', label: 'Live' },
+const TABS = [
+  { key: 'all' as const, label: 'All' },
+  { key: 'draft' as const, label: 'Drafts' },
+  { key: 'live' as const, label: 'Live' },
 ]
 
 interface Props {
@@ -16,30 +13,13 @@ interface Props {
   onChange: (filter: ReviewListingFilter) => void
 }
 
-/** Pill filter chips for Manage Reviews — same pattern as review-listing / Manage Lists tabs. */
 export function ReviewListingFilterChips({ active, onChange }: Props): JSX.Element {
   return (
-    <View className="mt-4 flex-row flex-wrap gap-2">
-      {TABS.map((tab) => {
-        const pressed = active === tab.key
-        return (
-          <Pressable
-            key={tab.key}
-            accessibilityRole="button"
-            accessibilityState={{ selected: pressed }}
-            onPress={() => {
-              void Haptics.selectionAsync()
-              onChange(tab.key)
-            }}
-            className="rounded-full px-7 py-2"
-            style={{ backgroundColor: pressed ? BRAND_PRIMARY : '#f3f4f6' }}
-          >
-            <Text style={{ fontWeight: '700', color: pressed ? '#ffffff' : TEXT_HEADING }}>
-              {tab.label}
-            </Text>
-          </Pressable>
-        )
-      })}
-    </View>
+    <PillTabBar
+      className="mt-4"
+      tabs={TABS}
+      activeTab={active}
+      onTabChange={onChange}
+    />
   )
 }
