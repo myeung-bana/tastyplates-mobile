@@ -21,7 +21,7 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "buildNumber": "14",
+      "buildNumber": "15",
       "bundleIdentifier": "com.bana.tastyplates-dev",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
@@ -34,7 +34,8 @@
       "adaptiveIcon": {
         "foregroundImage": "./assets/AppIcons/playstore.png",
         "backgroundColor": "#ff7c0a"
-      }
+      },
+      "versionCode": 3
     },
     "extra": {
       "eas": {

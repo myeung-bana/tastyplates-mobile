@@ -4,22 +4,14 @@ import {
   useContext,
   useEffect,
   useMemo,
-  useRef,
   useState,
-  type ElementRef,
   type PropsWithChildren,
 } from 'react'
-import { Keyboard, StyleSheet } from 'react-native'
-import {
-  BottomSheetBackdrop,
-  BottomSheetModal,
-  BottomSheetScrollView,
-} from '@gorhom/bottom-sheet'
-import type { BottomSheetBackdropProps } from '@gorhom/bottom-sheet'
-import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { Keyboard } from 'react-native'
 
 import { AuthFormBody } from '@/components/auth/AuthFormBody'
-import { AuthFormPanel, authSheetPanelStyle } from '@/components/auth/AuthFormPanel'
+import { AuthHeroLayout } from '@/components/auth/AuthHeroLayout'
+import { FullScreenOverlay } from '@/components/layout/FullScreenOverlay'
 import type { AuthScreenMode } from '@/lib/authRoutes'
 import { serializeAuthResume } from '@/lib/authRoutes'
 import type { OpenAuthSheetOptions } from '@/lib/authSheetRef'
@@ -43,27 +35,23 @@ export function useAuthSheet(): AuthSheetContextValue {
 }
 
 export function AuthSheetProvider({ children }: PropsWithChildren): JSX.Element {
-  const insets = useSafeAreaInsets()
-  const sheetRef = useRef<ElementRef<typeof BottomSheetModal>>(null)
-  const [sheetKey, setSheetKey] = useState(0)
+  const [isOpen, setIsOpen] = useState(false)
+  const [overlayKey, setOverlayKey] = useState(0)
   const [initialMode, setInitialMode] = useState<AuthScreenMode>('chooser')
   const [resume, setResume] = useState<string | undefined>(undefined)
   const [showSkipLogin, setShowSkipLogin] = useState(false)
 
-  /** 75% leaves headroom so the keyboard does not cover email/password fields. */
-  const snapPoints = useMemo(() => ['75%'], [])
-
-  const dismissSheet = useCallback(() => {
+  const dismissOverlay = useCallback(() => {
     Keyboard.dismiss()
-    sheetRef.current?.dismiss()
+    setIsOpen(false)
   }, [])
 
   const openAuthSheet = useCallback((options?: OpenAuthSheetOptions) => {
     setInitialMode(options?.mode ?? 'chooser')
     setResume(serializeAuthResume(options?.resume))
     setShowSkipLogin(options?.showSkipLogin ?? false)
-    setSheetKey((k) => k + 1)
-    sheetRef.current?.present()
+    setOverlayKey((k) => k + 1)
+    setIsOpen(true)
   }, [])
 
   useEffect(() => {
@@ -73,61 +61,42 @@ export function AuthSheetProvider({ children }: PropsWithChildren): JSX.Element 
     }
   }, [openAuthSheet])
 
-  const renderBackdrop = useCallback(
-    (props: BottomSheetBackdropProps) => (
-      <BottomSheetBackdrop {...props} appearsOnIndex={0} disappearsOnIndex={-1} pressBehavior="close" />
-    ),
-    [],
-  )
-
   const value = useMemo(
     () => ({
       openAuthSheet,
-      closeAuthSheet: dismissSheet,
+      closeAuthSheet: dismissOverlay,
     }),
-    [openAuthSheet, dismissSheet],
+    [openAuthSheet, dismissOverlay],
   )
 
   return (
     <AuthSheetContext.Provider value={value}>
       {children}
-      <BottomSheetModal
-        ref={sheetRef}
-        snapPoints={snapPoints}
-        enablePanDownToClose
-        keyboardBehavior="interactive"
-        keyboardBlurBehavior="restore"
-        android_keyboardInputMode="adjustResize"
-        backdropComponent={renderBackdrop}
-        handleIndicatorStyle={styles.hiddenHandle}
-        backgroundStyle={authSheetPanelStyle.sheet}
-        onDismiss={() => Keyboard.dismiss()}
+      <FullScreenOverlay
+        visible={isOpen}
+        onRequestClose={dismissOverlay}
+        animationType="slide"
+        keyboardAvoiding={false}
+        style={{ paddingTop: 0, paddingBottom: 0, paddingLeft: 0, paddingRight: 0 }}
       >
-        <BottomSheetScrollView
-          keyboardShouldPersistTaps="handled"
-          contentContainerStyle={{ paddingBottom: Math.max(insets.bottom, 16) + 16 }}
-        >
-          <AuthFormBody
-            key={sheetKey}
-            initialMode={initialMode}
-            resume={resume}
-            showSkipLogin={showSkipLogin}
-            onBeforeNavigate={dismissSheet}
-            renderShell={({ title, subtitle, headerSlot, body }) => (
-              <AuthFormPanel title={title} subtitle={subtitle} headerSlot={headerSlot}>
-                {body}
-              </AuthFormPanel>
-            )}
-          />
-        </BottomSheetScrollView>
-      </BottomSheetModal>
+        <AuthFormBody
+          key={overlayKey}
+          initialMode={initialMode}
+          resume={resume}
+          showSkipLogin={showSkipLogin}
+          onBeforeNavigate={dismissOverlay}
+          renderShell={({ title, subtitle, headerSlot, body }) => (
+            <AuthHeroLayout
+              title={title}
+              subtitle={subtitle}
+              headerSlot={headerSlot}
+              onClose={dismissOverlay}
+            >
+              {body}
+            </AuthHeroLayout>
+          )}
+        />
+      </FullScreenOverlay>
     </AuthSheetContext.Provider>
   )
 }
-
-const styles = StyleSheet.create({
-  hiddenHandle: {
-    opacity: 0,
-    height: 0,
-  },
-})

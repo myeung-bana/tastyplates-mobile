@@ -3,6 +3,7 @@ import {
   ImageBackground,
   KeyboardAvoidingView,
   Platform,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -10,8 +11,10 @@ import {
   View,
 } from 'react-native'
 import { StatusBar } from 'expo-status-bar'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import TastyLogoWhite from '@/assets/icons/TastyPlates_Logo_White.svg'
+import { AppIcon } from '@/components/ui/AppIcon'
 import { TEXT_HEADING, TEXT_MUTED } from '@/constants/brand'
 
 const AUTH_HEADER_IMAGE = require('@/assets/images/tastyplates-splash.webp')
@@ -37,6 +40,8 @@ type AuthHeroLayoutProps = {
   children: ReactNode
   /** Optional slot above title (e.g. back button on email sign-in / sign-up). */
   headerSlot?: ReactNode
+  /** Dismiss control for modal / overlay presentation. */
+  onClose?: () => void
 }
 
 /**
@@ -47,7 +52,9 @@ export function AuthHeroLayout({
   subtitle,
   children,
   headerSlot,
+  onClose,
 }: AuthHeroLayoutProps): JSX.Element {
+  const insets = useSafeAreaInsets()
   const { height: screenHeight } = useWindowDimensions()
   const heroHeight = getAuthHeroHeight(screenHeight)
 
@@ -65,6 +72,23 @@ export function AuthHeroLayout({
             pointerEvents="none"
             style={[StyleSheet.absoluteFill, { backgroundColor: HERO_OVERLAY }]}
           />
+          {onClose ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Close"
+              hitSlop={12}
+              onPress={onClose}
+              style={{
+                position: 'absolute',
+                top: insets.top + 8,
+                right: Math.max(insets.right, 16),
+                zIndex: 1,
+                padding: 4,
+              }}
+            >
+              <AppIcon name="x" size={24} color="#ffffff" />
+            </Pressable>
+          ) : null}
           <View className="flex-1 items-center justify-center pb-6 pt-6">
             <TastyLogoWhite
               accessible={false}
@@ -77,7 +101,7 @@ export function AuthHeroLayout({
       </View>
 
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         className="flex-1"
         style={{ marginTop: -SHEET_OVERLAP }}
       >
