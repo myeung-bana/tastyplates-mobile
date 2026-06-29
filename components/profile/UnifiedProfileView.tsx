@@ -197,6 +197,7 @@ export function UnifiedProfileView({
       {contentTab === 'reviews' ? (
         <ProfileReviewsTabPanel
           userId={routeUserId}
+          isOwnProfile={isOwnProfile}
           onPressReview={openReview}
           emptyMessage={
             isOwnProfile

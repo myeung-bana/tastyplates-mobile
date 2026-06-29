@@ -10,7 +10,6 @@ import {
 import { Keyboard } from 'react-native'
 
 import { AuthFormBody } from '@/components/auth/AuthFormBody'
-import { AuthHeroLayout } from '@/components/auth/AuthHeroLayout'
 import { FullScreenOverlay } from '@/components/layout/FullScreenOverlay'
 import type { AuthScreenMode } from '@/lib/authRoutes'
 import { serializeAuthResume } from '@/lib/authRoutes'
@@ -79,23 +78,17 @@ export function AuthSheetProvider({ children }: PropsWithChildren): JSX.Element 
         keyboardAvoiding={false}
         style={{ paddingTop: 0, paddingBottom: 0, paddingLeft: 0, paddingRight: 0 }}
       >
-        <AuthFormBody
-          key={overlayKey}
-          initialMode={initialMode}
-          resume={resume}
-          showSkipLogin={showSkipLogin}
-          onBeforeNavigate={dismissOverlay}
-          renderShell={({ title, subtitle, headerSlot, body }) => (
-            <AuthHeroLayout
-              title={title}
-              subtitle={subtitle}
-              headerSlot={headerSlot}
-              onClose={dismissOverlay}
-            >
-              {body}
-            </AuthHeroLayout>
-          )}
-        />
+        {isOpen ? (
+          <AuthFormBody
+            key={overlayKey}
+            layout="overlay"
+            initialMode={initialMode}
+            resume={resume}
+            showSkipLogin={showSkipLogin}
+            onBeforeNavigate={dismissOverlay}
+            onClose={dismissOverlay}
+          />
+        ) : null}
       </FullScreenOverlay>
     </AuthSheetContext.Provider>
   )

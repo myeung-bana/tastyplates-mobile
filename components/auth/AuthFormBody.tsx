@@ -10,7 +10,9 @@ import { useRouter } from 'expo-router'
 import type { User } from '@nhost/nhost-js'
 
 import { AuthBackButton } from '@/components/auth/AuthBackButton'
+import { AuthHeroLayout } from '@/components/auth/AuthHeroLayout'
 import { AuthMethodChooser } from '@/components/auth/AuthMethodChooser'
+import { AuthOverlayLayout } from '@/components/auth/AuthOverlayLayout'
 import { LoginForm } from '@/components/auth/LoginForm'
 import { RegisterEmailForm } from '@/components/auth/RegisterEmailForm'
 import { SCREEN_HOME } from '@/constants/screens'
@@ -27,6 +29,10 @@ export type AuthFormBodyProps = {
   showSkipLogin?: boolean
   /** Called after successful auth before navigation (e.g. close sheet). */
   onBeforeNavigate?: () => void
+  /** `overlay` — full-screen white modal; `hero` — splash image shell (default). */
+  layout?: 'hero' | 'overlay'
+  /** Required when `layout` is `overlay`. */
+  onClose?: () => void
 }
 
 function authCopy(view: AuthScreenMode): { title: string; subtitle: string } {
@@ -50,16 +56,18 @@ function authCopy(view: AuthScreenMode): { title: string; subtitle: string } {
 }
 
 /**
- * Auth chooser + email forms — shared by {@link AuthHeroLayout} and the global auth sheet.
+ * Auth chooser + email forms — shared by hero screens and the global auth overlay.
  */
 export function AuthFormBody({
   initialMode = 'chooser',
   resume,
   showSkipLogin = false,
   onBeforeNavigate,
+  layout = 'hero',
+  onClose,
   renderShell,
 }: AuthFormBodyProps & {
-  renderShell: (content: {
+  renderShell?: (content: {
     title: string
     subtitle: string
     headerSlot: ReactNode
@@ -161,5 +169,35 @@ export function AuthFormBody({
     </>
   )
 
-  return <>{renderShell({ title, subtitle, headerSlot, body })}</>
+  const shellContent = { title, subtitle, headerSlot, body }
+
+  if (layout === 'overlay') {
+    if (!onClose) {
+      throw new Error('AuthFormBody: onClose is required when layout is "overlay"')
+    }
+    return (
+      <AuthOverlayLayout
+        title={shellContent.title}
+        subtitle={shellContent.subtitle}
+        headerSlot={shellContent.headerSlot}
+        onClose={onClose}
+      >
+        {shellContent.body}
+      </AuthOverlayLayout>
+    )
+  }
+
+  if (renderShell) {
+    return <>{renderShell(shellContent)}</>
+  }
+
+  return (
+    <AuthHeroLayout
+      title={shellContent.title}
+      subtitle={shellContent.subtitle}
+      headerSlot={shellContent.headerSlot}
+    >
+      {shellContent.body}
+    </AuthHeroLayout>
+  )
 }

@@ -1,16 +1,38 @@
 import { useCallback, useEffect, useState } from 'react'
+import { useAccessToken } from '@nhost/react'
 
+import { useSession } from '@/hooks/useSession'
 import type { TrendingReviewRow } from '@/services/homeReviewsService'
 import { fetchUserReviews } from '@/services/profileUserReviewsService'
 
 const DEFAULT_PAGE_SIZE = 16
 
+export type UsePublicProfileReviewsListOptions = {
+  pageSize?: number
+  /** When true, attach Bearer token so the owner sees drafts/pending (backend `canReadPrivate`). */
+  withAuth?: boolean
+}
+
+function reviewsLoadErrorMessage(error: unknown): string {
+  if (__DEV__ && error instanceof Error && error.message.trim().length > 0) {
+    return error.message
+  }
+  return 'Could not load reviews.'
+}
+
 export function usePublicProfileReviewsList(
   authorId: string | null,
-  pageSize = DEFAULT_PAGE_SIZE,
+  options: UsePublicProfileReviewsListOptions = {},
 ) {
+  const pageSize = options.pageSize ?? DEFAULT_PAGE_SIZE
+  const withAuth = options.withAuth ?? false
+  const { isReady: authReady } = useSession()
+  const accessToken = useAccessToken()
+  const authTokenReady = !withAuth || (authReady && Boolean(accessToken))
+  const canFetch = Boolean(authorId) && authTokenReady
+
   const [rows, setRows] = useState<TrendingReviewRow[]>([])
-  const [loading, setLoading] = useState(Boolean(authorId))
+  const [loading, setLoading] = useState(canFetch)
   const [refreshing, setRefreshing] = useState(false)
   const [loadingMore, setLoadingMore] = useState(false)
   const [listError, setListError] = useState<string | null>(null)
@@ -23,6 +45,7 @@ export function usePublicProfileReviewsList(
       const result = await fetchUserReviews(authorId, {
         limit: pageSize,
         offset: nextOffset,
+        withAuth,
       })
 
       setRows((prev) =>
@@ -31,7 +54,7 @@ export function usePublicProfileReviewsList(
       setHasMore(result.meta.hasMore)
       setListError(null)
     },
-    [authorId, pageSize],
+    [authorId, pageSize, withAuth],
   )
 
   useEffect(() => {
@@ -43,6 +66,11 @@ export function usePublicProfileReviewsList(
       return
     }
 
+    if (!canFetch) {
+      setLoading(true)
+      return
+    }
+
     let cancelled = false
     setLoading(true)
     setListError(null)
@@ -50,11 +78,14 @@ export function usePublicProfileReviewsList(
     void (async () => {
       try {
         await loadPage(0, 'replace')
-      } catch {
+      } catch (error) {
+        if (__DEV__) {
+          console.warn('[usePublicProfileReviewsList] load failed', error)
+        }
         if (!cancelled) {
           setRows([])
           setHasMore(false)
-          setListError('Could not load reviews.')
+          setListError(reviewsLoadErrorMessage(error))
         }
       } finally {
         if (!cancelled) setLoading(false)
@@ -64,7 +95,7 @@ export function usePublicProfileReviewsList(
     return () => {
       cancelled = true
     }
-  }, [authorId, loadPage])
+  }, [authorId, canFetch, loadPage])
 
   const loadMore = useCallback(async () => {
     if (!authorId || !hasMore || loadingMore || loading || listError) return
@@ -72,7 +103,10 @@ export function usePublicProfileReviewsList(
     setLoadingMore(true)
     try {
       await loadPage(rows.length, 'append')
-    } catch {
+    } catch (error) {
+      if (__DEV__) {
+        console.warn('[usePublicProfileReviewsList] loadMore failed', error)
+      }
       setHasMore(false)
     } finally {
       setLoadingMore(false)
@@ -80,16 +114,19 @@ export function usePublicProfileReviewsList(
   }, [authorId, hasMore, loadingMore, loading, listError, loadPage, rows.length])
 
   const refresh = useCallback(async () => {
-    if (!authorId) return
+    if (!authorId || !canFetch) return
     setRefreshing(true)
     try {
       await loadPage(0, 'replace')
-    } catch {
-      setListError('Could not load reviews.')
+    } catch (error) {
+      if (__DEV__) {
+        console.warn('[usePublicProfileReviewsList] refresh failed', error)
+      }
+      setListError(reviewsLoadErrorMessage(error))
     } finally {
       setRefreshing(false)
     }
-  }, [authorId, loadPage])
+  }, [authorId, canFetch, loadPage])
 
   return {
     rows,

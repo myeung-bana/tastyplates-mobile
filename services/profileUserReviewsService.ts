@@ -16,8 +16,8 @@ export interface FetchUserReviewsResult {
 }
 
 /**
- * Lists reviews for an author (`restaurant-reviews/get-user-reviews`).
- * Without auth: approved only. With auth + `withAuth`: owner sees drafts too (same rule as backend `canReadPrivate`).
+ * Lists reviews for a profile author (`restaurant-reviews/get-user-reviews`).
+ * Without auth: approved only. With auth: owner sees drafts/pending too (`canReadPrivate` on backend).
  */
 export async function fetchUserReviews(
   authorId: string,

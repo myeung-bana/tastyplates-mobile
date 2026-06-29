@@ -6,6 +6,7 @@ import { ProfileReviewsTabPanel } from '@/components/profile/ProfileReviewsTabPa
 import { ReviewDetailTopNav } from '@/components/review/ReviewDetailTopNav'
 import { TEXT_BODY, TEXT_MUTED } from '@/constants/brand'
 import { SCREEN_REVIEW_VIEWER } from '@/constants/screens'
+import { useAuth } from '@/hooks/useAuth'
 import {
   fetchRestaurantUserByUsername,
   isRestaurantUserRouteId,
@@ -14,6 +15,7 @@ import {
 /** Full list of approved reviews for `[userId]` (UUID or username segment). */
 export default function PublicProfileReviewsListScreen(): JSX.Element {
   const raw = useLocalSearchParams<{ userId: string | string[] }>()
+  const { user: viewer } = useAuth()
   const userSeg =
     typeof raw.userId === 'string' ? raw.userId.trim().replace(/^@/, '') : raw.userId?.[0]?.trim() ?? ''
 
@@ -100,6 +102,7 @@ export default function PublicProfileReviewsListScreen(): JSX.Element {
       <ReviewDetailTopNav title="Reviews" />
       <ProfileReviewsTabPanel
         userId={authorUuid}
+        isOwnProfile={Boolean(viewer?.id && viewer.id === authorUuid)}
         onPressReview={(reviewId) =>
           router.push({
             pathname: SCREEN_REVIEW_VIEWER,

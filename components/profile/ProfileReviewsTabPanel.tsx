@@ -30,6 +30,8 @@ function ProfileReviewsGridSkeleton({ columnWidth }: { columnWidth: number }): J
 
 export type ProfileReviewsTabPanelProps = {
   userId: string
+  /** Signed-in viewer viewing their own profile — fetches with auth (includes drafts). */
+  isOwnProfile?: boolean
   onPressReview: (reviewId: string) => void
   emptyMessage?: string
 }
@@ -37,6 +39,7 @@ export type ProfileReviewsTabPanelProps = {
 /** Paginated review grid for the profile Reviews tab. */
 export function ProfileReviewsTabPanel({
   userId,
+  isOwnProfile = false,
   onPressReview,
   emptyMessage = 'Reviews from this account will appear here soon.',
 }: ProfileReviewsTabPanelProps): JSX.Element {
@@ -54,7 +57,7 @@ export function ProfileReviewsTabPanel({
     listError,
     loadMore,
     refresh,
-  } = usePublicProfileReviewsList(userId)
+  } = usePublicProfileReviewsList(userId, { withAuth: isOwnProfile })
 
   if (loading && rows.length === 0) {
     return (
