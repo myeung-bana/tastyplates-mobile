@@ -40,32 +40,42 @@ export function SkeletonBlock({
 
 export function RestaurantListSkeletonRow({
   opacity,
+  showRating = false,
 }: {
   opacity: ReturnType<typeof useSharedValue<number>>
+  showRating?: boolean
 }): JSX.Element {
   return (
     <View
-      style={{ height: 72, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 8, gap: 12 }}
+      style={{ height: 72, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12, gap: 12 }}
       accessibilityElementsHidden
       importantForAccessibility="no-hide-descendants"
     >
       {/* Thumbnail */}
       <SkeletonBlock opacity={opacity} style={{ width: 56, height: 56, borderRadius: 10, flexShrink: 0 }} />
 
-      {/* Text bars */}
-      <View style={{ flex: 1, gap: 6 }}>
-        <SkeletonBlock opacity={opacity} style={{ height: 14, borderRadius: 4, width: '65%' }} />
-        <SkeletonBlock opacity={opacity} style={{ height: 11, borderRadius: 4, width: '50%', backgroundColor: '#d1d5db' }} />
-        <SkeletonBlock opacity={opacity} style={{ height: 11, borderRadius: 4, width: '35%' }} />
+      {/* Name + address */}
+      <View style={{ flex: 1, gap: 2 }}>
+        <SkeletonBlock opacity={opacity} style={{ height: 15, borderRadius: 4, width: '65%' }} />
+        <SkeletonBlock opacity={opacity} style={{ height: 13, borderRadius: 4, width: '50%', backgroundColor: '#d1d5db' }} />
       </View>
 
-      {/* Rating stub */}
-      <SkeletonBlock opacity={opacity} style={{ height: 11, width: 24, borderRadius: 4, flexShrink: 0 }} />
+      {showRating ? (
+        <View style={{ flexShrink: 0, alignItems: 'flex-end', gap: 2 }}>
+          <SkeletonBlock opacity={opacity} style={{ height: 13, width: 32, borderRadius: 4 }} />
+          <SkeletonBlock opacity={opacity} style={{ height: 14, width: 14, borderRadius: 4 }} />
+        </View>
+      ) : (
+        <SkeletonBlock opacity={opacity} style={{ height: 14, width: 14, borderRadius: 4, flexShrink: 0 }} />
+      )}
     </View>
   )
 }
 
-export function RestaurantListSkeletonList({ count = 8 }: { count?: number } = {}): JSX.Element {
+export function RestaurantListSkeletonList({
+  count = 8,
+  showRating = false,
+}: { count?: number; showRating?: boolean } = {}): JSX.Element {
   const opacity = useSkeletonPulse()
   const data = Array.from({ length: count }, (_, i) => i)
 
@@ -73,7 +83,7 @@ export function RestaurantListSkeletonList({ count = 8 }: { count?: number } = {
     <FlashList
       data={data}
       keyExtractor={(item) => String(item)}
-      renderItem={() => <RestaurantListSkeletonRow opacity={opacity} />}
+      renderItem={() => <RestaurantListSkeletonRow opacity={opacity} showRating={showRating} />}
       scrollEnabled={false}
     />
   )

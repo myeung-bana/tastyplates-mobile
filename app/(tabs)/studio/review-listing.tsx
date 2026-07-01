@@ -10,6 +10,7 @@ import { Swipeable } from 'react-native-gesture-handler'
 import { AppIcon } from '@/components/ui/AppIcon'
 
 import { ReviewListingCreateRow } from '@/components/studio/ReviewListingCreateRow'
+import { RatingDisplay } from '@/components/ui/RatingDisplay'
 import {
   ReviewListingFilterChips,
   type ReviewListingFilter,
@@ -24,6 +25,7 @@ import {
 import { errorOccurred } from '@/constants/messages'
 import { studioEditReviewPath } from '@/constants/screens'
 import { castHref } from '@/lib/routeParams'
+import { stripHtml } from '@/lib/restaurantDetailUtils'
 import { useSession } from '@/hooks/useSession'
 import {
   deleteRestaurantReview,
@@ -35,7 +37,7 @@ import { toast } from '@/utils/toast'
 
 function emptyStateMessage(filter: ReviewListingFilter): string {
   if (filter === 'draft') return 'There are no drafts currently.'
-  return 'There are no reviews yet.'
+  return 'There are no live reviews yet.'
 }
 
 function ReviewListRowSkeleton(): JSX.Element {
@@ -46,10 +48,10 @@ function ReviewListRowSkeleton(): JSX.Element {
       accessibilityElementsHidden
       importantForAccessibility="no"
     >
-      <View className="mb-3 flex-row items-center justify-between">
-        <View className="h-5 w-16 rounded-full bg-gray-200" />
-        <View className="h-4 w-4 rounded bg-gray-200" />
+      <View className="mb-2 flex-row justify-end">
+        <View className="h-4 w-10 rounded bg-gray-200" />
       </View>
+      <View className="mb-1 h-3 rounded bg-gray-200" style={{ width: '48%' }} />
       <View className="h-5 rounded bg-gray-200" style={{ width: '72%' }} />
       <View className="mt-2 h-4 w-full rounded bg-gray-200" />
       <View className="mt-2 h-4 rounded bg-gray-200" style={{ width: '92%' }} />
@@ -58,16 +60,15 @@ function ReviewListRowSkeleton(): JSX.Element {
   )
 }
 
-function summarizeStatus(raw: string | null | undefined): string {
-  if (!raw) return 'review'
-  if (raw === 'approved') return 'live'
-  if (raw === 'draft') return 'draft'
-  if (raw === 'pending') return 'pending'
-  return raw
+function resolveRestaurantLabel(row: RestaurantReviewMine): string {
+  const title = stripHtml(row.restaurant?.title ?? '').trim()
+  if (title.length > 0) return title
+  return 'Restaurant'
 }
 
 function ReviewSwipeRow(props: {
   row: RestaurantReviewMine
+  chip: ReviewListingFilter
   onDelete: () => Promise<void>
   onPublishDraft?: () => Promise<void>
 }): JSX.Element {
@@ -103,8 +104,9 @@ function ReviewSwipeRow(props: {
   )
 
   const trimmedTitle = props.row.title?.trim() ?? ''
+  const restaurantLabel = resolveRestaurantLabel(props.row)
+  const showDraftBadge = props.chip === 'draft'
 
-  const statusBadge = summarizeStatus(props.row.status)
   return (
     <Swipeable renderRightActions={rightAction}>
       <Pressable
@@ -115,12 +117,27 @@ function ReviewSwipeRow(props: {
         className="mb-3 rounded-3xl border bg-white px-4 py-4 active:bg-gray-50"
         style={{ borderColor: BORDER_SUBTLE }}
       >
-        <View className="mb-3 flex-row items-center justify-between">
-          <View className="flex-row rounded-full px-4 py-1" style={{ backgroundColor: '#f3f4f6' }}>
-            <Text style={{ fontSize: 11, fontWeight: '700', color: TEXT_MUTED }}>{statusBadge}</Text>
-          </View>
-          <AppIcon name="chevron-right" size={16} color={TEXT_MUTED} />
+        <View className="mb-2 flex-row justify-end">
+          {props.row.rating != null ? (
+            <RatingDisplay value={props.row.rating} size="sm" />
+          ) : (
+            <Text className="text-xs" style={{ color: TEXT_MUTED }}>
+              —
+            </Text>
+          )}
         </View>
+        {showDraftBadge ? (
+          <Text className="mb-1 text-[11px] font-semibold uppercase" style={{ color: TEXT_MUTED }}>
+            Draft
+          </Text>
+        ) : null}
+        <Text
+          className="mb-1 text-sm font-semibold"
+          style={{ color: BRAND_PRIMARY }}
+          numberOfLines={1}
+        >
+          {restaurantLabel}
+        </Text>
         <Text className="text-base font-semibold" style={{ color: TEXT_HEADING }} numberOfLines={2}>
           {trimmedTitle.length > 0 ? trimmedTitle : 'Untitled review'}
         </Text>
@@ -143,7 +160,7 @@ export default function ReviewListingScreen(): JSX.Element {
   const [reviews, setReviews] = useState<RestaurantReviewMine[]>([])
   const [fetching, setFetching] = useState(true)
   const [loadError, setLoadError] = useState<string | null>(null)
-  const [chip, setChip] = useState<ReviewListingFilter>('all')
+  const [chip, setChip] = useState<ReviewListingFilter>('live')
 
   const loadReviews = useCallback(async () => {
     if (!isReady || !userId || !accessToken) {
@@ -190,7 +207,6 @@ export default function ReviewListingScreen(): JSX.Element {
       return bl.localeCompare(al)
     })
 
-    if (chip === 'all') return sorted
     if (chip === 'draft') return sorted.filter((r) => r.status === 'draft' || r.status === 'pending')
     return sorted.filter((r) => r.status === 'approved')
   }, [chip, reviews])
@@ -267,6 +283,7 @@ export default function ReviewListingScreen(): JSX.Element {
           renderItem={({ item }) => (
             <ReviewSwipeRow
               row={item}
+              chip={chip}
               onDelete={() => guardedDelete(item.id)}
               onPublishDraft={item.status === 'draft' ? () => publishDraft(item.id) : undefined}
             />

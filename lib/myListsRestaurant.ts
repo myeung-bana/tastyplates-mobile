@@ -1,5 +1,9 @@
 import { DEFAULT_RESTAURANT_IMAGE } from '@/constants/images'
-import type { HasuraGoogleMapUrl } from '@/utils/addressUtils'
+import {
+  formatRestaurantCardAddress,
+  formatShortFormattedAddress,
+} from '@/services/restaurantsV2Service'
+import { getBestRestaurantAddress, type HasuraGoogleMapUrl } from '@/utils/addressUtils'
 
 export interface MyListCategory {
   id: number
@@ -89,6 +93,31 @@ export function mapHasuraRestaurantToListItem(row: HasuraRestaurantRow): MyListR
     averageRating: typeof row.average_rating === 'number' ? row.average_rating : null,
     ratingsCount: typeof row.ratings_count === 'number' ? row.ratings_count : null,
   }
+}
+
+function hasuraAddressFields(googleMapUrl: HasuraGoogleMapUrl | null): {
+  street_address?: string
+  city?: string
+  country_short?: string
+} | null {
+  if (!googleMapUrl) return null
+  return {
+    street_address: googleMapUrl.streetAddress ?? undefined,
+    city: googleMapUrl.city ?? undefined,
+    country_short: googleMapUrl.countryShort ?? undefined,
+  }
+}
+
+/** Short `street, city` subtitle — same pattern as create-review restaurant rows. */
+export function formatMyListRestaurantAddress(
+  listingStreet: string | null,
+  googleMapUrl: HasuraGoogleMapUrl | null,
+): string | null {
+  const fromFields = formatRestaurantCardAddress(listingStreet, hasuraAddressFields(googleMapUrl))
+  if (fromFields) return fromFields
+
+  const full = getBestRestaurantAddress(googleMapUrl, listingStreet)
+  return formatShortFormattedAddress(full) ?? (full || null)
 }
 
 export function dedupeRestaurants(items: MyListRestaurant[]): MyListRestaurant[] {

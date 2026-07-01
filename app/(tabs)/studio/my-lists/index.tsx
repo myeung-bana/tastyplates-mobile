@@ -145,7 +145,7 @@ export default function MyListsScreen(): JSX.Element {
 
       <View className="mt-6 flex-1">
         {loading && items.length === 0 ? (
-          <RestaurantListSkeletonList />
+          <RestaurantListSkeletonList showRating />
         ) : (
           <FlashList
             data={items}

@@ -1,11 +1,10 @@
 import { PillTabBar } from '@/components/ui/PillTabBar'
 
-export type ReviewListingFilter = 'all' | 'draft' | 'live'
+export type ReviewListingFilter = 'live' | 'draft'
 
 const TABS = [
-  { key: 'all' as const, label: 'All' },
-  { key: 'draft' as const, label: 'Drafts' },
   { key: 'live' as const, label: 'Live' },
+  { key: 'draft' as const, label: 'Drafts' },
 ]
 
 interface Props {

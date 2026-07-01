@@ -8,8 +8,7 @@ import { AppIcon } from '@/components/ui/AppIcon'
 import { STAR_FILLED } from '@/constants/images'
 import { restaurantDetailPath } from '@/constants/screens'
 import { castHref } from '@/lib/routeParams'
-import type { MyListRestaurant } from '@/lib/myListsRestaurant'
-import { getBestRestaurantAddress } from '@/utils/addressUtils'
+import { formatMyListRestaurantAddress, type MyListRestaurant } from '@/lib/myListsRestaurant'
 
 interface Props {
   restaurant: MyListRestaurant
@@ -22,9 +21,9 @@ const StarIcon = STAR_FILLED
 export function MyListsRestaurantRow({ restaurant, swipeableRefs, onRemove }: Props): JSX.Element {
   const swipeRef = useRef<Swipeable>(null)
 
-  const address = getBestRestaurantAddress(
-    restaurant.googleMapUrl,
+  const address = formatMyListRestaurantAddress(
     restaurant.listingStreet,
+    restaurant.googleMapUrl,
   )
 
   const ratingDisplay =
@@ -106,15 +105,6 @@ export function MyListsRestaurantRow({ restaurant, swipeableRefs, onRemove }: Pr
             >
               {address}
             </Text>
-          ) : null}
-          {restaurant.listingCategories.length > 0 ? (
-            <View className="mt-0.5 flex-row flex-wrap gap-1">
-              {restaurant.listingCategories.slice(0, 2).map((cat) => (
-                <View key={cat.slug} className="rounded-full bg-[#ff7c0a] px-2 py-0.5">
-                  <Text className="font-neusans text-[10px] text-white">{cat.name}</Text>
-                </View>
-              ))}
-            </View>
           ) : null}
         </View>
 

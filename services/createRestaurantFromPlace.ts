@@ -21,6 +21,7 @@ export function placeDetailsToCreateBody(details: PlacesDetailsResult): Record<s
   const lat = details.geometry?.location?.lat
   const lng = details.geometry?.location?.lng
   const street = details.formatted_address ?? details.vicinity ?? ''
+  const photoReference = details.photos?.[0]?.photo_reference?.trim()
 
   return {
     title,
@@ -28,6 +29,8 @@ export function placeDetailsToCreateBody(details: PlacesDetailsResult): Record<s
     listing_street: street || undefined,
     latitude: lat,
     longitude: lng,
+    google_place_id: details.place_id,
+    ...(photoReference ? { google_photo_reference: photoReference } : {}),
     address: {
       place_id: details.place_id,
       streetAddress: street,

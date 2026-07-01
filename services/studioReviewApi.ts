@@ -14,6 +14,7 @@ export interface RestaurantReviewMine {
   updated_at?: string | null
   published_at?: string | null
   likes_count?: number | null
+  restaurant?: { uuid: string; title: string | null; slug: string | null } | null
 }
 
 interface UserReviewsEnvelope {
