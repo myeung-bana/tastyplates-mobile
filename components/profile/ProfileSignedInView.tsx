@@ -30,7 +30,7 @@ export function ProfileSignedInView() {
     refreshRestaurantUser,
   } = useOwnProfilePresentation()
   const statsApi = useOwnProfileStats(userId)
-  const activityApi = useProfileRecentActivity(userId, 3)
+  const activityApi = useProfileRecentActivity(userId, 3, { withAuth: true })
   const [pullRefreshing, setPullRefreshing] = useState(false)
 
   const refreshAll = useCallback(async () => {

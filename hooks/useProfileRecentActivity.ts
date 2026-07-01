@@ -1,13 +1,31 @@
 import { useCallback, useEffect, useState } from 'react'
+import { useAccessToken } from '@nhost/react'
 
+import { useSession } from '@/hooks/useSession'
+import type { FollowingFeedActivity } from '@/services/followingFeedService'
 import {
-  fetchUserActivity,
-  type FollowingFeedActivity,
-} from '@/services/followingFeedService'
+  fetchProfileUserActivity,
+  PROFILE_ACTIVITY_DEFAULT_LIMIT,
+} from '@/services/profileUserReviewsService'
 
-export function useProfileRecentActivity(userId: string | null | undefined, limit = 3) {
+export type UseProfileRecentActivityOptions = {
+  /** When true, attach Bearer token so the owner sees drafts/pending in review activity rows. */
+  withAuth?: boolean
+}
+
+export function useProfileRecentActivity(
+  userId: string | null | undefined,
+  limit = PROFILE_ACTIVITY_DEFAULT_LIMIT,
+  options: UseProfileRecentActivityOptions = {},
+) {
+  const withAuth = options.withAuth ?? false
+  const { isReady: authReady } = useSession()
+  const accessToken = useAccessToken()
+  const authTokenReady = !withAuth || (authReady && Boolean(accessToken))
+  const canFetch = Boolean(userId) && authTokenReady
+
   const [activities, setActivities] = useState<FollowingFeedActivity[]>([])
-  const [loading, setLoading] = useState(Boolean(userId))
+  const [loading, setLoading] = useState(canFetch)
   const [error, setError] = useState<string | null>(null)
 
   const refresh = useCallback(async () => {
@@ -18,9 +36,18 @@ export function useProfileRecentActivity(userId: string | null | undefined, limi
       return
     }
 
+    if (!authTokenReady) {
+      setLoading(true)
+      return
+    }
+
     setLoading(true)
     try {
-      const result = await fetchUserActivity(userId, { limit, offset: 0 })
+      const result = await fetchProfileUserActivity(userId, {
+        limit,
+        offset: 0,
+        withAuth,
+      })
       setActivities(result.activities)
       setError(null)
     } catch {
@@ -29,7 +56,7 @@ export function useProfileRecentActivity(userId: string | null | undefined, limi
     } finally {
       setLoading(false)
     }
-  }, [limit, userId])
+  }, [authTokenReady, limit, userId, withAuth])
 
   useEffect(() => {
     void refresh()

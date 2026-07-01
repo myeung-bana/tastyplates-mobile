@@ -67,7 +67,7 @@ export interface SuggestedUsersResponse {
   users: import('@/services/restaurantUserService').RestaurantUserRow[]
 }
 
-function parseActivity(raw: Record<string, unknown>): FollowingFeedActivity | null {
+function parseFollowingFeedActivity(raw: Record<string, unknown>): FollowingFeedActivity | null {
   const type = raw.type
   const id = typeof raw.id === 'string' ? raw.id : null
   if (!id) return null
@@ -125,6 +125,8 @@ function parseActivity(raw: Record<string, unknown>): FollowingFeedActivity | nu
   return null
 }
 
+export { parseFollowingFeedActivity }
+
 /**
  * How many users this profile follows (`restaurant_user_follows` as follower).
  */
@@ -158,7 +160,7 @@ export async function fetchFollowingFeed(
 
   const data = unwrapEnvelope(envelope)
   const activities = (data.activities ?? [])
-    .map((row) => parseActivity(row))
+    .map((row) => parseFollowingFeedActivity(row))
     .filter((row): row is FollowingFeedActivity => row != null)
 
   const reviewsFromActivities = activities.filter(
@@ -170,31 +172,6 @@ export async function fetchFollowingFeed(
     activities: activities.length > 0 ? activities : reviewsFromActivities,
     meta: data.meta,
   }
-}
-
-/** Mixed public activity for a profile (`restaurant-reviews/get-user-activity`). */
-export async function fetchUserActivity(
-  userId: string,
-  opts?: { limit?: number; offset?: number },
-): Promise<{ activities: FollowingFeedActivity[]; meta: FollowingFeedMeta }> {
-  const limit = opts?.limit ?? 3
-  const offset = opts?.offset ?? 0
-  const q = new URLSearchParams({
-    user_id: userId,
-    limit: String(Math.min(Math.max(limit, 1), 20)),
-    offset: String(offset),
-  })
-  const envelope = await tastyplatesFetch<{
-    activities?: Record<string, unknown>[]
-    meta: FollowingFeedMeta
-  }>(`restaurant-reviews/get-user-activity?${q.toString()}`)
-
-  const data = unwrapEnvelope(envelope)
-  const activities = (data.activities ?? [])
-    .map((row) => parseActivity(row))
-    .filter((row): row is FollowingFeedActivity => row != null)
-
-  return { activities, meta: data.meta }
 }
 
 /**

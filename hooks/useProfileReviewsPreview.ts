@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useState } from 'react'
-import { useAccessToken } from '@nhost/react'
 
 import {
   fetchUserReviews,
@@ -7,21 +6,14 @@ import {
 } from '@/services/profileUserReviewsService'
 import type { TrendingReviewRow } from '@/services/homeReviewsService'
 
-export function useProfileReviewsPreview(
-  authorId: string | null | undefined,
-  options?: { withAuth?: boolean },
-) {
-  const withAuth = options?.withAuth ?? false
-  const accessToken = useAccessToken()
-  const authTokenReady = !withAuth || Boolean(accessToken)
-
+export function useProfileReviewsPreview(userId: string | null | undefined) {
   const [reviews, setReviews] = useState<TrendingReviewRow[]>([])
   const [total, setTotal] = useState(0)
   const [error, setError] = useState<string | null>(null)
-  const [loading, setLoading] = useState(Boolean(authorId) && authTokenReady)
+  const [loading, setLoading] = useState(Boolean(userId))
 
   const refresh = useCallback(async () => {
-    if (!authorId) {
+    if (!userId) {
       setReviews([])
       setTotal(0)
       setError(null)
@@ -29,17 +21,11 @@ export function useProfileReviewsPreview(
       return
     }
 
-    if (!authTokenReady) {
-      setLoading(true)
-      return
-    }
-
     setLoading(true)
     try {
-      const result = await fetchUserReviews(authorId, {
+      const result = await fetchUserReviews(userId, {
         limit: PROFILE_REVIEWS_PREVIEW_LIMIT,
         offset: 0,
-        withAuth,
       })
       setReviews(result.reviews)
       setTotal(result.meta.total)
@@ -52,7 +38,7 @@ export function useProfileReviewsPreview(
     } finally {
       setLoading(false)
     }
-  }, [authorId, authTokenReady, withAuth])
+  }, [userId])
 
   useEffect(() => {
     void refresh()

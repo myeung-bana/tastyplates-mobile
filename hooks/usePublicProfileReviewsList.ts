@@ -1,16 +1,12 @@
-import { useCallback, useEffect, useState } from 'react'
-import { useAccessToken } from '@nhost/react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 
-import { useSession } from '@/hooks/useSession'
 import type { TrendingReviewRow } from '@/services/homeReviewsService'
 import { fetchUserReviews } from '@/services/profileUserReviewsService'
 
-const DEFAULT_PAGE_SIZE = 16
+const DEFAULT_PAGE_SIZE = 8
 
 export type UsePublicProfileReviewsListOptions = {
   pageSize?: number
-  /** When true, attach Bearer token so the owner sees drafts/pending (backend `canReadPrivate`). */
-  withAuth?: boolean
 }
 
 function reviewsLoadErrorMessage(error: unknown): string {
@@ -21,31 +17,27 @@ function reviewsLoadErrorMessage(error: unknown): string {
 }
 
 export function usePublicProfileReviewsList(
-  authorId: string | null,
+  userId: string | null,
   options: UsePublicProfileReviewsListOptions = {},
 ) {
   const pageSize = options.pageSize ?? DEFAULT_PAGE_SIZE
-  const withAuth = options.withAuth ?? false
-  const { isReady: authReady } = useSession()
-  const accessToken = useAccessToken()
-  const authTokenReady = !withAuth || (authReady && Boolean(accessToken))
-  const canFetch = Boolean(authorId) && authTokenReady
 
   const [rows, setRows] = useState<TrendingReviewRow[]>([])
-  const [loading, setLoading] = useState(canFetch)
+  const [loading, setLoading] = useState(Boolean(userId))
   const [refreshing, setRefreshing] = useState(false)
   const [loadingMore, setLoadingMore] = useState(false)
   const [listError, setListError] = useState<string | null>(null)
   const [hasMore, setHasMore] = useState(false)
 
+  const didLoadRef = useRef(false)
+
   const loadPage = useCallback(
     async (nextOffset: number, mode: 'replace' | 'append') => {
-      if (!authorId) return
+      if (!userId) return
 
-      const result = await fetchUserReviews(authorId, {
+      const result = await fetchUserReviews(userId, {
         limit: pageSize,
         offset: nextOffset,
-        withAuth,
       })
 
       setRows((prev) =>
@@ -54,23 +46,25 @@ export function usePublicProfileReviewsList(
       setHasMore(result.meta.hasMore)
       setListError(null)
     },
-    [authorId, pageSize, withAuth],
+    [userId, pageSize],
   )
 
   useEffect(() => {
-    if (!authorId) {
-      setRows([])
-      setHasMore(false)
-      setListError(null)
+    didLoadRef.current = false
+    setRows([])
+    setHasMore(false)
+    setListError(null)
+    setLoading(Boolean(userId))
+  }, [userId, pageSize])
+
+  useEffect(() => {
+    if (!userId) {
       setLoading(false)
       return
     }
+    if (didLoadRef.current) return
 
-    if (!canFetch) {
-      setLoading(true)
-      return
-    }
-
+    didLoadRef.current = true
     let cancelled = false
     setLoading(true)
     setListError(null)
@@ -80,7 +74,7 @@ export function usePublicProfileReviewsList(
         await loadPage(0, 'replace')
       } catch (error) {
         if (__DEV__) {
-          console.warn('[usePublicProfileReviewsList] load failed', error)
+          console.warn('[usePublicProfileReviewsList] load failed', { userId, error })
         }
         if (!cancelled) {
           setRows([])
@@ -95,10 +89,10 @@ export function usePublicProfileReviewsList(
     return () => {
       cancelled = true
     }
-  }, [authorId, canFetch, loadPage])
+  }, [userId, loadPage])
 
   const loadMore = useCallback(async () => {
-    if (!authorId || !hasMore || loadingMore || loading || listError) return
+    if (!userId || !hasMore || loadingMore || loading || listError) return
 
     setLoadingMore(true)
     try {
@@ -111,10 +105,10 @@ export function usePublicProfileReviewsList(
     } finally {
       setLoadingMore(false)
     }
-  }, [authorId, hasMore, loadingMore, loading, listError, loadPage, rows.length])
+  }, [userId, hasMore, loadingMore, loading, listError, loadPage, rows.length])
 
   const refresh = useCallback(async () => {
-    if (!authorId || !canFetch) return
+    if (!userId) return
     setRefreshing(true)
     try {
       await loadPage(0, 'replace')
@@ -126,7 +120,7 @@ export function usePublicProfileReviewsList(
     } finally {
       setRefreshing(false)
     }
-  }, [authorId, canFetch, loadPage])
+  }, [userId, loadPage])
 
   return {
     rows,

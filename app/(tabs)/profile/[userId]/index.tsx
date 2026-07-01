@@ -55,7 +55,7 @@ export default function PublicProfileIndexScreen() {
   const [error, setError] = useState<string | null>(null)
 
   const isOwnProfile = Boolean(viewerId && ru?.id && viewerId === ru.id)
-  const activityApi = useProfileRecentActivity(ru?.id, 3)
+  const activityApi = useProfileRecentActivity(ru?.id, 3, { withAuth: isOwnProfile })
 
   const loadProfile = useCallback(async () => {
     if (!slug) {

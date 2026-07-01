@@ -27,7 +27,7 @@ function ProfileShortcut(): JSX.Element {
       openAuthSheet({ mode: 'signin', resume: SCREEN_PROFILE })
       return
     }
-    router.push(SCREEN_PROFILE)
+    router.replace(SCREEN_PROFILE)
   }
 
   return (

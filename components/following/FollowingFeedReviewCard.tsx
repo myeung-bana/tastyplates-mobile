@@ -1,5 +1,5 @@
 import type { JSX } from 'react'
-import { Image, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
+import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { ProfileAvatarImage } from '@/components/profile/ProfileAvatarImage'
 import { AppIcon } from '@/components/ui/AppIcon'
 import { RatingDisplay } from '@/components/ui/RatingDisplay'
@@ -186,16 +186,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
     borderWidth: 1,
     borderColor: BORDER_SUBTLE,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
-        shadowRadius: 6,
-      },
-      android: { elevation: 3 },
-      default: {},
-    }),
   },
 
   // ── top row ──
