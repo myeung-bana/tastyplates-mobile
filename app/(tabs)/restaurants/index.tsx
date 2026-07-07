@@ -13,8 +13,10 @@ import BottomSheet, { BottomSheetFlatList } from '@gorhom/bottom-sheet'
 import MapView, { PROVIDER_GOOGLE, type Region } from 'react-native-maps'
 import type { MapPressEvent } from 'react-native-maps'
 import * as Haptics from 'expo-haptics'
+import { StatusBar } from 'expo-status-bar'
 import { useLocalSearchParams, router } from 'expo-router'
 import { NativeViewGestureHandler } from 'react-native-gesture-handler'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { AppTopNav } from '@/components/layout/AppTopNav'
 import { RestaurantBrowseCard } from '@/components/restaurant/RestaurantBrowseCard'
@@ -26,11 +28,13 @@ import {
   RestaurantBrowseSkeletonList,
 } from '@/components/ui/Skeleton/RestaurantBrowseCardSkeleton'
 import { BRAND_PRIMARY } from '@/constants/brand'
+import { getTabSceneStylePaddingBottom } from '@/constants/tabBar'
 import {
   SCREEN_PLACES_GOOGLE_DETAIL,
   SCREEN_RESTAURANT_DETAIL,
 } from '@/constants/screens'
 import { useLocation } from '@/contexts/LocationContext'
+import { useTabBarScrollHandler } from '@/hooks/useTabBarScrollHandler'
 import {
   CITY_SEARCH_RADIUS_KM,
   isWithinRadiusKm,
@@ -53,10 +57,15 @@ import { isGoogleResult, isTPResult } from '@/types/restaurantSearchResult'
 
 const ROW_GAP = 12
 /** Collapsed — maximizes map for pinch/zoom; shows handle + list header peek. */
-const SHEET_MIN = '18%'
+const SHEET_MIN_RATIO = 0.18
 /** Mid — browse a few cards without covering most of the map. */
-const SHEET_MID = '42%'
-const SHEET_EXPANDED = '72%'
+const SHEET_MID_RATIO = 0.42
+const SHEET_EXPANDED_RATIO = 0.72
+/** Drop results sheet 10px lower than percentage-only snap points. */
+const SHEET_DROP_PX = 10
+const SHEET_MIN_HEIGHT_PX = 96
+/** Top chrome sits 10px below the screen top on map Explore. */
+const MAP_OVERLAY_TOP_OFFSET = 10
 
 function singleParam(v: string | string[] | undefined): string | undefined {
   if (v == null) return undefined
@@ -67,7 +76,8 @@ function singleParam(v: string | string[] | undefined): string | undefined {
  * Restaurant discovery: hybrid TP + Google search with map + bottom sheet (or FlatList fallback).
  */
 export default function RestaurantsScreen() {
-  const { width: screenWidth } = useWindowDimensions()
+  const { width: screenWidth, height: screenHeight } = useWindowDimensions()
+  const insets = useSafeAreaInsets()
   const { location } = useLocation()
   const locationKey = location.key
   const coordinates = location.coordinates ?? null
@@ -138,7 +148,17 @@ export default function RestaurantsScreen() {
   /** Skip redundant animateToRegion when MapView `initialRegion` already matches. */
   const lastMapRegionKeyRef = useRef<string | null>(null)
 
-  const snapPoints = useMemo(() => [SHEET_MIN, SHEET_MID, SHEET_EXPANDED], [])
+  const snapPoints = useMemo(() => {
+    const scenePad = getTabSceneStylePaddingBottom(insets)
+    const containerHeight = Math.max(0, screenHeight - scenePad)
+    const drop = (ratio: number) =>
+      Math.max(SHEET_MIN_HEIGHT_PX, Math.round(containerHeight * ratio) - SHEET_DROP_PX)
+    return [
+      drop(SHEET_MIN_RATIO),
+      drop(SHEET_MID_RATIO),
+      drop(SHEET_EXPANDED_RATIO),
+    ]
+  }, [screenHeight, insets.bottom])
 
   useEffect(() => {
     if (!mapRef.current || !cityMapRegion) return
@@ -412,10 +432,14 @@ export default function RestaurantsScreen() {
 
   const showMapLayout = cityMapRegion != null
   const showMapExperience = showMapLayout && !loading && !(error && displayRows.length === 0)
+  const { onScroll, scrollEventThrottle } = useTabBarScrollHandler({ enabled: !showMapExperience })
   const hasActiveFilters = cuisineFilterActive || Boolean(searchQuery?.trim())
 
   const filterChips = hasActiveFilters ? (
-    <View className="bg-white px-4 pb-2">
+    <View
+      className={showMapExperience ? 'px-4 pb-2' : 'bg-white px-4 pb-2'}
+      style={showMapExperience ? { backgroundColor: 'transparent' } : undefined}
+    >
       <PalateFilterChips
         cuisine={cuisine}
         searchQuery={searchQuery}
@@ -441,13 +465,18 @@ export default function RestaurantsScreen() {
   }, [displayRows, coordinates])
 
   return (
-    <View className="flex-1 bg-white">
+    <View
+      className="flex-1"
+      style={{ backgroundColor: showMapExperience ? 'transparent' : '#ffffff' }}
+    >
       {showMapExperience ? (
-        <View className="flex-1" style={{ pointerEvents: 'box-none' }}>
+        <>
+          <StatusBar style="dark" translucent />
+          <View className="flex-1" style={{ pointerEvents: 'box-none' }}>
           <NativeViewGestureHandler
             ref={mapGestureRef}
             disallowInterruption
-            style={StyleSheet.absoluteFillObject}
+            style={[StyleSheet.absoluteFillObject, { top: -insets.top }]}
           >
             <MapView
               ref={mapRef}
@@ -473,8 +502,12 @@ export default function RestaurantsScreen() {
             </MapView>
           </NativeViewGestureHandler>
 
-          <View className="absolute inset-x-0 top-0 z-10" pointerEvents="box-none">
-            <AppTopNav />
+          <View
+            className="absolute inset-x-0 z-10"
+            style={{ top: MAP_OVERLAY_TOP_OFFSET }}
+            pointerEvents="box-none"
+          >
+            <AppTopNav variant="mapOverlay" />
             {filterChips}
           </View>
 
@@ -482,6 +515,8 @@ export default function RestaurantsScreen() {
             ref={bottomSheetRef}
             index={0}
             snapPoints={snapPoints}
+            topInset={0}
+            bottomInset={0}
             enablePanDownToClose={false}
             enableDynamicSizing={false}
             waitFor={mapGestureRef}
@@ -515,7 +550,8 @@ export default function RestaurantsScreen() {
               contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 32 }}
             />
           </BottomSheet>
-        </View>
+          </View>
+        </>
       ) : (
         <>
           <AppTopNav />
@@ -536,6 +572,8 @@ export default function RestaurantsScreen() {
                 data={displayRows}
                 keyExtractor={(item) => restaurantSearchResultId(item)}
                 renderItem={renderBrowseCard}
+                onScroll={onScroll}
+                scrollEventThrottle={scrollEventThrottle}
                 ItemSeparatorComponent={() => <View style={{ height: ROW_GAP }} />}
                 contentContainerStyle={{ paddingBottom: 24 }}
                 ListHeaderComponent={

@@ -1,7 +1,7 @@
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs'
 import { BottomTabBar } from '@react-navigation/bottom-tabs'
 
-import { TabBarChrome } from '@/components/navigation/TabBarChrome'
+import { FloatingTabBarPill } from '@/components/navigation/FloatingTabBarPill'
 
 /**
  * Default bottom tab bar — styling comes from `screenOptions.tabBarStyle` in {@link TabsShell}.
@@ -9,8 +9,8 @@ import { TabBarChrome } from '@/components/navigation/TabBarChrome'
  */
 export function AppBottomTabBar(props: BottomTabBarProps): JSX.Element {
   return (
-    <TabBarChrome>
+    <FloatingTabBarPill insets={props.insets}>
       <BottomTabBar {...props} />
-    </TabBarChrome>
+    </FloatingTabBarPill>
   )
 }

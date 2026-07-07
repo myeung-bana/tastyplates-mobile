@@ -58,19 +58,32 @@ function ProfileShortcut(): JSX.Element {
 
 const APP_TOP_NAV_INNER_PAD = FULL_SCREEN_OVERLAY_INNER_PAD
 
+export type AppTopNavVariant = 'default' | 'mapOverlay'
+
+export type AppTopNavProps = {
+  /** Transparent chrome for map screens — map shows through status bar and nav row. */
+  variant?: AppTopNavVariant
+}
+
 /** Location pill (left) | cuisine search + profile (right). */
-export function AppTopNav(): JSX.Element {
+export function AppTopNav({ variant = 'default' }: AppTopNavProps): JSX.Element {
   const insets = useSafeAreaInsets()
   const { openSearch } = useSearchOverlay()
+  const isMapOverlay = variant === 'mapOverlay'
 
   return (
     <View
-      className="flex-row items-center justify-between border-b border-gray-100 bg-white pb-3"
+      className={
+        isMapOverlay
+          ? 'flex-row items-center justify-between pb-3'
+          : 'flex-row items-center justify-between border-b border-gray-100 bg-white pb-3'
+      }
       style={{
         paddingTop: insets.top + APP_TOP_NAV_INNER_PAD,
         paddingLeft: insets.left + 12,
         paddingRight: insets.right + 12,
         gap: 8,
+        backgroundColor: isMapOverlay ? 'transparent' : undefined,
       }}
     >
       <View pointerEvents="box-none" className="min-w-0 flex-1 items-start justify-center pr-2">

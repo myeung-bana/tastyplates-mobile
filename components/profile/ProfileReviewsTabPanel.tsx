@@ -1,9 +1,7 @@
 import { ActivityIndicator, FlatList, RefreshControl, Text, useWindowDimensions, View } from 'react-native'
-import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { HomeReviewCard, HomeReviewCardSkeleton } from '@/components/review/HomeReviewCard'
 import { BRAND_PRIMARY, TEXT_MUTED } from '@/constants/brand'
-import { getTabBarHeight } from '@/constants/tabBar'
 import { usePublicProfileReviewsList } from '@/hooks/usePublicProfileReviewsList'
 import type { TrendingReviewRow } from '@/services/homeReviewsService'
 
@@ -41,11 +39,10 @@ export function ProfileReviewsTabPanel({
   onPressReview,
   emptyMessage = 'Reviews from this account will appear here soon.',
 }: ProfileReviewsTabPanelProps): JSX.Element {
-  const insets = useSafeAreaInsets()
   const { width: windowWidth } = useWindowDimensions()
   const innerWidth = Math.max(0, windowWidth - HORIZONTAL_PAD * 2)
   const columnWidth = Math.max(1, Math.floor((innerWidth - GRID_GAP) / 2))
-  const listBottomPad = getTabBarHeight(insets) + 16
+  const listBottomPad = 16
 
   const {
     rows,

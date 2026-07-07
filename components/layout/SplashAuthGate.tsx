@@ -3,6 +3,7 @@ import { Slot, SplashScreen } from 'expo-router'
 
 import { OnboardingGate } from '@/components/layout/OnboardingGate'
 import { StudioQuickMenuProvider } from '@/contexts/StudioQuickMenuContext'
+import { TabBarScrollProvider } from '@/contexts/TabBarScrollContext'
 import { useAuth } from '@/hooks/useAuth'
 
 /**
@@ -21,10 +22,12 @@ export function SplashAuthGate(): JSX.Element | null {
   }
 
   return (
-    <StudioQuickMenuProvider>
-      <OnboardingGate>
-        <Slot />
-      </OnboardingGate>
-    </StudioQuickMenuProvider>
+    <TabBarScrollProvider>
+      <StudioQuickMenuProvider>
+        <OnboardingGate>
+          <Slot />
+        </OnboardingGate>
+      </StudioQuickMenuProvider>
+    </TabBarScrollProvider>
   )
 }

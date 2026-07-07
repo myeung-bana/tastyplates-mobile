@@ -9,7 +9,6 @@ import {
   Text,
   View,
 } from 'react-native'
-import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import * as Haptics from 'expo-haptics'
 import { useRouter } from 'expo-router'
 
@@ -20,7 +19,6 @@ import {
   TEXT_HEADING,
   TEXT_MUTED,
 } from '@/constants/brand'
-import { getTabBarHeight } from '@/constants/tabBar'
 import {
   ProfileContentTabBar,
   type ProfileContentTab,
@@ -109,9 +107,8 @@ export function UnifiedProfileView({
   meTabExtra,
 }: UnifiedProfileViewProps) {
   const router = useRouter()
-  const insets = useSafeAreaInsets()
   const [contentTab, setContentTab] = useState<ProfileContentTab>('me')
-  const scrollBottomPad = getTabBarHeight(insets) + 32
+  const scrollBottomPad = 32
 
   const {
     lists: publicLists,

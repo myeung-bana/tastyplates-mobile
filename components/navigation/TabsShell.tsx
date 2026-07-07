@@ -3,8 +3,13 @@ import { useCallback, useMemo } from 'react'
 import type { BottomTabBarButtonProps, BottomTabBarProps } from '@react-navigation/bottom-tabs'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
-import { AppIcon, type AppIconName } from '@/components/ui/AppIcon'
-import { getTabBarHeight, getTabBarStyle, TAB_BAR_BG } from '@/constants/tabBar'
+import type { AppIconName } from '@/components/ui/AppIcon'
+import { TabBarAnimatedIcon } from '@/components/navigation/TabBarAnimatedIcon'
+import {
+  getTabSceneStylePaddingBottom as getTabBarHeight,
+  getTabBarStyle,
+  TAB_BAR_BG,
+} from '@/constants/tabBar'
 import { BRAND_PRIMARY, NAV_ICON } from '@/constants/brand'
 import { AppBottomTabBar } from '@/components/navigation/AppBottomTabBar'
 import { TabBarButton } from '@/components/navigation/TabBarButton'
@@ -42,19 +47,11 @@ function tabBarIcon(config: TabConfig) {
   return ({
     focused,
     color,
-    size,
   }: {
     focused: boolean
     color: string
     size: number
-  }) => (
-    <AppIcon
-      name={config.icon}
-      active={focused}
-      size={size ?? 22}
-      color={color}
-    />
-  )
+  }) => <TabBarAnimatedIcon name={config.icon} focused={focused} color={color} />
 }
 
 /**
@@ -91,10 +88,7 @@ export function TabsShell({ visibleTabs, useStudioTabBar = false }: TabsShellPro
     () => ({
       tabBarActiveTintColor: BRAND_PRIMARY,
       tabBarInactiveTintColor: TAB_INACTIVE,
-      tabBarLabelStyle: {
-        fontSize: 11,
-        fontWeight: '500',
-      },
+      tabBarShowLabel: false,
       tabBarStyle,
       sceneStyle,
       tabBarButton: renderTabBarButton,

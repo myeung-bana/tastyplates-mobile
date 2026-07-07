@@ -1,7 +1,6 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { Text, View } from 'react-native'
-import { SafeAreaView } from 'react-native-safe-area-context'
-import { router, useLocalSearchParams, useNavigation } from 'expo-router'
+import { router, useLocalSearchParams } from 'expo-router'
 
 import { WriteReviewForm } from '@/components/studio/add-review/WriteReviewForm'
 import { BRAND_PRIMARY, TEXT_HEADING } from '@/constants/brand'
@@ -15,7 +14,6 @@ import { createRestaurantFromPlace } from '@/services/createRestaurantFromPlace'
 export default function StudioCreateReviewScreen(): JSX.Element {
   useRequireAuthOnMount()
 
-  const navigation = useNavigation()
   const params = useLocalSearchParams<{ placeData?: string | string[] }>()
   const rawPlace = firstSegmentParam(params.placeData)
 
@@ -30,12 +28,6 @@ export default function StudioCreateReviewScreen(): JSX.Element {
 
   const [createdUuid, setCreatedUuid] = useState<string | null>(null)
 
-  useEffect(() => {
-    if (!placeData?.name) return
-    const label = placeData.name.length > 28 ? `${placeData.name.slice(0, 28)}…` : placeData.name
-    navigation.setOptions({ title: label })
-  }, [navigation, placeData?.name])
-
   const resolveRestaurantUuid = useCallback(async (): Promise<string> => {
     if (createdUuid) return createdUuid
     if (!placeData) throw new Error('Missing place data')
@@ -46,7 +38,7 @@ export default function StudioCreateReviewScreen(): JSX.Element {
 
   if (!placeData) {
     return (
-      <SafeAreaView className="flex-1 items-center justify-center bg-white px-8">
+      <View className="flex-1 items-center justify-center bg-white px-8">
         <Text className="text-center font-neusans text-base" style={{ color: TEXT_HEADING }}>
           Missing Google place data.
         </Text>
@@ -57,7 +49,7 @@ export default function StudioCreateReviewScreen(): JSX.Element {
         >
           Back to search
         </Text>
-      </SafeAreaView>
+      </View>
     )
   }
 
@@ -66,7 +58,7 @@ export default function StudioCreateReviewScreen(): JSX.Element {
   const address = placeData.formatted_address ?? placeData.vicinity ?? ''
 
   return (
-    <SafeAreaView className="flex-1 bg-white" edges={['left', 'right']}>
+    <View className="flex-1 bg-white">
       <WriteReviewForm
         restaurant={{
           uuid: createdUuid ?? '',
@@ -76,6 +68,6 @@ export default function StudioCreateReviewScreen(): JSX.Element {
         }}
         resolveRestaurantUuid={resolveRestaurantUuid}
       />
-    </SafeAreaView>
+    </View>
   )
 }

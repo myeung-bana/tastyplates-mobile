@@ -25,6 +25,7 @@ import {
 } from '@/constants/screens'
 import { useAuth } from '@/hooks/useAuth'
 import { useFollowingFeed } from '@/hooks/useFollowingFeed'
+import { useTabBarScrollHandler } from '@/hooks/useTabBarScrollHandler'
 import { pushLoginScreen } from '@/lib/authRoutes'
 import type { ActivityFeedSection } from '@/lib/followingFeedGrouping'
 import { publicProfileFromAuthorFields, pushPublicProfile } from '@/lib/publicProfileNavigation'
@@ -100,6 +101,7 @@ export default function FollowingScreen() {
     showEarlierActivity,
     keyExtractor,
   } = useFollowingFeed(userId)
+  const { onScroll, scrollEventThrottle } = useTabBarScrollHandler()
 
   const loadSuggested = useCallback(async () => {
     if (!userId) return
@@ -267,6 +269,8 @@ export default function FollowingScreen() {
         sections={sections}
         keyExtractor={keyExtractor}
         stickySectionHeadersEnabled={false}
+        onScroll={onScroll}
+        scrollEventThrottle={scrollEventThrottle}
         ListHeaderComponent={feedListHeader}
         ListFooterComponent={feedListFooter}
         ListEmptyComponent={

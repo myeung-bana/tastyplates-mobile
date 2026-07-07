@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useMemo, useRef, useState } from 'react'
 import {
   KeyboardAvoidingView,
   Platform,
@@ -12,12 +12,16 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { router } from 'expo-router'
 import { useUserData } from '@nhost/react'
 
-import { Button } from '@/components/ui/Button'
-import { ContentGuidelinesReminder } from '@/components/reviews/ContentGuidelinesReminder'
 import { HalfStarRating } from '@/components/studio/add-review/HalfStarRating'
 import { RecognitionTags } from '@/components/studio/add-review/RecognitionTags'
 import { ReviewPhotoGrid } from '@/components/studio/add-review/ReviewPhotoGrid'
-import { mergeTextInputBodyTypography } from '@/constants/brand'
+import {
+  WriteReviewExitSheet,
+  type WriteReviewExitSheetHandle,
+} from '@/components/studio/add-review/WriteReviewExitSheet'
+import { WriteReviewFooter, getWriteReviewFooterHeight } from '@/components/studio/add-review/WriteReviewFooter'
+import { WriteReviewTopNav } from '@/components/studio/add-review/WriteReviewTopNav'
+import { BORDER_SUBTLE, mergeTextInputBodyTypography } from '@/constants/brand'
 import {
   commentDuplicateError,
   commentDuplicateWeekError,
@@ -38,8 +42,9 @@ import {
   reviewDescriptionMaxLimit,
   reviewTitleMaxLimit,
 } from '@/constants/validation'
-import { SCREEN_STUDIO_REVIEW_LISTING } from '@/constants/screens'
+import { SCREEN_HOME, SCREEN_STUDIO_REVIEW_LISTING } from '@/constants/screens'
 import { useUpload } from '@/contexts/UploadContext'
+import { useHideTabBarWhileFocused } from '@/hooks/useHideTabBarWhileFocused'
 import { transformUrlsToReviewImages } from '@/lib/reviewImageUtils'
 import type { PendingReviewPhoto } from '@/lib/uploadReviewPhotos'
 import { uploadReviewPhotos } from '@/lib/uploadReviewPhotos'
@@ -62,15 +67,21 @@ type Props = {
 }
 
 const inputBorder = {
-  borderColor: '#797979',
+  borderColor: BORDER_SUBTLE,
   borderWidth: 1,
-  borderRadius: 10,
+  borderRadius: 16,
 } as const
 
 export function WriteReviewForm({ restaurant, resolveRestaurantUuid }: Props): JSX.Element {
   const insets = useSafeAreaInsets()
   const user = useUserData()
   const uploadCtx = useUpload()
+  const exitSheetRef = useRef<WriteReviewExitSheetHandle>(null)
+
+  useHideTabBarWhileFocused()
+
+  const footerHeight = useMemo(() => getWriteReviewFooterHeight(insets), [insets.bottom])
+  const scrollBottomPad = footerHeight + 16
 
   const [rating, setRating] = useState(0)
   const [title, setTitle] = useState('')
@@ -87,46 +98,68 @@ export function WriteReviewForm({ restaurant, resolveRestaurantUuid }: Props): J
   const [publishing, setPublishing] = useState(false)
   const [savingDraft, setSavingDraft] = useState(false)
 
+  const navTitle = useMemo(() => {
+    const name = restaurant.name.trim()
+    if (!name.length) return 'Write review'
+    return name.length > 28 ? `${name.slice(0, 28)}…` : name
+  }, [restaurant.name])
+
+  const isDirty = useMemo(
+    () =>
+      rating !== 0 ||
+      title.trim().length > 0 ||
+      body.trim().length > 0 ||
+      previewUris.length > 0 ||
+      recognitions.length > 0,
+    [rating, title, body, previewUris.length, recognitions.length],
+  )
+
   const toggleRecognition = useCallback((name: string) => {
     setRecognitions((prev) =>
       prev.includes(name) ? prev.filter((n) => n !== name) : [...prev, name],
     )
   }, [])
 
-  const validate = useCallback((): boolean => {
+  const validate = useCallback((mode: 'approved' | 'draft'): boolean => {
     let ok = true
-    if (rating === 0) {
-      setRatingError(requiredRating)
-      ok = false
-    } else setRatingError('')
-
-    if (previewUris.length < minimumImage) {
-      setPhotoError(minimumImageLimit(minimumImage))
-      ok = false
-    } else if (previewUris.length > maximumImage) {
-      setPhotoError(maximumImageLimit(maximumImage))
-      ok = false
-    } else setPhotoError('')
-
-    if (body.trim() === '') {
-      setBodyError(requiredDescription)
-      ok = false
-    } else if (body.length > reviewDescriptionMaxLimit) {
-      setBodyError(maximumReviewDescription(reviewDescriptionMaxLimit))
-      ok = false
-    } else setBodyError('')
 
     if (title.length > reviewTitleMaxLimit) {
       setTitleError(maximumReviewTitle(reviewTitleMaxLimit))
       ok = false
     } else setTitleError('')
 
+    if (previewUris.length > maximumImage) {
+      setPhotoError(maximumImageLimit(maximumImage))
+      ok = false
+    } else if (mode === 'approved' && previewUris.length < minimumImage) {
+      setPhotoError(minimumImageLimit(minimumImage))
+      ok = false
+    } else setPhotoError('')
+
+    if (body.length > reviewDescriptionMaxLimit) {
+      setBodyError(maximumReviewDescription(reviewDescriptionMaxLimit))
+      ok = false
+    } else if (mode === 'approved' && body.trim() === '') {
+      setBodyError(requiredDescription)
+      ok = false
+    } else setBodyError('')
+
+    if (mode === 'draft') {
+      setRatingError('')
+      return ok
+    }
+
+    if (rating === 0) {
+      setRatingError(requiredRating)
+      ok = false
+    } else setRatingError('')
+
     return ok
   }, [rating, previewUris.length, body, title.length])
 
   const submit = useCallback(
     async (mode: 'approved' | 'draft') => {
-      if (!validate()) return
+      if (!validate(mode)) return
       const authorId = user?.id
       if (!authorId) {
         toast.error('User not authenticated')
@@ -149,14 +182,15 @@ export function WriteReviewForm({ restaurant, resolveRestaurantUuid }: Props): J
           restaurant_uuid: restaurantUuid,
           author_id: authorId,
           title: title.trim() || null,
-          content: body.trim(),
-          rating,
+          content: body.trim() || ' ',
+          rating: rating || 0,
           images,
           recognitions: recognitions.length ? recognitions : undefined,
           status: mode,
         })
 
         uploadCtx.completeUpload()
+        exitSheetRef.current?.dismiss()
 
         if (mode === 'draft') {
           toast.success(savedAsDraft)
@@ -181,7 +215,6 @@ export function WriteReviewForm({ restaurant, resolveRestaurantUuid }: Props): J
       validate,
       user?.id,
       restaurant.uuid,
-      restaurant.name,
       resolveRestaurantUuid,
       pendingPhotos,
       uploadCtx,
@@ -192,108 +225,118 @@ export function WriteReviewForm({ restaurant, resolveRestaurantUuid }: Props): J
     ],
   )
 
+  const handleClose = useCallback(() => {
+    if (!isDirty) {
+      router.replace(SCREEN_HOME)
+      return
+    }
+    exitSheetRef.current?.present()
+  }, [isDirty])
+
+  const handleDiscard = useCallback(() => {
+    router.replace(SCREEN_HOME)
+  }, [])
+
+  const busy = publishing || savingDraft
+
   return (
-    <KeyboardAvoidingView
-      className="flex-1 bg-white"
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 8 : 0}
-    >
-      <ScrollView
-        keyboardShouldPersistTaps="handled"
-        contentContainerStyle={{ paddingBottom: 120 + insets.bottom }}
+    <View className="flex-1 bg-white">
+      <WriteReviewTopNav title={navTitle} onClose={handleClose} />
+
+      <KeyboardAvoidingView
+        className="flex-1"
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? insets.top + 48 : 0}
+        style={{ paddingBottom: footerHeight }}
       >
-        <ReviewRestaurantHeader restaurant={restaurant} />
-
-        <HalfStarRating value={rating} onChange={setRating} error={ratingError} />
-
-        <View className="px-4 pb-4">
-          <Text className="mb-2 font-neusans text-sm text-[#374151]">Review Title</Text>
-          <TextInput
-            value={title}
-            onChangeText={setTitle}
-            placeholder="Start with a review title..."
-            placeholderTextColor="#797979"
-            maxLength={reviewTitleMaxLimit}
-            multiline
-            numberOfLines={2}
-            textAlignVertical="top"
-            className="px-4 py-3 font-neusans text-base text-[#31343F]"
-            style={mergeTextInputBodyTypography({ fontSize: 16, ...inputBorder })}
-          />
-          <Text
-            className={`mt-1 text-right font-neusans text-xs ${title.length > 40 ? 'text-red-500' : 'text-gray-500'}`}
-          >
-            {title.length}/{reviewTitleMaxLimit}
-          </Text>
-          {titleError ? (
-            <Text className="mt-1 font-neusans text-xs text-red-600">{titleError}</Text>
-          ) : null}
-        </View>
-
-        <View className="px-4 pb-4">
-          <Text className="mb-2 font-neusans text-sm text-[#374151]">Tell us about your experience</Text>
-          <TextInput
-            value={body}
-            onChangeText={setBody}
-            placeholder="Write a review about the food, service or ambiance of the restaurant"
-            placeholderTextColor="#797979"
-            maxLength={reviewDescriptionMaxLimit}
-            multiline
-            textAlignVertical="top"
-            className="min-h-[120px] px-4 py-3 font-neusans text-base text-[#31343F]"
-            style={mergeTextInputBodyTypography({ fontSize: 16, minHeight: 120, ...inputBorder })}
-          />
-          <Text
-            className={`mt-1 text-right font-neusans text-xs ${body.length > 1000 ? 'text-red-500' : 'text-gray-500'}`}
-          >
-            {body.length}/{reviewDescriptionMaxLimit}
-          </Text>
-          {bodyError ? (
-            <Text className="mt-1 font-neusans text-xs text-red-600">{bodyError}</Text>
-          ) : null}
-        </View>
-
-        <ReviewPhotoGrid
-          previewUris={previewUris}
-          pending={pendingPhotos}
-          onChange={(previews, pending) => {
-            setPreviewUris(previews)
-            setPendingPhotos(pending)
-            setPhotoError('')
-          }}
-          error={photoError}
-        />
-
-        <RecognitionTags selected={recognitions} onToggle={toggleRecognition} />
-
-        <View className="px-4 pb-2">
-          <ContentGuidelinesReminder />
-        </View>
-      </ScrollView>
-
-      <View
-        className="absolute bottom-0 left-0 right-0 flex-row gap-3 border-t border-gray-100 bg-white px-4 pt-3"
-        style={{ paddingBottom: Math.max(insets.bottom, 12) }}
-      >
-        <Button
-          variant="primary"
+        <ScrollView
           className="flex-1"
-          loading={publishing}
-          disabled={savingDraft}
-          onPress={() => void submit('approved')}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ paddingBottom: scrollBottomPad }}
         >
-          Create Review
-        </Button>
-        <Button
-          variant="secondary"
-          className="flex-1"
-          loading={savingDraft}
-          disabled={publishing}
-          onPress={() => void submit('draft')}
-        >
-          Save as Draft
-        </Button>
-      </View>
-    </KeyboardAvoidingView>
+          <ReviewRestaurantHeader restaurant={restaurant} />
+
+          <ReviewPhotoGrid
+            previewUris={previewUris}
+            pending={pendingPhotos}
+            onChange={(previews, pending) => {
+              setPreviewUris(previews)
+              setPendingPhotos(pending)
+              setPhotoError('')
+            }}
+            error={photoError}
+          />
+
+          <HalfStarRating value={rating} onChange={setRating} error={ratingError} />
+
+          <View className="px-4 pb-4">
+            <Text className="mb-2 font-neusans text-sm text-[#374151]">Review Title</Text>
+            <TextInput
+              value={title}
+              onChangeText={setTitle}
+              placeholder="Start with a review title..."
+              placeholderTextColor="#797979"
+              maxLength={reviewTitleMaxLimit}
+              multiline
+              numberOfLines={2}
+              textAlignVertical="top"
+              className="px-4 py-3 font-neusans text-base text-[#31343F]"
+              style={mergeTextInputBodyTypography({ fontSize: 16, ...inputBorder })}
+            />
+            <Text
+              className={`mt-1 text-right font-neusans text-xs ${title.length > 40 ? 'text-red-500' : 'text-gray-500'}`}
+            >
+              {title.length}/{reviewTitleMaxLimit}
+            </Text>
+            {titleError ? (
+              <Text className="mt-1 font-neusans text-xs text-red-600">{titleError}</Text>
+            ) : null}
+          </View>
+
+          <View className="px-4 pb-4">
+            <Text className="mb-2 font-neusans text-sm text-[#374151]">
+              Tell us about your experience
+            </Text>
+            <TextInput
+              value={body}
+              onChangeText={setBody}
+              placeholder="Write a review about the food, service or ambiance of the restaurant"
+              placeholderTextColor="#797979"
+              maxLength={reviewDescriptionMaxLimit}
+              multiline
+              textAlignVertical="top"
+              className="min-h-[120px] px-4 py-3 font-neusans text-base text-[#31343F]"
+              style={mergeTextInputBodyTypography({ fontSize: 16, minHeight: 120, ...inputBorder })}
+            />
+            <Text
+              className={`mt-1 text-right font-neusans text-xs ${body.length > 1000 ? 'text-red-500' : 'text-gray-500'}`}
+            >
+              {body.length}/{reviewDescriptionMaxLimit}
+            </Text>
+            {bodyError ? (
+              <Text className="mt-1 font-neusans text-xs text-red-600">{bodyError}</Text>
+            ) : null}
+          </View>
+
+          <RecognitionTags selected={recognitions} onToggle={toggleRecognition} />
+        </ScrollView>
+      </KeyboardAvoidingView>
+
+      <WriteReviewFooter
+        onPublish={() => void submit('approved')}
+        publishing={publishing}
+        savingDraft={savingDraft}
+        insets={insets}
+      />
+
+      <WriteReviewExitSheet
+        ref={exitSheetRef}
+        onDiscard={handleDiscard}
+        onSaveDraft={() => void submit('draft')}
+        savingDraft={savingDraft}
+        busy={busy}
+      />
+    </View>
   )
 }

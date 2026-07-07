@@ -1,7 +1,8 @@
-import { View, ScrollView, RefreshControl } from 'react-native'
-
 import { useCallback, useState } from 'react'
+import { View, ScrollView, RefreshControl } from 'react-native'
 import { useFocusEffect } from '@react-navigation/native'
+
+import { useTabBarScrollHandler } from '@/hooks/useTabBarScrollHandler'
 import {
   HomeBrandMark,
   HomeHero,
@@ -17,6 +18,7 @@ export default function HomeScreen() {
   const [refreshing, setRefreshing] = useState(false)
   const [feedKey, setFeedKey] = useState(0)
   const [recentRefreshKey, setRecentRefreshKey] = useState(0)
+  const { onScroll, scrollEventThrottle } = useTabBarScrollHandler()
 
   useFocusEffect(
     useCallback(() => {
@@ -37,6 +39,8 @@ export default function HomeScreen() {
       <ScrollView
         className="flex-1"
         keyboardShouldPersistTaps="handled"
+        onScroll={onScroll}
+        scrollEventThrottle={scrollEventThrottle}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={BRAND_PRIMARY} />}
       >
         <HomeBrandMark />

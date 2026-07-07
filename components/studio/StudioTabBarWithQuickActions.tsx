@@ -37,7 +37,8 @@ import {
   SCREEN_STUDIO_REVIEW_LISTING,
 } from '@/constants/screens'
 import { BRAND_PRIMARY, TEXT_HEADING, TEXT_MUTED } from '@/constants/brand'
-import { TabBarChrome } from '@/components/navigation/TabBarChrome'
+import { FloatingTabBarPill } from '@/components/navigation/FloatingTabBarPill'
+import { useTabBarScroll } from '@/contexts/TabBarScrollContext'
 import { getStudioSheetBottomPadding } from '@/constants/tabBar'
 import { studioQuickMenuToggleRef } from '@/contexts/StudioQuickMenuContext'
 import { useStudioQuickMenu } from '@/contexts/StudioQuickMenuContext'
@@ -59,6 +60,7 @@ const ORB_SIZE = Math.round(TAB_BAR_ICON_SIZE * 2)
 export function StudioTabBarWithQuickActions(props: BottomTabBarProps): JSX.Element {
   const router = useRouter()
   const { anchorRect } = useStudioQuickMenu()
+  const { expandTabBar } = useTabBarScroll()
   const { insets } = props
 
   const sheetBottomPadding = useMemo(() => getStudioSheetBottomPadding(insets), [insets])
@@ -119,12 +121,13 @@ export function StudioTabBarWithQuickActions(props: BottomTabBarProps): JSX.Elem
 
   const openMenu = useCallback(() => {
     void Haptics.selectionAsync()
+    expandTabBar()
     sheetY.value = SHEET_HIDDEN_Y
     orbOpacity.value = 0
     orbRotate.value = 0
     backdropProg.value = 0
     setModalVisible(true)
-  }, [backdropProg, orbOpacity, orbRotate, sheetY])
+  }, [backdropProg, expandTabBar, orbOpacity, orbRotate, sheetY])
 
   const toggleFromTab = useCallback(() => {
     if (modalVisibleRef.current) {
@@ -146,7 +149,10 @@ export function StudioTabBarWithQuickActions(props: BottomTabBarProps): JSX.Elem
 
   useEffect(() => {
     if (!modalVisible) return
-    animateOpenRef.current()
+    const frame = requestAnimationFrame(() => {
+      animateOpenRef.current()
+    })
+    return () => cancelAnimationFrame(frame)
   }, [modalVisible])
 
   useEffect(() => {
@@ -200,9 +206,9 @@ export function StudioTabBarWithQuickActions(props: BottomTabBarProps): JSX.Elem
 
   return (
     <>
-      <TabBarChrome>
+      <FloatingTabBarPill insets={insets}>
         <BottomTabBar {...props} />
-      </TabBarChrome>
+      </FloatingTabBarPill>
 
       <Modal
         transparent

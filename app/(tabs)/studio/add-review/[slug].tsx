@@ -1,7 +1,6 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { ActivityIndicator, Text, View } from 'react-native'
-import { SafeAreaView } from 'react-native-safe-area-context'
-import { router, useLocalSearchParams, useNavigation } from 'expo-router'
+import { router, useLocalSearchParams } from 'expo-router'
 
 import { WriteReviewForm } from '@/components/studio/add-review/WriteReviewForm'
 import { BRAND_PRIMARY, TEXT_HEADING, TEXT_MUTED } from '@/constants/brand'
@@ -14,7 +13,6 @@ type BootPhase = 'loading' | 'missing' | 'error' | 'ready'
 export default function AddReviewWriteScreen(): JSX.Element {
   useRequireAuthOnMount()
 
-  const navigation = useNavigation()
   const params = useLocalSearchParams<{ slug: string | string[] }>()
   const slug = useMemo(() => firstSegmentParam(params.slug).trim(), [params.slug])
 
@@ -38,24 +36,17 @@ export default function AddReviewWriteScreen(): JSX.Element {
       })
   }, [slug])
 
-  useEffect(() => {
-    if (phase !== 'ready' || !restaurant?.title) return
-    const label =
-      restaurant.title.length > 28 ? `${restaurant.title.slice(0, 28)}…` : restaurant.title
-    navigation.setOptions({ title: label })
-  }, [navigation, phase, restaurant?.title])
-
   if (phase === 'loading') {
     return (
-      <SafeAreaView className="flex-1 items-center justify-center bg-white">
+      <View className="flex-1 items-center justify-center bg-white">
         <ActivityIndicator color={BRAND_PRIMARY} />
-      </SafeAreaView>
+      </View>
     )
   }
 
   if (phase === 'missing' || phase === 'error' || !restaurant) {
     return (
-      <SafeAreaView className="flex-1 items-center justify-center bg-white px-8">
+      <View className="flex-1 items-center justify-center bg-white px-8">
         <Text className="text-center font-neusans text-base" style={{ color: TEXT_HEADING }}>
           {phase === 'missing' ? 'Missing restaurant slug.' : 'Could not load this restaurant.'}
         </Text>
@@ -66,7 +57,7 @@ export default function AddReviewWriteScreen(): JSX.Element {
         >
           Go back
         </Text>
-      </SafeAreaView>
+      </View>
     )
   }
 
@@ -77,7 +68,7 @@ export default function AddReviewWriteScreen(): JSX.Element {
   const address = restaurant.listing_street?.trim() || streetFromAddress
 
   return (
-    <SafeAreaView className="flex-1 bg-white" edges={['left', 'right']}>
+    <View className="flex-1 bg-white">
       <WriteReviewForm
         restaurant={{
           uuid: restaurant.uuid,
@@ -86,6 +77,6 @@ export default function AddReviewWriteScreen(): JSX.Element {
           imageUrl: restaurant.featured_image_url,
         }}
       />
-    </SafeAreaView>
+    </View>
   )
 }

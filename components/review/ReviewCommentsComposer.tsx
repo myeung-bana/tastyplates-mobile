@@ -5,16 +5,20 @@ import type { TextInput as RNTextInput } from 'react-native'
 
 import { ProfileAvatarImage } from '@/components/profile/ProfileAvatarImage'
 import { AppIcon } from '@/components/ui/AppIcon'
+import { BRAND_PRIMARY } from '@/constants/brand'
 import { reviewDescriptionDisplayLimit } from '@/constants/validation'
+import { useOwnProfilePresentation } from '@/hooks/useOwnProfilePresentation'
 import type { UseReviewCommentsResult } from '@/hooks/useReviewComments'
 
 const NEUSANS = 'Neusans'
+const SEND_BUTTON_SIZE = 36
+const COMPOSER_INPUT_MIN_HEIGHT = 36
+const COMPOSER_INPUT_MAX_HEIGHT = 120
 
 export type ReviewCommentsComposerProps = {
   comments: Pick<
     UseReviewCommentsResult,
     | 'isAuthenticated'
-    | 'profile'
     | 'commentText'
     | 'setCommentText'
     | 'cooldown'
@@ -35,7 +39,6 @@ export const ReviewCommentsComposer = forwardRef<RNTextInput, ReviewCommentsComp
   ): JSX.Element {
     const {
       isAuthenticated,
-      profile,
       commentText,
       setCommentText,
       cooldown,
@@ -44,6 +47,8 @@ export const ReviewCommentsComposer = forwardRef<RNTextInput, ReviewCommentsComp
       handleCommentSubmit,
       promptSignIn,
     } = comments
+
+    const { avatarUrl } = useOwnProfilePresentation()
 
     const inputProps = {
       value: commentText,
@@ -55,14 +60,18 @@ export const ReviewCommentsComposer = forwardRef<RNTextInput, ReviewCommentsComp
       placeholderTextColor: '#9ca3af' as const,
       maxLength: reviewDescriptionDisplayLimit,
       editable: cooldown === 0 && !submitting,
-      onSubmitEditing: () => void handleCommentSubmit(),
-      returnKeyType: 'send' as const,
+      multiline: true,
+      blurOnSubmit: false,
+      returnKeyType: 'default' as const,
+      textAlignVertical: 'top' as const,
       style: {
         flex: 1,
         fontFamily: NEUSANS,
         fontSize: 14,
         color: '#31343F',
         paddingVertical: 8,
+        minHeight: COMPOSER_INPUT_MIN_HEIGHT,
+        maxHeight: COMPOSER_INPUT_MAX_HEIGHT,
       },
     }
 
@@ -78,35 +87,46 @@ export const ReviewCommentsComposer = forwardRef<RNTextInput, ReviewCommentsComp
         }}
       >
         {isAuthenticated ? (
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+          <View style={{ flexDirection: 'row', gap: 10 }}>
             <ProfileAvatarImage
               size={32}
-              avatarUrl={profile?.avatarUrl}
-              style={{ backgroundColor: '#e5e7eb' }}
+              avatarUrl={avatarUrl}
+              style={{ marginTop: 6, backgroundColor: '#e5e7eb' }}
             />
 
-            {variant === 'bottomSheet' ? (
-              <BottomSheetTextInput
-                ref={ref as Ref<ElementRef<typeof BottomSheetTextInput>>}
-                {...inputProps}
-              />
-            ) : (
-              <TextInput ref={ref} {...inputProps} />
-            )}
-
-            <Pressable
-              onPress={() => void handleCommentSubmit()}
-              disabled={!canSend}
-              hitSlop={8}
-              accessibilityRole="button"
-              accessibilityLabel="Send comment"
-            >
-              {submitting ? (
-                <ActivityIndicator size="small" color="#3b82f6" />
+            <View style={{ flex: 1, flexDirection: 'row', alignItems: 'flex-end', gap: 8 }}>
+              {variant === 'bottomSheet' ? (
+                <BottomSheetTextInput
+                  ref={ref as Ref<ElementRef<typeof BottomSheetTextInput>>}
+                  {...inputProps}
+                />
               ) : (
-                <AppIcon name="send" size={20} color={canSend ? '#3b82f6' : '#d1d5db'} />
+                <TextInput ref={ref} {...inputProps} />
               )}
-            </Pressable>
+
+              <Pressable
+                onPress={() => void handleCommentSubmit()}
+                disabled={!canSend}
+                hitSlop={8}
+                accessibilityRole="button"
+                accessibilityLabel="Submit comment"
+                style={{
+                  width: SEND_BUTTON_SIZE,
+                  height: SEND_BUTTON_SIZE,
+                  borderRadius: SEND_BUTTON_SIZE / 2,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backgroundColor: canSend ? BRAND_PRIMARY : '#e5e7eb',
+                  marginBottom: 2,
+                }}
+              >
+                {submitting ? (
+                  <ActivityIndicator size="small" color="#ffffff" />
+                ) : (
+                  <AppIcon name="arrow-up" size={18} color={canSend ? '#ffffff' : '#9ca3af'} />
+                )}
+              </Pressable>
+            </View>
           </View>
         ) : (
           <Pressable onPress={promptSignIn} style={{ alignItems: 'center', paddingVertical: 8 }}>

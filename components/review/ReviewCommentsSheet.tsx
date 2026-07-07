@@ -40,7 +40,8 @@ export const ReviewCommentsSheet = forwardRef<ReviewCommentsSheetHandle, ReviewC
     const composerRef = useRef<TextInput>(null)
     const focusComposerOnPresentRef = useRef(false)
 
-    const snapPoints = useMemo(() => ['92%'], [])
+    /** Fixed height — do not shrink when comment list is short or empty. */
+    const snapPoints = useMemo(() => ['90%'], [])
     const footerBottomInset = Math.max(insets.bottom, 12)
 
     const present = useCallback((options?: { focusComposer?: boolean }) => {
@@ -117,6 +118,7 @@ export const ReviewCommentsSheet = forwardRef<ReviewCommentsSheetHandle, ReviewC
       <BottomSheetModal
         ref={sheetRef}
         snapPoints={snapPoints}
+        enableDynamicSizing={false}
         enablePanDownToClose
         keyboardBehavior="interactive"
         keyboardBlurBehavior="restore"
