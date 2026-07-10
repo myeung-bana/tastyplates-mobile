@@ -10,16 +10,21 @@ const FOOTER_TOP_PAD = 12
 export type WriteReviewFooterProps = {
   onPublish: () => void
   publishing: boolean
-  savingDraft: boolean
+  savingDraft?: boolean
   insets: Pick<EdgeInsets, 'bottom'>
+  /** Primary action label (defaults to “Share Review”). */
+  label?: string
+  disabled?: boolean
 }
 
-/** Full-width publish action pinned to the bottom of the screen. */
+/** Full-width primary action pinned to the bottom of the screen. */
 export function WriteReviewFooter({
   onPublish,
   publishing,
-  savingDraft,
+  savingDraft = false,
   insets,
+  label = 'Share Review',
+  disabled = false,
 }: WriteReviewFooterProps): JSX.Element {
   const busy = publishing || savingDraft
 
@@ -35,10 +40,10 @@ export function WriteReviewFooter({
         variant="primary"
         className="w-full"
         loading={publishing}
-        disabled={busy && !publishing}
+        disabled={disabled || (busy && !publishing)}
         onPress={onPublish}
       >
-        Share Review
+        {label}
       </Button>
     </View>
   )

@@ -15,11 +15,12 @@ import { AuthHeroLayout } from '@/components/auth/AuthHeroLayout'
 import { PasswordInput } from '@/components/ui/PasswordInput'
 import { BRAND_PRIMARY } from '@/constants/brand'
 import { SCREEN_HOME, SCREEN_LOGIN } from '@/constants/screens'
+import { minimumPassword } from '@/constants/validation'
 import { toast } from '@/utils/toast'
 
 const schema = z
   .object({
-    password: z.string().min(8, 'Use at least 8 characters'),
+    password: z.string().min(minimumPassword, `Use at least ${minimumPassword} characters`),
     confirm: z.string().min(1, 'Confirm your new password'),
   })
   .refine((d) => d.password === d.confirm, { message: 'Passwords do not match', path: ['confirm'] })

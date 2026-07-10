@@ -19,9 +19,13 @@ type TabBarScrollContextValue = {
   collapseProgress: SharedValue<number>
   /** False when Reduce Motion is enabled — pill stays expanded. */
   collapseEnabled: boolean
+  /** True when a focused screen requests the floating tab bar be hidden. */
+  isTabBarSuppressed: boolean
   expandTabBar: () => void
   compactTabBar: () => void
   reportScrollDirection: (direction: 'up' | 'down') => void
+  suppressTabBar: () => void
+  releaseTabBar: () => void
 }
 
 const TabBarScrollContext = createContext<TabBarScrollContextValue | undefined>(undefined)
@@ -29,8 +33,10 @@ const TabBarScrollContext = createContext<TabBarScrollContextValue | undefined>(
 export function TabBarScrollProvider({ children }: { children: ReactNode }): JSX.Element {
   const collapseProgress = useSharedValue(1)
   const [reduceMotionEnabled, setReduceMotionEnabled] = useState(false)
+  const [isTabBarSuppressed, setIsTabBarSuppressed] = useState(false)
   const collapseEnabled = !reduceMotionEnabled
   const isCompactRef = useRef(false)
+  const suppressCountRef = useRef(0)
 
   useEffect(() => {
     void AccessibilityInfo.isReduceMotionEnabled().then(setReduceMotionEnabled)
@@ -64,15 +70,37 @@ export function TabBarScrollProvider({ children }: { children: ReactNode }): JSX
     [compactTabBar, expandTabBar],
   )
 
+  const suppressTabBar = useCallback(() => {
+    suppressCountRef.current += 1
+    setIsTabBarSuppressed(true)
+  }, [])
+
+  const releaseTabBar = useCallback(() => {
+    suppressCountRef.current = Math.max(0, suppressCountRef.current - 1)
+    setIsTabBarSuppressed(suppressCountRef.current > 0)
+  }, [])
+
   const value = useMemo(
     () => ({
       collapseProgress,
       collapseEnabled,
+      isTabBarSuppressed,
       expandTabBar,
       compactTabBar,
       reportScrollDirection,
+      suppressTabBar,
+      releaseTabBar,
     }),
-    [collapseProgress, collapseEnabled, expandTabBar, compactTabBar, reportScrollDirection],
+    [
+      collapseProgress,
+      collapseEnabled,
+      isTabBarSuppressed,
+      expandTabBar,
+      compactTabBar,
+      reportScrollDirection,
+      suppressTabBar,
+      releaseTabBar,
+    ],
   )
 
   return (

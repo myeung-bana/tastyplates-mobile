@@ -27,6 +27,7 @@ module.exports = {
     },
     plugins: [
       ...(appJson.expo.plugins ?? []),
+      '@react-native-community/datetimepicker',
       [
         'react-native-maps',
         {

@@ -23,6 +23,10 @@ export const palateExactLimitMessage = (limit: number) => `Please select exactly
 export const palateMaxLimitMessage = (limit: number) => `You can only select up to ${limit} palates.`
 export const maximumBioLength = (max: number) => `Bio must be ${max} characters or less.`
 export const profileUpdateFailed = 'Could not update your profile. Please try again.'
+export const birthdateRequired = 'Birthdate is required.'
+export const birthdateLimit = (age: number) => `Birthdate must be at least ${age} years old.`
+export const genderRequired = 'Please select your gender.'
+export const profileSettingsUpdated = 'Profile updated successfully!'
 export const profileImageSizeError = 'Profile photo must be 5 MB or smaller.'
 export const profileImageTypeError = 'Please choose a JPEG or PNG image.'
 

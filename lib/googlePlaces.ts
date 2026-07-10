@@ -18,7 +18,7 @@ export const GASTRONOMY_PLACE_TYPES = [
   'bar',
 ] as const
 
-/** Lodging and similar — excluded even when Google also tags `restaurant`. */
+/** Lodging, health, and similar — excluded even when Google also tags `restaurant`. */
 export const EXCLUDED_NON_RESTAURANT_PLACE_TYPES = [
   'lodging',
   'hotel',
@@ -29,7 +29,23 @@ export const EXCLUDED_NON_RESTAURANT_PLACE_TYPES = [
   'resort_hotel',
   'extended_stay_hotel',
   'rv_park',
+  'doctor',
+  'physician',
+  'hospital',
+  'health',
+  'dentist',
+  'pharmacy',
+  'veterinary_care',
+  'medical_lab',
+  'physiotherapist',
+  'chiropractor',
 ] as const
+
+const EXCLUDED_NAME_PATTERN =
+  /\b(hotel|motel|hostel|inn|resort|doctor|dr\.|medical|clinic|dentist|pharmacy|hospital|physician|acupuncture|veterinar|medicine|wellness\s+center)\b/i
+
+const RESTAURANT_NAME_PATTERN =
+  /\b(restaurant|grill|bistro|cafe|café|kitchen|diner|eatery|bar|bakery|pizzeria|sushi|ramen|bbq|tavern|pub|food)\b/i
 
 function normalizePlaceTypes(types: string[] | null | undefined): string[] {
   return (types ?? []).map((t) => t.trim().toLowerCase()).filter(Boolean)
@@ -43,6 +59,9 @@ export function isRestaurantLikeGooglePlace(
   types: string[] | null | undefined,
   name?: string | null,
 ): boolean {
+  const label = (name ?? '').trim()
+  if (label.length > 0 && EXCLUDED_NAME_PATTERN.test(label)) return false
+
   const normalized = normalizePlaceTypes(types)
 
   if (
@@ -54,9 +73,11 @@ export function isRestaurantLikeGooglePlace(
   }
 
   if (normalized.length === 0) {
-    const label = (name ?? '').toLowerCase()
-    if (/\b(hotel|motel|hostel|inn|resort)\b/.test(label)) return false
-    return true
+    const label = (name ?? '').trim()
+    if (!label.length) return false
+    if (EXCLUDED_NAME_PATTERN.test(label)) return false
+    if (RESTAURANT_NAME_PATTERN.test(label)) return true
+    return false
   }
 
   return normalized.some((t) =>

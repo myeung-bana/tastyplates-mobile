@@ -15,19 +15,19 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { router, useLocalSearchParams } from 'expo-router'
 import { Controller, useForm } from 'react-hook-form'
 
-import { EditProfileTopNav } from '@/components/profile/EditProfileTopNav'
 import { HalfStarRating } from '@/components/studio/add-review/HalfStarRating'
 import { ReviewPhotoGrid } from '@/components/studio/add-review/ReviewPhotoGrid'
 import { ReviewRestaurantHeader } from '@/components/studio/add-review/ReviewRestaurantHeader'
 import type { ReviewRestaurantSummary } from '@/components/studio/add-review/ReviewRestaurantHeader'
 import {
-  BORDER_SUBTLE,
-  BRAND_PRIMARY,
-  mergeTextInputBodyTypography,
-  TEXT_HEADING,
-  TEXT_MUTED,
-} from '@/constants/brand'
+  WriteReviewFooter,
+  getWriteReviewFooterHeight,
+} from '@/components/studio/add-review/WriteReviewFooter'
+import { WriteReviewTopNav } from '@/components/studio/add-review/WriteReviewTopNav'
+import { BORDER_SUBTLE, BRAND_PRIMARY, mergeTextInputBodyTypography, TEXT_HEADING } from '@/constants/brand'
+import { reviewDescriptionMaxLimit, reviewTitleMaxLimit } from '@/constants/validation'
 import { useUpload } from '@/contexts/UploadContext'
+import { useHideTabBarWhileFocused } from '@/hooks/useHideTabBarWhileFocused'
 import { firstSegmentParam } from '@/lib/routeParams'
 import {
   normalizeReviewImageOrder,
@@ -58,6 +58,12 @@ type FormSnapshot = {
   pendingUris: string[]
 }
 
+const inputBorder = {
+  borderColor: BORDER_SUBTLE,
+  borderWidth: 1,
+  borderRadius: 16,
+} as const
+
 function snapshotKey(s: FormSnapshot): string {
   return JSON.stringify({
     title: s.title.trim(),
@@ -74,6 +80,11 @@ export default function EditReviewScreen(): JSX.Element {
   const uploadCtx = useUpload()
   const raw = useLocalSearchParams<{ id: string | string[] }>()
   const id = useMemo(() => firstSegmentParam(raw.id).trim(), [raw.id])
+
+  useHideTabBarWhileFocused()
+
+  const footerHeight = useMemo(() => getWriteReviewFooterHeight(insets), [insets.bottom])
+  const scrollBottomPad = footerHeight + 16
 
   const [phase, setPhase] = useState<BootPhase>('loading')
   const [saving, setSaving] = useState(false)
@@ -97,6 +108,12 @@ export default function EditReviewScreen(): JSX.Element {
     () => [...savedImages.map((img) => img.url), ...pendingPhotos.map((p) => p.uri)],
     [savedImages, pendingPhotos],
   )
+
+  const navTitle = useMemo(() => {
+    const name = restaurant?.name.trim() ?? ''
+    if (!name.length) return 'Edit review'
+    return name.length > 28 ? `${name.slice(0, 28)}…` : name
+  }, [restaurant?.name])
 
   const hydrateReview = useCallback(async () => {
     if (!id.length) {
@@ -166,14 +183,14 @@ export default function EditReviewScreen(): JSX.Element {
     return snapshotKey(currentSnapshot) !== snapshotKey(initialRef.current)
   }, [currentSnapshot])
 
-  const doneEnabled = isDirty && !saving && !unpublishing && phase === 'ready'
+  const canSave = isDirty && !saving && !unpublishing && phase === 'ready'
 
   const onPhotoChange = useCallback((previews: string[], pending: PendingReviewPhoto[]) => {
     setPendingPhotos(pending)
     setSavedImages((prev) => prev.filter((img) => previews.includes(img.url)))
   }, [])
 
-  const handleCancel = useCallback(() => {
+  const handleClose = useCallback(() => {
     if (!isDirty) {
       router.back()
       return
@@ -189,7 +206,7 @@ export default function EditReviewScreen(): JSX.Element {
   }, [isDirty])
 
   const handleSave = handleSubmit(async (vals) => {
-    if (!id.length || !doneEnabled) return
+    if (!id.length || !canSave) return
     if (!vals.review.trim()) {
       Alert.alert('Body required', 'Reviews require content even when revising drafts.')
       return
@@ -271,86 +288,102 @@ export default function EditReviewScreen(): JSX.Element {
 
   return (
     <View className="flex-1 bg-white">
-      <EditProfileTopNav
-        title="Edit review"
-        onCancel={handleCancel}
-        onDone={() => {
-          void handleSave()
-        }}
-        doneEnabled={doneEnabled}
-        saving={saving}
+      <WriteReviewTopNav
+        title={navTitle}
+        onClose={handleClose}
+        closeAccessibilityLabel="Close and go back"
       />
 
       <KeyboardAvoidingView
         className="flex-1"
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        keyboardVerticalOffset={insets.top + 48}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? insets.top + 48 : 0}
+        style={{ paddingBottom: footerHeight }}
       >
         <ScrollView
+          className="flex-1"
           keyboardShouldPersistTaps="handled"
-          contentContainerStyle={{ paddingBottom: insets.bottom + 32 }}
           showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ paddingBottom: scrollBottomPad }}
         >
           {restaurant ? <ReviewRestaurantHeader restaurant={restaurant} /> : null}
 
-          <View className="px-4 pt-4">
+          <ReviewPhotoGrid
+            previewUris={previewUris}
+            pending={pendingPhotos}
+            leadingSavedCount={savedImages.length}
+            onChange={onPhotoChange}
+          />
+
+          <HalfStarRating value={rating} onChange={setRating} />
+
+          <View className="px-4 pb-4">
+            <Text className="mb-2 font-neusans text-sm text-[#374151]">Review Title</Text>
             <Controller
               control={control}
               name="title"
               render={({ field: { value, onChange } }) => (
-                <TextInput
-                  accessibilityLabel="Title"
-                  value={value}
-                  onChangeText={onChange}
-                  className="rounded-2xl border px-4 py-3 text-[16px]"
-                  style={mergeTextInputBodyTypography({
-                    borderColor: BORDER_SUBTLE,
-                    color: TEXT_HEADING,
-                    fontWeight: '600',
-                  })}
-                  placeholder="Optional headline"
-                  placeholderTextColor={TEXT_MUTED}
-                />
+                <>
+                  <TextInput
+                    accessibilityLabel="Review title"
+                    value={value}
+                    onChangeText={onChange}
+                    placeholder="Start with a review title..."
+                    placeholderTextColor="#797979"
+                    maxLength={reviewTitleMaxLimit}
+                    multiline
+                    numberOfLines={2}
+                    textAlignVertical="top"
+                    className="px-4 py-3 font-neusans text-base text-[#31343F]"
+                    style={mergeTextInputBodyTypography({ fontSize: 16, ...inputBorder })}
+                  />
+                  <Text
+                    className={`mt-1 text-right font-neusans text-xs ${value.length > 40 ? 'text-red-500' : 'text-gray-500'}`}
+                  >
+                    {value.length}/{reviewTitleMaxLimit}
+                  </Text>
+                </>
               )}
             />
+          </View>
 
-            <View className="mt-6">
-              <HalfStarRating value={rating} onChange={setRating} />
-            </View>
-
+          <View className="px-4 pb-4">
+            <Text className="mb-2 font-neusans text-sm text-[#374151]">
+              Tell us about your experience
+            </Text>
             <Controller
               control={control}
               name="review"
               render={({ field: { value, onChange } }) => (
-                <TextInput
-                  accessibilityLabel="Review body"
-                  multiline
-                  textAlignVertical="top"
-                  className="mt-6 min-h-[180px] rounded-2xl border px-4 py-3 text-[16px]"
-                  style={mergeTextInputBodyTypography({
-                    borderColor: BORDER_SUBTLE,
-                    color: TEXT_HEADING,
-                  })}
-                  placeholder="Sharpen wording, pacing, standout dishes..."
-                  placeholderTextColor={TEXT_MUTED}
-                  value={value}
-                  onChangeText={onChange}
-                />
+                <>
+                  <TextInput
+                    accessibilityLabel="Review body"
+                    value={value}
+                    onChangeText={onChange}
+                    placeholder="Write a review about the food, service or ambiance of the restaurant"
+                    placeholderTextColor="#797979"
+                    maxLength={reviewDescriptionMaxLimit}
+                    multiline
+                    textAlignVertical="top"
+                    className="min-h-[120px] px-4 py-3 font-neusans text-base text-[#31343F]"
+                    style={mergeTextInputBodyTypography({
+                      fontSize: 16,
+                      minHeight: 120,
+                      ...inputBorder,
+                    })}
+                  />
+                  <Text
+                    className={`mt-1 text-right font-neusans text-xs ${value.length > 1000 ? 'text-red-500' : 'text-gray-500'}`}
+                  >
+                    {value.length}/{reviewDescriptionMaxLimit}
+                  </Text>
+                </>
               )}
             />
           </View>
 
-          <View className="mt-4">
-            <ReviewPhotoGrid
-              previewUris={previewUris}
-              pending={pendingPhotos}
-              leadingSavedCount={savedImages.length}
-              onChange={onPhotoChange}
-            />
-          </View>
-
           {isPublished ? (
-            <View className="px-4 pt-2">
+            <View className="px-4 pb-4">
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel="Unpublish review"
@@ -371,6 +404,16 @@ export default function EditReviewScreen(): JSX.Element {
           ) : null}
         </ScrollView>
       </KeyboardAvoidingView>
+
+      <WriteReviewFooter
+        label="Save Changes"
+        onPublish={() => {
+          void handleSave()
+        }}
+        publishing={saving}
+        disabled={!canSave}
+        insets={insets}
+      />
     </View>
   )
 }

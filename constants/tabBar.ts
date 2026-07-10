@@ -22,6 +22,17 @@ export const PILL_EXPANDED_HEIGHT = 55
 /** Compact pill height when scrolling up. */
 export const PILL_COMPACT_HEIGHT = 45
 
+/** Compact pill width when scrolling up (centered). */
+export const PILL_COMPACT_WIDTH = 300
+
+/** Expanded pill width (centered) — matches full-bleed with {@link PILL_H_INSET} on ~390pt screens. */
+export const PILL_EXPANDED_WIDTH = 370
+
+/** Clamps expanded width on narrow screens so the pill never overflows. */
+export function getPillExpandedWidth(screenWidth: number): number {
+  return Math.min(PILL_EXPANDED_WIDTH, screenWidth - PILL_H_INSET * 2)
+}
+
 /** Solid pill surface — consistent on simulator and device (no blur split). */
 export const PILL_SURFACE_COLOR = 'rgba(255, 255, 255, 0.96)'
 

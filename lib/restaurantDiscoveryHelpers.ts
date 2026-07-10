@@ -49,7 +49,9 @@ export function cuisineSlugsForFilter(slug: string | null | undefined): string[]
 export function googleKeywordForCuisine(slug: string | null | undefined): string | null {
   const trimmed = slug?.trim()
   if (!trimmed) return null
-  return QUICK_FINDS.find((item) => item.slug === trimmed)?.label ?? null
+  const label = QUICK_FINDS.find((item) => item.slug === trimmed)?.label
+  if (!label) return null
+  return `${label} restaurant`
 }
 
 export function discoveryErrorMessage(errors: { tp?: string; google?: string }): string | null {

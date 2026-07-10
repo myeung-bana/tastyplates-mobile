@@ -120,7 +120,12 @@ export function ReviewPhotoGrid({
 
   return (
     <View className="px-4 pb-4">
-      <Text className="mb-3 font-neusans text-sm text-[#374151]">Upload Photos (Max 6 Photos)</Text>
+      <Text
+        className="mb-3 font-neusans text-sm text-[#374151]"
+        style={{ marginTop: 10 }}
+      >
+        Upload Photos (Max 6 Photos)
+      </Text>
       <View className="flex-row flex-wrap gap-3">
         {previewUris.map((uri, index) => (
           <View key={`${uri}-${index}`} style={{ width: TILE, height: TILE }}>

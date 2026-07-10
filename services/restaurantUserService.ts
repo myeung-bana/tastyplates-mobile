@@ -17,6 +17,9 @@ export interface RestaurantUserRow {
   created_at: string
   /** Present on username endpoint only; may be null. */
   avatarUrl?: string | null
+  birthdate?: string | null
+  gender?: string | null
+  auth_method?: string | null
 }
 
 export interface GetRestaurantUserByUsernameResponse {
@@ -138,6 +141,8 @@ export interface UpdateRestaurantUserProfileParams {
   profile_image?: string
   palates?: string[]
   display_name?: string
+  birthdate?: string
+  gender?: string
 }
 
 interface UpdateRestaurantUserResponse {
@@ -152,6 +157,8 @@ export async function updateRestaurantUserProfile(
   if (params.profile_image !== undefined) body.profile_image = params.profile_image
   if (params.palates !== undefined) body.palates = params.palates
   if (params.display_name !== undefined) body.display_name = params.display_name
+  if (params.birthdate !== undefined) body.birthdate = params.birthdate
+  if (params.gender !== undefined) body.gender = params.gender
 
   const envelope = await tastyplatesFetch<UpdateRestaurantUserResponse>(
     'restaurant-users/update-restaurant-user',

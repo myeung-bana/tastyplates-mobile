@@ -1,38 +1,18 @@
-import { useLayoutEffect } from 'react'
-import { useNavigation } from 'expo-router'
-import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { useCallback } from 'react'
+import { useFocusEffect } from '@react-navigation/native'
 
-import { getTabSceneStylePaddingBottom, getTabBarStyle, TAB_BAR_BG } from '@/constants/tabBar'
+import { useTabBarScroll } from '@/contexts/TabBarScrollContext'
 
-function getTabNavigation(navigation: ReturnType<typeof useNavigation>) {
-  return navigation.getParent()?.getParent() ?? navigation.getParent()
-}
-
-/** Hides the parent tab bar while mounted — restores on unmount. */
+/** Hides the floating tab bar while this screen is focused — restores on blur. */
 export function useHideTabBarWhileFocused(): void {
-  const navigation = useNavigation()
-  const insets = useSafeAreaInsets()
+  const { suppressTabBar, releaseTabBar } = useTabBarScroll()
 
-  useLayoutEffect(() => {
-    const tab = getTabNavigation(navigation)
-    if (!tab) return
-
-    const restoredTabBarStyle = getTabBarStyle(insets)
-    const restoredSceneStyle = {
-      paddingBottom: getTabSceneStylePaddingBottom(insets),
-      backgroundColor: TAB_BAR_BG,
-    }
-
-    tab.setOptions({
-      tabBarStyle: { display: 'none' },
-      sceneStyle: { paddingBottom: 0, backgroundColor: TAB_BAR_BG },
-    })
-
-    return () => {
-      tab.setOptions({
-        tabBarStyle: restoredTabBarStyle,
-        sceneStyle: restoredSceneStyle,
-      })
-    }
-  }, [navigation, insets.bottom])
+  useFocusEffect(
+    useCallback(() => {
+      suppressTabBar()
+      return () => {
+        releaseTabBar()
+      }
+    }, [suppressTabBar, releaseTabBar]),
+  )
 }

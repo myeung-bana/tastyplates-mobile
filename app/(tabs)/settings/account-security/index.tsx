@@ -32,7 +32,7 @@ export default function AccountSecurityScreen(): JSX.Element {
           <ProfileMenuRow
             icon="lock"
             title="Password"
-            subtitle="Change your password"
+            subtitle="Send a reset email"
             topBorder
             onPress={() => router.push(SCREEN_SETTINGS_PASSWORD)}
           />

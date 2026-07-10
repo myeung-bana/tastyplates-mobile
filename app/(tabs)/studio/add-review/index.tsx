@@ -32,7 +32,6 @@ import { fetchGooglePlaceDetails } from '@/lib/googlePlaces'
 import { castHref, firstSegmentParam } from '@/lib/routeParams'
 import type { RestaurantSearchResult } from '@/types/restaurantSearchResult'
 import { isGoogleResult, isTPResult } from '@/types/restaurantSearchResult'
-import { formatLocationDisplay } from '@/utils/locationUtils'
 import { toast } from '@/utils/toast'
 
 export default function AddReviewSearchScreen(): JSX.Element {
@@ -46,9 +45,7 @@ export default function AddReviewSearchScreen(): JSX.Element {
   const prefillName = firstSegmentParam(prefillRaw.prefill_name)
   const prefillHandledRef = useRef(false)
 
-  const { location, hierarchy } = useLocation()
-  const hierarchyCountries = hierarchy?.hierarchy.countries ?? null
-  const localityLine = formatLocationDisplay(location, hierarchyCountries)
+  const { location } = useLocation()
 
   const [query, setQuery] = useState('')
   const [activeCuisineFilter, setActiveCuisineFilter] = useState<string | null>(null)
@@ -190,9 +187,6 @@ export default function AddReviewSearchScreen(): JSX.Element {
             </Pressable>
           ) : null}
         </View>
-        <Text className="px-5 font-neusans text-xs text-[#9ca3af]">
-          Searching in {localityLine}
-        </Text>
       </View>
 
       <View style={{ flexGrow: 0, flexShrink: 0 }}>
