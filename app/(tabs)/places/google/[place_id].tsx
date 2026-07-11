@@ -9,6 +9,7 @@ import { RestaurantDetailView } from '@/components/restaurant/RestaurantDetailVi
 import { BRAND_PRIMARY, TEXT_HEADING, TEXT_MUTED } from '@/constants/brand'
 import { SCREEN_RESTAURANT_DETAIL, SCREEN_RESTAURANTS } from '@/constants/screens'
 import { adaptGooglePlaceToDetailRow } from '@/lib/adaptGooglePlaceDetail'
+import { adaptGoogleReviewsToPreviews } from '@/lib/adaptGooglePlaceReviews'
 import { matchRestaurantForPlace } from '@/lib/findTastyPlatesMatch'
 import type { MatchedRestaurant } from '@/lib/findTastyPlatesMatch'
 import { fetchGooglePlaceDetails } from '@/lib/googlePlaces'
@@ -33,7 +34,7 @@ export default function GooglePlaceDetailScreen(): JSX.Element {
     }
     setState({ status: 'loading' })
     try {
-      const place = await fetchGooglePlaceDetails(placeId)
+      const place = await fetchGooglePlaceDetails(placeId, undefined, { includeReviews: true })
       if (!place) {
         setState({ status: 'error', message: 'Restaurant not found' })
         return
@@ -131,6 +132,8 @@ export default function GooglePlaceDetailScreen(): JSX.Element {
   const { place } = state
   const placeName = place.name?.trim() || 'Restaurant'
   const restaurant = adaptGooglePlaceToDetailRow(place, placeId!)
+  const googleReviews = adaptGoogleReviewsToPreviews(place.reviews, placeId!)
+  const reviewTotal = place.user_ratings_total ?? googleReviews.length
 
   return (
     <View className="flex-1 bg-white">
@@ -138,8 +141,8 @@ export default function GooglePlaceDetailScreen(): JSX.Element {
         slug=""
         restaurant={restaurant}
         summary={null}
-        reviews={[]}
-        reviewTotal={0}
+        reviews={googleReviews}
+        reviewTotal={reviewTotal}
         googlePlaceListing={{ placeId: placeId!, placeName }}
       />
     </View>

@@ -111,6 +111,18 @@ interface GeocodeLatLngLiteral {
   lng: number
 }
 
+/** Single review snippet from Place Details `reviews` (API returns up to 5). */
+export interface GooglePlaceReview {
+  author_name?: string
+  author_url?: string
+  language?: string
+  profile_photo_url?: string
+  rating?: number
+  relative_time_description?: string
+  text?: string
+  time?: number
+}
+
 export interface PlacesDetailsResult {
   place_id: string
   name?: string
@@ -122,6 +134,12 @@ export interface PlacesDetailsResult {
   rating?: number
   user_ratings_total?: number
   photos?: { photo_reference: string }[]
+  reviews?: GooglePlaceReview[]
+}
+
+export type FetchGooglePlaceDetailsOptions = {
+  /** Request `reviews` field (up to 5 snippets). Use on detail pages only. */
+  includeReviews?: boolean
 }
 
 interface DetailsPayload {
@@ -170,24 +188,28 @@ export async function autocompletePlacesEstablishments(
 export async function fetchGooglePlaceDetails(
   placeId: string,
   signal?: AbortSignal,
+  options: FetchGooglePlaceDetailsOptions = {},
 ): Promise<PlacesDetailsResult | null> {
   const key = getPlacesApiKey()
   if (!key) return null
 
+  const fields = [
+    'place_id',
+    'name',
+    'formatted_address',
+    'vicinity',
+    'geometry',
+    'types',
+    'rating',
+    'user_ratings_total',
+    'photos',
+  ]
+  if (options.includeReviews) fields.push('reviews')
+
   const params = new URLSearchParams({
     place_id: placeId,
     key,
-    fields: [
-      'place_id',
-      'name',
-      'formatted_address',
-      'vicinity',
-      'geometry',
-      'types',
-      'rating',
-      'user_ratings_total',
-      'photos',
-    ].join(','),
+    fields: fields.join(','),
   })
 
   const url = `${GEOCODE_BASE}/details/json?${params.toString()}`
@@ -214,73 +236,116 @@ export interface NearbyPlaceRow {
   types?: string[] | null
 }
 
+export type GetNearbyRestaurantsOptions = {
+  maxResults?: number
+  maxPages?: number
+}
+
+const GOOGLE_NEARBY_PAGE_DELAY_MS = 2_100
+
+function parseNearbyPlaceRow(entry: unknown): NearbyPlaceRow | null {
+  const p = entry as Record<string, unknown>
+  const types = Array.isArray(p.types) ? (p.types as string[]) : null
+  const name = typeof p.name === 'string' ? p.name : null
+  if (!isRestaurantLikeGooglePlace(types, name)) return null
+
+  const geom = p.geometry as Record<string, unknown> | undefined
+  const loc = geom?.location as Record<string, unknown> | undefined
+  const plat = typeof loc?.lat === 'number' ? loc.lat : null
+  const plng = typeof loc?.lng === 'number' ? loc.lng : null
+  const photoArr = Array.isArray(p.photos) ? p.photos : []
+  const firstPhoto = photoArr[0] as { photo_reference?: string } | undefined
+  const photoRef =
+    firstPhoto?.photo_reference && typeof firstPhoto.photo_reference === 'string'
+      ? firstPhoto.photo_reference
+      : null
+  const address: string | null =
+    typeof p.vicinity === 'string'
+      ? p.vicinity
+      : typeof p.formatted_address === 'string'
+        ? p.formatted_address
+        : null
+
+  const placeId = typeof p.place_id === 'string' ? p.place_id : ''
+  if (!placeId || !name) return null
+
+  return {
+    place_id: placeId,
+    name,
+    address,
+    latitude: plat,
+    longitude: plng,
+    photo_reference: photoRef,
+    google_rating: typeof p.rating === 'number' ? p.rating : null,
+    types,
+  }
+}
+
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
 /** Google Places Nearby Search — restaurants anchored to the user's selected city coords. */
 export async function getNearbyRestaurants(
   center: LocationCoordinates | null | undefined,
   radiusMeters = 1500,
   keyword?: string | null,
+  options: GetNearbyRestaurantsOptions = {},
 ): Promise<NearbyPlaceRow[]> {
   const key = getPlacesApiKey()
   if (!center || !key) return []
   const { latitude: lat, longitude: lng } = center
   if (!Number.isFinite(lat) || !Number.isFinite(lng)) return []
 
-  const params = new URLSearchParams({
-    location: `${lat},${lng}`,
-    radius: String(radiusMeters),
-    type: 'restaurant',
-    key,
-  })
-  const kw = keyword?.trim()
-  if (kw) params.set('keyword', kw)
+  const maxResults = options.maxResults ?? 10
+  const maxPages = options.maxPages ?? 1
 
   interface NearbyPayload {
     results?: unknown[]
+    next_page_token?: string
     status: string
     error_message?: string
   }
 
-  const url = `${GEOCODE_BASE}/nearbysearch/json?${params.toString()}`
-  const res = await fetch(url)
-  const raw = (await res.json()) as NearbyPayload
+  const collected: NearbyPlaceRow[] = []
+  const seenPlaceIds = new Set<string>()
+  let pageToken: string | undefined
 
-  if (raw.status !== 'OK' && raw.status !== 'ZERO_RESULTS') {
-    return []
+  for (let page = 0; page < maxPages && collected.length < maxResults; page++) {
+    if (page > 0) {
+      if (!pageToken) break
+      await delay(GOOGLE_NEARBY_PAGE_DELAY_MS)
+    }
+
+    const params = new URLSearchParams({
+      location: `${lat},${lng}`,
+      radius: String(radiusMeters),
+      type: 'restaurant',
+      key,
+    })
+    const kw = keyword?.trim()
+    if (kw) params.set('keyword', kw)
+    if (pageToken) params.set('pagetoken', pageToken)
+
+    const url = `${GEOCODE_BASE}/nearbysearch/json?${params.toString()}`
+    const res = await fetch(url)
+    const raw = (await res.json()) as NearbyPayload
+
+    if (raw.status !== 'OK' && raw.status !== 'ZERO_RESULTS') {
+      break
+    }
+
+    for (const entry of raw.results ?? []) {
+      if (collected.length >= maxResults) break
+      const row = parseNearbyPlaceRow(entry)
+      if (!row || seenPlaceIds.has(row.place_id)) continue
+      seenPlaceIds.add(row.place_id)
+      collected.push(row)
+    }
+
+    pageToken = raw.next_page_token
+    if (!pageToken || (raw.results ?? []).length === 0) break
   }
 
-  const list = (raw.results ?? []).filter((entry) => {
-    const p = entry as Record<string, unknown>
-    const types = Array.isArray(p.types) ? (p.types as string[]) : null
-    const name = typeof p.name === 'string' ? p.name : null
-    return isRestaurantLikeGooglePlace(types, name)
-  })
-
-  return list.slice(0, 10).map((entry) => {
-    const p = entry as Record<string, unknown>
-    const geom = p.geometry as Record<string, unknown> | undefined
-    const loc = geom?.location as Record<string, unknown> | undefined
-    const plat = typeof loc?.lat === 'number' ? loc.lat : null
-    const plng = typeof loc?.lng === 'number' ? loc.lng : null
-    const photoArr = Array.isArray(p.photos) ? p.photos : []
-    const firstPhoto = photoArr[0] as { photo_reference?: string } | undefined
-    const photoRef =
-      firstPhoto?.photo_reference && typeof firstPhoto.photo_reference === 'string' ?
-        firstPhoto.photo_reference
-      : null
-    const address: string | null =
-      typeof p.vicinity === 'string' ? p.vicinity
-      : typeof p.formatted_address === 'string' ? p.formatted_address
-      : null
-
-    return {
-      place_id: typeof p.place_id === 'string' ? p.place_id : '',
-      name: typeof p.name === 'string' ? p.name : 'Restaurant',
-      address,
-      latitude: plat,
-      longitude: plng,
-      photo_reference: photoRef,
-      google_rating: typeof p.rating === 'number' ? p.rating : null,
-      types: Array.isArray(p.types) ? (p.types as string[]) : null,
-    }
-  })
+  return collected
 }

@@ -2,7 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import type { LocationCoordinates } from '@/constants/locations'
 import { resolveTrustSet } from '@/lib/cuisineTaxonomy'
-import { googleKeywordForCuisine } from '@/lib/restaurantDiscoveryHelpers'
+import { expandCategoryParamToSlugs, isCategoryFilterActive, isNoCategoryFilter } from '@/lib/categorySearch'
+import { googleKeywordForCategory, googleKeywordForCuisine } from '@/lib/restaurantDiscoveryHelpers'
 import {
   CITY_SEARCH_RADIUS_KM,
   CITY_SEARCH_RADIUS_METERS,
@@ -21,8 +22,9 @@ import {
   isNoCuisineFilter,
 } from '@/lib/palateSearch'
 import {
-  MERGE_GOOGLE_LIMIT_IDLE,
-  MERGE_SUPPRESS_TP_COUNT_IDLE,
+  GOOGLE_GAP_FILL_MAX,
+  GOOGLE_NEARBY_MAX_PAGES,
+  GOOGLE_NEARBY_MAX_RESULTS,
   SEARCH_BROWSE_LIMIT,
 } from '@/lib/restaurantSearchConfig'
 import {
@@ -46,6 +48,7 @@ const PAGE_SIZE = SEARCH_BROWSE_LIMIT
 
 export interface UsePersonalisedRestaurantsParams {
   cuisineParam: string | null | undefined
+  categoryParam: string | null | undefined
   searchQuery: string | undefined
   locationKey: string
   coordinates: LocationCoordinates | null
@@ -84,6 +87,7 @@ function filterGooglePlacesWithinCityRadiusLocal(
 
 export function usePersonalisedRestaurants({
   cuisineParam,
+  categoryParam,
   searchQuery,
   locationKey,
   coordinates,
@@ -99,6 +103,14 @@ export function usePersonalisedRestaurants({
   }, [cuisineParam])
 
   const cuisineFilterActive = isCuisineFilterActive(cuisineParam)
+  const categoryFilterActive = isCategoryFilterActive(categoryParam)
+
+  const categorySlugs = useMemo(() => {
+    if (!categoryParam || isNoCategoryFilter(categoryParam)) return undefined
+    const expanded = expandCategoryParamToSlugs(categoryParam)
+    return expanded.length > 0 ? expanded : undefined
+  }, [categoryParam])
+
   const geoParams = useMemo(() => geoQueryFromCityCenter(coordinates), [coordinates])
 
   const trustSet = useMemo(() => {
@@ -107,7 +119,7 @@ export function usePersonalisedRestaurants({
   }, [cuisineParam, cuisineFilterActive, isAuthenticated, userPalate])
 
   const isPersonalised = trustSet.length > 0
-  const listOrderBy = cuisineFilterActive ? 'rating_desc' : undefined
+  const listOrderBy = cuisineFilterActive || categoryFilterActive ? 'rating_desc' : undefined
 
   const [rows, setRows] = useState<RestaurantSearchResult[]>([])
   const [cursor, setCursor] = useState<string | null>(null)
@@ -124,11 +136,10 @@ export function usePersonalisedRestaurants({
 
   const mergeOptions = useMemo(
     () => ({
-      googleLimit: MERGE_GOOGLE_LIMIT_IDLE,
-      suppressGoogleWhenTPCount: MERGE_SUPPRESS_TP_COUNT_IDLE,
-      cuisineFilterActive,
+      targetPageSize: PAGE_SIZE,
+      googleLimit: GOOGLE_GAP_FILL_MAX,
     }),
-    [cuisineFilterActive],
+    [],
   )
 
   useEffect(() => {
@@ -178,6 +189,7 @@ export function usePersonalisedRestaurants({
           const hybrid = await hybridSearch(searchQuery, locationKey, coordinates, {
             mode: 'browse',
             cuisineSlugs,
+            categorySlugs,
             cityName,
           })
           setRows(dedupeRestaurantSearchResults(hybrid.results))
@@ -186,7 +198,9 @@ export function usePersonalisedRestaurants({
         } else {
           const googleKeyword = cuisineFilterActive
             ? googleKeywordForCuisine(cuisineParam ?? null)
-            : null
+            : categoryFilterActive
+              ? googleKeywordForCategory(categoryParam ?? null)
+              : null
 
           const [tpData, googlePlaces] = await Promise.allSettled([
             getRestaurants({
@@ -196,6 +210,7 @@ export function usePersonalisedRestaurants({
               locationKey,
               order_by: listOrderBy,
               cuisineSlugs,
+              categorySlugs,
               ...geoParams,
             }),
             coordinates
@@ -203,6 +218,10 @@ export function usePersonalisedRestaurants({
                   coordinates,
                   CITY_SEARCH_RADIUS_METERS,
                   googleKeyword,
+                  {
+                    maxResults: GOOGLE_NEARBY_MAX_RESULTS,
+                    maxPages: GOOGLE_NEARBY_MAX_PAGES,
+                  },
                 )
               : Promise.resolve([]),
           ])
@@ -245,9 +264,12 @@ export function usePersonalisedRestaurants({
       locationKey,
       coordinates,
       cuisineSlugs,
+      categorySlugs,
       listOrderBy,
       cuisineFilterActive,
+      categoryFilterActive,
       cuisineParam,
+      categoryParam,
       mergeOptions,
       geoParams,
       cityName,
@@ -271,6 +293,7 @@ export function usePersonalisedRestaurants({
         locationKey,
         order_by: listOrderBy,
         cuisineSlugs,
+        categorySlugs,
         cityName: searchQuery?.trim() ? cityName : undefined,
         ...(searchQuery?.trim() ? {} : geoParams),
       })
@@ -303,6 +326,7 @@ export function usePersonalisedRestaurants({
     geoParams,
     cityName,
     cuisineSlugs,
+    categorySlugs,
   ])
 
   const displayRows = useMemo(() => {

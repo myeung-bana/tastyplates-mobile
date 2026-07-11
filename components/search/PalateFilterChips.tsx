@@ -3,12 +3,15 @@ import { AppIcon } from '@/components/ui/AppIcon'
 
 import { BRAND_PRIMARY } from '@/constants/brand'
 import { labelForPalateKey } from '@/lib/palateLabels'
+import { labelForCategoryKey, isCategoryFilterActive } from '@/lib/categorySearch'
 import { isNoCuisineFilter } from '@/lib/palateSearch'
 
 export type PalateFilterChipsProps = {
   cuisine: string | null | undefined
+  category?: string | null | undefined
   searchQuery: string | null | undefined
   onClearCuisine: () => void
+  onClearCategory?: () => void
   onClearSearch: () => void
   isPersonalised?: boolean
 }
@@ -18,15 +21,18 @@ export type PalateFilterChipsProps = {
  */
 export function PalateFilterChips({
   cuisine,
+  category,
   searchQuery,
   onClearCuisine,
+  onClearCategory,
   onClearSearch,
   isPersonalised = false,
 }: PalateFilterChipsProps): JSX.Element | null {
   const showCuisine = !isNoCuisineFilter(cuisine)
+  const showCategory = isCategoryFilterActive(category)
   const showSearch = Boolean(searchQuery?.trim())
 
-  if (!showCuisine && !showSearch) return null
+  if (!showCuisine && !showCategory && !showSearch) return null
 
   return (
     <View>
@@ -35,6 +41,12 @@ export function PalateFilterChips({
           <FilterChip
             label={labelForPalateKey(cuisine ?? null)}
             onDismiss={onClearCuisine}
+          />
+        ) : null}
+        {showCategory ? (
+          <FilterChip
+            label={labelForCategoryKey(category ?? null)}
+            onDismiss={onClearCategory ?? (() => {})}
           />
         ) : null}
         {showSearch ? (

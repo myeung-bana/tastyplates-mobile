@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { AppIcon, type AppIconName } from '@/components/ui/AppIcon'
 import {
   Animated,
@@ -15,6 +15,11 @@ import * as Haptics from 'expo-haptics'
 import { usePathname, useRouter } from 'expo-router'
 
 import { HomeReviewCard } from '@/components/review/HomeReviewCard'
+import {
+  GoogleReviewDetailSheet,
+  type GoogleReviewDetailSheetHandle,
+} from '@/components/review/GoogleReviewDetailSheet'
+import { GoogleReviewCard } from '@/components/review/GoogleReviewCard'
 import { BRAND_PRIMARY, TEXT_HEADING, TEXT_MUTED } from '@/constants/brand'
 import {
   SCREEN_RESTAURANT_REVIEWS,
@@ -37,6 +42,10 @@ import { useAuth } from '@/hooks/useAuth'
 import { coerceResumeHref, pushLoginScreen } from '@/lib/authRoutes'
 import { pushPublicProfile } from '@/lib/publicProfileNavigation'
 import { restaurantPreviewToTrendingRow } from '@/lib/restaurantReviewFeed'
+import {
+  resolveReviewAuthorAvatarUrl,
+  resolveReviewAuthorLabel,
+} from '@/lib/reviewAuthorDisplay'
 import type {
   RatingSummaryRow,
   RestaurantDetailRow,
@@ -247,6 +256,7 @@ export function RestaurantDetailView({
   const [engageBusy, setEngageBusy] = useState(false)
   const [aboutExpanded, setAboutExpanded] = useState(false)
   const [aboutTruncated, setAboutTruncated] = useState(false)
+  const googleReviewSheetRef = useRef<GoogleReviewDetailSheetHandle>(null)
 
   const syncEngagement = useCallback(async () => {
     if (googlePlaceListing || !slug.trim()) {
@@ -391,6 +401,18 @@ export function RestaurantDetailView({
     pushPublicProfile(router, {
       profileUserId: item.AuthorProfile?.user_id,
       username: item.AuthorProfile?.username,
+    })
+  }
+
+  const openGoogleReview = (item: RestaurantReviewPreview) => {
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
+    googleReviewSheetRef.current?.present({
+      authorName: resolveReviewAuthorLabel(item.AuthorProfile, 'Google user'),
+      avatarUrl: resolveReviewAuthorAvatarUrl(item.AuthorProfile),
+      rating: item.rating,
+      content: item.content,
+      timeLabel: item.relativeTimeLabel ?? undefined,
+      authorUrl: item.googleAuthorUrl ?? undefined,
     })
   }
 
@@ -608,7 +630,9 @@ export function RestaurantDetailView({
         {visibleReviews.length === 0 ? (
           <View>
             <Text className="text-sm" style={{ color: TEXT_MUTED }}>
-              No reviews yet. Be the first to write one.
+              {googlePlaceListing
+                ? 'No Google reviews available for this place yet.'
+                : 'No reviews yet. Be the first to write one.'}
             </Text>
           </View>
         ) : (
@@ -626,38 +650,75 @@ export function RestaurantDetailView({
                     marginRight: index < visibleReviews.length - 1 ? REVIEW_CARD_GAP : 0,
                   }}
                 >
-                  <HomeReviewCard
-                    width={reviewCardWidth}
-                    review={restaurantPreviewToTrendingRow(item, restaurant.uuid)}
-                    onPressCard={() => openReview(item.id)}
-                    onPressAuthor={() => openReviewAuthor(item)}
-                  />
+                  {googlePlaceListing ? (
+                    <GoogleReviewCard
+                      width={reviewCardWidth}
+                      authorName={resolveReviewAuthorLabel(item.AuthorProfile, 'Google user')}
+                      avatarUrl={resolveReviewAuthorAvatarUrl(item.AuthorProfile)}
+                      rating={item.rating}
+                      content={item.content}
+                      timeLabel={item.relativeTimeLabel}
+                      onPress={() => openGoogleReview(item)}
+                    />
+                  ) : (
+                    <HomeReviewCard
+                      width={reviewCardWidth}
+                      review={restaurantPreviewToTrendingRow(item, restaurant.uuid)}
+                      onPressCard={() => openReview(item.id)}
+                      onPressAuthor={() => openReviewAuthor(item)}
+                    />
+                  )}
                 </View>
               ))}
             </ScrollView>
-            <Pressable
-              onPress={() => {
-                void Haptics.selectionAsync()
-                router.push({
-                  pathname: SCREEN_RESTAURANT_REVIEWS,
-                  params: {
-                    restaurant_uuid: restaurant.uuid,
-                    restaurant_title: restaurant.title,
-                    restaurant_slug: restaurant.slug,
-                  },
-                })
-              }}
-              className="mt-3 w-full items-center justify-center rounded-xl border border-gray-300 bg-white py-3 active:opacity-90"
-            >
-              <Text className="font-neusans text-sm font-medium" style={{ color: BRAND_PRIMARY }}>
-                View All Reviews ({reviewTotal})
-              </Text>
-            </Pressable>
+            {googlePlaceListing ? (
+              <>
+                <Text className="mt-3 text-center text-[11px]" style={{ color: TEXT_MUTED }}>
+                  Reviews from Google
+                </Text>
+                {googleMapsUrl ? (
+                  <Pressable
+                    onPress={openMaps}
+                    className="mt-2 w-full items-center justify-center rounded-xl border border-gray-300 bg-white py-3 active:opacity-90"
+                  >
+                    <Text className="font-neusans text-sm font-medium" style={{ color: BRAND_PRIMARY }}>
+                      View on Google Maps ({reviewTotal})
+                    </Text>
+                  </Pressable>
+                ) : null}
+              </>
+            ) : (
+              <Pressable
+                onPress={() => {
+                  void Haptics.selectionAsync()
+                  router.push({
+                    pathname: SCREEN_RESTAURANT_REVIEWS,
+                    params: {
+                      restaurant_uuid: restaurant.uuid,
+                      restaurant_title: restaurant.title,
+                      restaurant_slug: restaurant.slug,
+                    },
+                  })
+                }}
+                className="mt-3 w-full items-center justify-center rounded-xl border border-gray-300 bg-white py-3 active:opacity-90"
+              >
+                <Text className="font-neusans text-sm font-medium" style={{ color: BRAND_PRIMARY }}>
+                  View All Reviews ({reviewTotal})
+                </Text>
+              </Pressable>
+            )}
           </>
         )}
       </View>
 
       <View style={{ height: 32 }} />
+
+      {googlePlaceListing ? (
+        <GoogleReviewDetailSheet
+          ref={googleReviewSheetRef}
+          onViewOnGoogleMaps={googleMapsUrl ? openMaps : undefined}
+        />
+      ) : null}
     </ScrollView>
   )
 }

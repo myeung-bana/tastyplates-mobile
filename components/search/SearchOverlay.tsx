@@ -123,6 +123,32 @@ export function SearchOverlay({ initialOpts, onClose }: SearchOverlayProps) {
     [debouncedKeyword, addRecent, onClose, selectedPalateKey],
   )
 
+  const handleCuisineShortcut = useCallback(
+    async (slug: string) => {
+      const q = keyword.trim()
+      void Haptics.selectionAsync()
+      if (q) await addRecent(q)
+      onClose()
+      setTimeout(() => {
+        router.navigate({ pathname: SCREEN_RESTAURANTS, params: { cuisine: slug } })
+      }, 120)
+    },
+    [keyword, addRecent, onClose],
+  )
+
+  const handleCategoryShortcut = useCallback(
+    async (slug: string) => {
+      const q = keyword.trim()
+      void Haptics.selectionAsync()
+      if (q) await addRecent(q)
+      onClose()
+      setTimeout(() => {
+        router.navigate({ pathname: SCREEN_RESTAURANTS, params: { category: slug } })
+      }, 120)
+    },
+    [keyword, addRecent, onClose],
+  )
+
   const showResults = debouncedKeyword.trim().length >= 2
 
   return (
@@ -186,6 +212,8 @@ export function SearchOverlay({ initialOpts, onClose }: SearchOverlayProps) {
             keyword={debouncedKeyword}
             cuisineSlug={selectedPalateKey}
             onSelect={handleResultSelect}
+            onCuisineShortcutPress={handleCuisineShortcut}
+            onCategoryShortcutPress={handleCategoryShortcut}
           />
         ) : (
           <ScrollView

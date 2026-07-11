@@ -19,8 +19,12 @@ export interface HomeReviewCardProps {
   /** Card width — 2-col grid: `(screen - padding*2 - gap) / 2` (`auth-review.md` §2). */
   width: number
   review: TrendingReviewRow
-  onPressCard: () => void
-  onPressAuthor: () => void
+  onPressCard?: () => void
+  onPressAuthor?: () => void
+  /** Read-only tile — no navigation (e.g. Google review snippets). */
+  readOnly?: boolean
+  /** Muted timestamp below author row (e.g. Google `relative_time_description`). */
+  timeLabel?: string
 }
 
 /**
@@ -31,6 +35,8 @@ export function HomeReviewCard({
   review,
   onPressCard,
   onPressAuthor,
+  readOnly = false,
+  timeLabel,
 }: HomeReviewCardProps) {
   const avatarUrl = resolveReviewAuthorAvatarUrl(review.AuthorProfile)
   const cover = firstReviewImageUri(review.images, DEFAULT_COVER)
@@ -39,39 +45,67 @@ export function HomeReviewCard({
   const tags = reviewHashtagLabels(review.hashtags, 3)
   const name = resolveReviewAuthorLabel(review.AuthorProfile)
 
+  const imageBlock = (
+    <View
+      className="mb-2 overflow-hidden rounded-2xl bg-gray-100"
+      style={{ aspectRatio: 4.5 / 6, width }}
+    >
+      <Image
+        accessibilityIgnoresInvertColors
+        source={{ uri: cover }}
+        style={{ width: '100%', height: '100%' }}
+        resizeMode="cover"
+      />
+    </View>
+  )
+
+  const authorRow = (
+    <View className="mb-1 flex-row items-center gap-2">
+      {readOnly ? (
+        <ProfileAvatarImage size={28} avatarUrl={avatarUrl} className="bg-gray-200" />
+      ) : (
+        <Pressable onPress={onPressAuthor} hitSlop={8} accessibilityRole="button">
+          <ProfileAvatarImage size={28} avatarUrl={avatarUrl} className="bg-gray-200" />
+        </Pressable>
+      )}
+      {readOnly ? (
+        <Text className="min-w-0 flex-1 text-[12px] font-medium" style={{ color: TEXT_HEADING }} numberOfLines={1}>
+          {name}
+        </Text>
+      ) : (
+        <Pressable onPress={onPressAuthor} className="min-w-0 flex-1" hitSlop={4}>
+          <Text className="text-[12px] font-medium" style={{ color: TEXT_HEADING }} numberOfLines={1}>
+            {name}
+          </Text>
+        </Pressable>
+      )}
+      <RatingDisplay size="xs" value={review.rating} className="ml-auto" />
+    </View>
+  )
+
   return (
     <View style={{ width }} className="mb-1">
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={`Review ${title || 'Untitled'}`}
-        onPress={onPressCard}
-        className="active:opacity-95"
-      >
-        <View
-          className="mb-2 overflow-hidden rounded-2xl bg-gray-100"
-          style={{ aspectRatio: 4.5 / 6, width }}
+      {readOnly ? (
+        imageBlock
+      ) : (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`Review ${title || 'Untitled'}`}
+          onPress={onPressCard}
+          className="active:opacity-95"
         >
-          <Image
-            accessibilityIgnoresInvertColors
-            source={{ uri: cover }}
-            style={{ width: '100%', height: '100%' }}
-            resizeMode="cover"
-          />
-        </View>
-      </Pressable>
+          {imageBlock}
+        </Pressable>
+      )}
 
       <View className="px-0.5">
-        <View className="mb-1 flex-row items-center gap-2">
-          <Pressable onPress={onPressAuthor} hitSlop={8} accessibilityRole="button">
-            <ProfileAvatarImage size={28} avatarUrl={avatarUrl} className="bg-gray-200" />
-          </Pressable>
-          <Pressable onPress={onPressAuthor} className="min-w-0 flex-1" hitSlop={4}>
-            <Text className="text-[12px] font-medium" style={{ color: TEXT_HEADING }} numberOfLines={1}>
-              {name}
-            </Text>
-          </Pressable>
-          <RatingDisplay size="xs" value={review.rating} className="ml-auto" />
-        </View>
+        {authorRow}
+
+        {timeLabel ? (
+          <Text className="mb-1 text-[11px] font-normal" style={{ color: TEXT_MUTED }} numberOfLines={1}>
+            {timeLabel}
+          </Text>
+        ) : null}
 
         {title ? (
           <Text className="mb-0.5 text-[12px] font-normal" style={{ color: TEXT_HEADING }} numberOfLines={1}>

@@ -44,7 +44,11 @@ export interface ReviewAuthorProfile {
   user_id?: string
   username?: string | null
   palates?: unknown
-  user?: { avatarUrl?: string | null; email?: string | null } | null
+  user?: {
+    avatarUrl?: string | null
+    email?: string | null
+    displayName?: string | null
+  } | null
 }
 
 /** Preview row from `restaurant-reviews/get-reviews-by-restaurant`. */
@@ -56,6 +60,10 @@ export interface RestaurantReviewPreview {
   images: unknown
   likes_count?: number | null
   status?: string | null
+  /** Google review snippet only — e.g. "2 months ago". */
+  relativeTimeLabel?: string | null
+  /** Google reviewer profile URL — external only. */
+  googleAuthorUrl?: string | null
   AuthorProfile?: ReviewAuthorProfile | null
 }
 

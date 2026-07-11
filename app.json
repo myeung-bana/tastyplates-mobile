@@ -21,7 +21,7 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "buildNumber": "18",
+      "buildNumber": "19",
       "bundleIdentifier": "com.bana.tastyplates-dev",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,

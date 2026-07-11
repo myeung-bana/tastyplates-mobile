@@ -1,5 +1,7 @@
 import type { SavedLocationPreference } from '@/constants/locations'
 import { expandCuisineParamToSlugs } from '@/lib/palateSearch'
+import { expandCategoryParamToSlugs } from '@/lib/categorySearch'
+import { RESTAURANT_PARENT_CATEGORIES } from '@/constants/restaurantCategories'
 import { QUICK_FINDS } from '@/constants/quickFinds'
 import {
   formatRestaurantCardAddress,
@@ -45,11 +47,26 @@ export function cuisineSlugsForFilter(slug: string | null | undefined): string[]
   return expanded.length > 0 ? expanded : undefined
 }
 
+/** Maps a category route param to TP `category_slugs` query values. */
+export function categorySlugsForFilter(slug: string | null | undefined): string[] | undefined {
+  const expanded = expandCategoryParamToSlugs(slug)
+  return expanded.length > 0 ? expanded : undefined
+}
+
 /** Optional Google Nearby / text hint from a cuisine pill slug. */
 export function googleKeywordForCuisine(slug: string | null | undefined): string | null {
   const trimmed = slug?.trim()
   if (!trimmed) return null
   const label = QUICK_FINDS.find((item) => item.slug === trimmed)?.label
+  if (!label) return null
+  return `${label} restaurant`
+}
+
+/** Optional Google Nearby keyword from a category slug. */
+export function googleKeywordForCategory(slug: string | null | undefined): string | null {
+  const trimmed = slug?.trim().toLowerCase()
+  if (!trimmed) return null
+  const label = RESTAURANT_PARENT_CATEGORIES.find((item) => item.slug === trimmed)?.label
   if (!label) return null
   return `${label} restaurant`
 }

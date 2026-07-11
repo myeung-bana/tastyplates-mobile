@@ -7,14 +7,14 @@ import {
   isRestaurantLikeGooglePlace,
 } from '@/lib/googlePlaces'
 import type { NearbyPlaceRow } from '@/lib/googlePlaces'
-import { mergeRestaurantResults } from '@/lib/restaurantSearchMerge'
+import { mergeRestaurantResults, computeGoogleMergeSlots } from '@/lib/restaurantSearchMerge'
 import { splitDiscoveryResults } from '@/lib/restaurantDiscoveryHelpers'
 import {
+  GOOGLE_GAP_FILL_MAX_PICKER,
+  GOOGLE_NEARBY_MAX_PAGES,
+  GOOGLE_NEARBY_MAX_RESULTS,
+  googleGapFillMaxForMode,
   limitForHybridSearchMode,
-  MERGE_GOOGLE_LIMIT_IDLE,
-  MERGE_GOOGLE_LIMIT_SEARCH,
-  MERGE_SUPPRESS_TP_COUNT_IDLE,
-  MERGE_SUPPRESS_TP_COUNT_SEARCH,
   NEARBY_PICKER_RADIUS_METERS,
   type HybridSearchGeoMode,
   type HybridSearchMode,
@@ -150,6 +150,8 @@ export interface HybridSearchOptions {
   palateSlugs?: string[]
   /** Filter TP rows by cuisine slug(s) — maps to Hasura `cuisine_slugs`. */
   cuisineSlugs?: string[]
+  /** Filter TP rows by category slug(s) — maps to Hasura `category_slugs`. */
+  categorySlugs?: string[]
   limit?: number
   mode?: HybridSearchMode
   geoMode?: HybridSearchGeoMode
@@ -190,6 +192,8 @@ export async function hybridSearch(
   const errors: HybridSearchResponse['errors'] = {}
 
   const cuisineFilterActive = Boolean(options.cuisineSlugs?.length)
+  const categoryFilterActive = Boolean(options.categorySlugs?.length)
+  const taxonomyFilterActive = cuisineFilterActive || categoryFilterActive
   const palateSortActive = Boolean(options.palateSlug?.trim())
   const palateSlug = options.palateSlug ?? null
 
@@ -200,8 +204,9 @@ export async function hybridSearch(
           limit,
           locationKey,
           cityName: options.cityName,
-          order_by: cuisineFilterActive ? 'rating_desc' : palateSortActive ? 'smart' : undefined,
+          order_by: taxonomyFilterActive ? 'rating_desc' : palateSortActive ? 'smart' : undefined,
           cuisineSlugs: options.cuisineSlugs,
+          categorySlugs: options.categorySlugs,
           ...geo,
         })
       : Promise.resolve({ restaurants: [], meta: { cursor: null, hasMore: false } }),
@@ -238,16 +243,21 @@ export async function hybridSearch(
     googleCandidates = predictionsToCandidates(googlePredictions.value)
   }
 
-  const suppressGoogle =
-    cuisineFilterActive ||
-    palateSortActive ||
-    tpRows.length >= MERGE_SUPPRESS_TP_COUNT_SEARCH
+  const googleGapMax = googleGapFillMaxForMode(mode)
+  const googleSlots = computeGoogleMergeSlots(tpRows.length, {
+    targetPageSize: limit,
+    googleLimit: googleGapMax,
+    palateSlug,
+  })
 
-  if (!suppressGoogle && googleCandidates.length > 0) {
+  const shouldEnrichGoogle =
+    !palateSortActive && googleSlots > 0 && googleCandidates.length > 0
+
+  if (shouldEnrichGoogle) {
     googleCandidates = await enrichGoogleCandidatesWithDetails(
       googleCandidates,
       coordinates,
-      MERGE_GOOGLE_LIMIT_SEARCH,
+      googleSlots,
       signal,
     )
   }
@@ -264,8 +274,8 @@ export async function hybridSearch(
   }
 
   const results = mergeRestaurantResults(tpRows, googleCandidates, {
-    googleLimit: MERGE_GOOGLE_LIMIT_SEARCH,
-    suppressGoogleWhenTPCount: MERGE_SUPPRESS_TP_COUNT_SEARCH,
+    targetPageSize: limit,
+    googleLimit: googleGapMax,
     palateSlug,
   })
 
@@ -298,6 +308,7 @@ export async function listPickerHybridSearch(
 
 export interface NearbyHybridDiscoveryOptions {
   cuisineSlugs?: string[]
+  categorySlugs?: string[]
   /** Optional Google Nearby Search keyword (e.g. cuisine label). */
   googleKeyword?: string | null
   signal?: AbortSignal
@@ -324,6 +335,7 @@ export async function nearbyHybridDiscovery(
       limit: limitForHybridSearchMode('listPicker'),
       locationKey,
       cuisineSlugs: options.cuisineSlugs,
+      categorySlugs: options.categorySlugs,
       ...geo,
     }),
     coordinates
@@ -331,6 +343,10 @@ export async function nearbyHybridDiscovery(
           coordinates,
           NEARBY_PICKER_RADIUS_METERS,
           options.googleKeyword ?? null,
+          {
+            maxResults: GOOGLE_GAP_FILL_MAX_PICKER,
+            maxPages: 1,
+          },
         )
       : Promise.resolve([]),
   ])
@@ -346,8 +362,8 @@ export async function nearbyHybridDiscovery(
   const googleRows = googleResult.status === 'fulfilled' ? googleResult.value : []
 
   const merged = mergeRestaurantResults(tpRows, googleRows, {
-    googleLimit: MERGE_GOOGLE_LIMIT_IDLE,
-    suppressGoogleWhenTPCount: MERGE_SUPPRESS_TP_COUNT_IDLE,
+    targetPageSize: limitForHybridSearchMode('listPicker'),
+    googleLimit: GOOGLE_GAP_FILL_MAX_PICKER,
   })
 
   const { tpResults, googleResults } = splitDiscoveryResults(merged)

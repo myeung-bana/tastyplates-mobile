@@ -2,6 +2,8 @@ import { ActivityIndicator, FlatList, Text, View } from 'react-native'
 import * as Haptics from 'expo-haptics'
 
 import { DiscoveryErrorBanner, DiscoverySectionHeader } from '@/components/restaurant-search/DiscoverySectionHeader'
+import { CategorySearchShortcutRow } from '@/components/search/CategorySearchShortcutRow'
+import { CuisineSearchShortcutRow } from '@/components/search/CuisineSearchShortcutRow'
 import { RestaurantListRow } from '@/components/restaurant/RestaurantListRow'
 import { ListPickerDiscoveryRow } from '@/components/restaurant-search/ListPickerDiscoveryRow'
 import { ListPickerNearbyRow } from '@/components/studio/manage-lists/ListPickerRestaurantRow'
@@ -25,6 +27,10 @@ interface RestaurantDiscoveryResultsProps {
   tpResults: RestaurantSearchResult[]
   googleResults: RestaurantSearchResult[]
   errors: { tp?: string; google?: string }
+  cuisineShortcut?: { slug: string; label: string } | null
+  onCuisineShortcutPress?: (slug: string, label: string) => void
+  categoryShortcut?: { slug: string; label: string } | null
+  onCategoryShortcutPress?: (slug: string, label: string) => void
   onSelect?: (result: RestaurantSearchResult) => void
   onAddResult?: (result: RestaurantSearchResult) => void
   addingId?: string | null
@@ -78,6 +84,10 @@ export function RestaurantDiscoveryResults({
   tpResults,
   googleResults,
   errors,
+  cuisineShortcut = null,
+  onCuisineShortcutPress,
+  categoryShortcut = null,
+  onCategoryShortcutPress,
   onSelect,
   onAddResult,
   addingId,
@@ -85,8 +95,11 @@ export function RestaurantDiscoveryResults({
 }: RestaurantDiscoveryResultsProps): JSX.Element {
   const errorMessage = discoveryErrorMessage(errors)
   const totalCount = tpResults.length + googleResults.length
+  const hasCuisineShortcut = cuisineShortcut != null && onCuisineShortcutPress != null
+  const hasCategoryShortcut = categoryShortcut != null && onCategoryShortcutPress != null
+  const hasBrowseShortcut = hasCuisineShortcut || hasCategoryShortcut
 
-  if (loading) {
+  if (loading && !hasBrowseShortcut) {
     return (
       <View className="flex-1 items-center justify-center pt-10">
         <ActivityIndicator color={BRAND_PRIMARY} />
@@ -95,7 +108,7 @@ export function RestaurantDiscoveryResults({
     )
   }
 
-  if (totalCount === 0) {
+  if (!loading && totalCount === 0 && !hasBrowseShortcut) {
     return (
       <View className="flex-1 px-6 pt-8">
         {errorMessage ? <DiscoveryErrorBanner message={errorMessage} /> : null}
@@ -109,6 +122,8 @@ export function RestaurantDiscoveryResults({
     )
   }
 
+  const showRestaurantSections = loading || totalCount > 0
+
   return (
     <FlatList
       data={[{ key: 'sections' }]}
@@ -119,11 +134,49 @@ export function RestaurantDiscoveryResults({
       ListHeaderComponent={
         <>
           {errorMessage ? <DiscoveryErrorBanner message={errorMessage} /> : null}
-          <DiscoverySectionHeader title={`Search results for "${keyword}"`} />
+          {hasCategoryShortcut && categoryShortcut ? (
+            <>
+              <DiscoverySectionHeader title="Category" />
+              <CategorySearchShortcutRow
+                label={categoryShortcut.label}
+                slug={categoryShortcut.slug}
+                onPress={() => onCategoryShortcutPress(categoryShortcut.slug, categoryShortcut.label)}
+              />
+            </>
+          ) : null}
+          {hasCuisineShortcut && cuisineShortcut ? (
+            <>
+              <DiscoverySectionHeader title="Cuisine" />
+              <CuisineSearchShortcutRow
+                label={cuisineShortcut.label}
+                slug={cuisineShortcut.slug}
+                onPress={() => onCuisineShortcutPress(cuisineShortcut.slug, cuisineShortcut.label)}
+              />
+            </>
+          ) : null}
+          {showRestaurantSections ? (
+            <>
+              <DiscoverySectionHeader title={`Restaurants matching "${keyword}"`} />
+              {loading ? (
+                <View className="items-center py-8">
+                  <ActivityIndicator color={BRAND_PRIMARY} />
+                  <Text className="mt-2.5 font-neusans text-sm text-gray-400">Searching...</Text>
+                </View>
+              ) : null}
+            </>
+          ) : null}
         </>
       }
-      renderItem={() => (
+      renderItem={() =>
+        loading ? null : (
         <>
+          {totalCount === 0 ? (
+            <View className="px-6 pb-4">
+              <Text className="text-center font-neusans text-sm text-gray-400">
+                No restaurants found for this keyword
+              </Text>
+            </View>
+          ) : null}
           {tpResults.length > 0 ? (
             <>
               <DiscoverySectionHeader title="Recommended" />
@@ -158,7 +211,8 @@ export function RestaurantDiscoveryResults({
             </>
           ) : null}
         </>
-      )}
+        )
+      }
     />
   )
 }

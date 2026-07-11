@@ -45,6 +45,7 @@ import {
   formatRestaurantSearchResultAddress,
 } from '@/lib/restaurantDiscoveryHelpers'
 import { usePersonalisedRestaurants, preferenceStatForSearchResult } from '@/hooks/usePersonalisedRestaurants'
+import { readCategoryParam, isCategoryFilterActive } from '@/lib/categorySearch'
 import { labelForPalateKey } from '@/lib/palateLabels'
 import { isCuisineFilterActive, isNoCuisineFilter, readCuisineParam } from '@/lib/palateSearch'
 import { coerceRatingNumber } from '@/lib/ratingDisplayUtils'
@@ -97,11 +98,13 @@ export default function RestaurantsScreen() {
   const raw = useLocalSearchParams<{
     cuisine?: string | string[]
     palate?: string | string[]
+    category?: string | string[]
     search?: string | string[]
     listing?: string | string[]
   }>()
 
   const cuisine = readCuisineParam(raw)
+  const category = readCategoryParam(raw)
   const search = singleParam(raw.search)
   const listing = singleParam(raw.listing)
 
@@ -113,6 +116,7 @@ export default function RestaurantsScreen() {
   }, [search, listing])
 
   const cuisineFilterActive = isCuisineFilterActive(cuisine)
+  const categoryFilterActive = isCategoryFilterActive(category)
 
   const {
     displayRows,
@@ -130,6 +134,7 @@ export default function RestaurantsScreen() {
     loadMore,
   } = usePersonalisedRestaurants({
     cuisineParam: cuisine,
+    categoryParam: category,
     searchQuery,
     locationKey,
     coordinates,
@@ -196,6 +201,10 @@ export default function RestaurantsScreen() {
 
   const clearCuisine = useCallback(() => {
     router.setParams({ cuisine: undefined, palate: undefined })
+  }, [])
+
+  const clearCategory = useCallback(() => {
+    router.setParams({ category: undefined })
   }, [])
 
   const clearSearch = useCallback(() => {
@@ -308,21 +317,21 @@ export default function RestaurantsScreen() {
         subtitle: `✦ Ranked for your palate — based on ${trustSetReviewerLabel} reviewers`,
       }
     }
-    if (cuisineFilterActive) {
+    if (cuisineFilterActive || categoryFilterActive) {
       return {
         title,
         subtitle: 'Sort: Highest Rated',
       }
     }
     return { title, subtitle: null as string | null }
-  }, [displayRows.length, location.label, isPersonalised, trustSetReviewerLabel, cuisineFilterActive])
+  }, [displayRows.length, location.label, isPersonalised, trustSetReviewerLabel, cuisineFilterActive, categoryFilterActive])
 
   const emptyMessage = useMemo(() => {
-    if (searchQuery || cuisineFilterActive) {
-      return 'No restaurants match your search. Try adjusting keywords or cuisine.'
+    if (searchQuery || cuisineFilterActive || categoryFilterActive) {
+      return 'No restaurants match your search. Try adjusting keywords, cuisine, or category.'
     }
     return `No restaurants found within ${CITY_SEARCH_RADIUS_KM} km. Try another city.`
-  }, [searchQuery, cuisineFilterActive])
+  }, [searchQuery, cuisineFilterActive, categoryFilterActive])
 
   const renderResultCard = useCallback(
     (item: RestaurantSearchResult) => {
@@ -433,7 +442,7 @@ export default function RestaurantsScreen() {
   const showMapLayout = cityMapRegion != null
   const showMapExperience = showMapLayout && !loading && !(error && displayRows.length === 0)
   const { onScroll, scrollEventThrottle } = useTabBarScrollHandler({ enabled: !showMapExperience })
-  const hasActiveFilters = cuisineFilterActive || Boolean(searchQuery?.trim())
+  const hasActiveFilters = cuisineFilterActive || categoryFilterActive || Boolean(searchQuery?.trim())
 
   const filterChips = hasActiveFilters ? (
     <View
@@ -442,8 +451,10 @@ export default function RestaurantsScreen() {
     >
       <PalateFilterChips
         cuisine={cuisine}
+        category={category}
         searchQuery={searchQuery}
         onClearCuisine={clearCuisine}
+        onClearCategory={clearCategory}
         onClearSearch={clearSearch}
         isPersonalised={isPersonalised}
       />

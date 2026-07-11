@@ -22,6 +22,16 @@ export function placeDetailsToCreateBody(details: PlacesDetailsResult): Record<s
   const lng = details.geometry?.location?.lng
   const street = details.formatted_address ?? details.vicinity ?? ''
   const photoReference = details.photos?.[0]?.photo_reference?.trim()
+  const googleRating =
+    details.rating != null && Number.isFinite(details.rating) && details.rating > 0
+      ? details.rating
+      : undefined
+  const userRatingsTotal =
+    details.user_ratings_total != null &&
+    Number.isFinite(details.user_ratings_total) &&
+    details.user_ratings_total > 0
+      ? Math.floor(details.user_ratings_total)
+      : undefined
 
   return {
     title,
@@ -30,6 +40,8 @@ export function placeDetailsToCreateBody(details: PlacesDetailsResult): Record<s
     latitude: lat,
     longitude: lng,
     google_place_id: details.place_id,
+    ...(googleRating != null ? { google_rating: googleRating } : {}),
+    ...(userRatingsTotal != null ? { user_ratings_total: userRatingsTotal } : {}),
     ...(photoReference ? { google_photo_reference: photoReference } : {}),
     address: {
       place_id: details.place_id,

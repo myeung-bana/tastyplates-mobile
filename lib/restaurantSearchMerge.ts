@@ -1,6 +1,10 @@
 import type { NearbyPlaceRow } from '@/lib/googlePlaces'
 import { googlePlacePhotoUrl } from '@/lib/googlePlaces'
 import {
+  GOOGLE_GAP_FILL_MAX,
+  SEARCH_BROWSE_LIMIT,
+} from '@/lib/restaurantSearchConfig'
+import {
   normalizeCategoryList,
   normalizeCuisineList,
   type RestaurantListRow,
@@ -103,39 +107,51 @@ export function dedupeRestaurantSearchResults(
 }
 
 export interface MergeRestaurantResultsOptions {
+  /** Combined page target — Google fills up to `targetPageSize - tpCount`. */
+  targetPageSize?: number
+  /** Cap on Google rows appended in one merge. */
   googleLimit?: number
+  /** When TP count >= this value, skip Google entirely. Defaults to `targetPageSize`. */
   suppressGoogleWhenTPCount?: number
   /** When set, Google rows are suppressed — palate scores are TP-only. */
   palateSlug?: string | null
-  /** When true, Google rows are suppressed during cuisine-filtered browse. */
+  /** @deprecated Ignored — cuisine browse uses the same gap-fill rules. */
   cuisineFilterActive?: boolean
+}
+
+/** How many Google slots to append after TP rows for a single merge. */
+export function computeGoogleMergeSlots(
+  tpCount: number,
+  options: Pick<
+    MergeRestaurantResultsOptions,
+    'targetPageSize' | 'googleLimit' | 'suppressGoogleWhenTPCount' | 'palateSlug'
+  > = {},
+): number {
+  if (options.palateSlug?.trim()) return 0
+
+  const target = options.targetPageSize ?? SEARCH_BROWSE_LIMIT
+  const maxGoogle = options.googleLimit ?? GOOGLE_GAP_FILL_MAX
+  const suppressAt = options.suppressGoogleWhenTPCount ?? target
+
+  if (tpCount >= suppressAt) return 0
+  return Math.min(maxGoogle, Math.max(0, target - tpCount))
 }
 
 /**
  * Merge TastyPlates DB results with Google Places results.
- * TP rows first; Google rows appended when allowed.
+ * TP rows first; Google rows appended to gap-fill up to `targetPageSize`.
  */
 export function mergeRestaurantResults(
   tpRows: RestaurantListRow[],
   googlePlaces: NearbyPlaceRow[],
   options: MergeRestaurantResultsOptions = {},
 ): RestaurantSearchResult[] {
-  const {
-    googleLimit = 10,
-    suppressGoogleWhenTPCount = 20,
-    palateSlug = null,
-    cuisineFilterActive = false,
-  } = options
-
   const uniqueTpRows = dedupeTpRows(tpRows)
   const merged: RestaurantSearchResult[] = uniqueTpRows.map(toTPResult)
 
-  if (palateSlug?.trim() || cuisineFilterActive) {
-    return merged
-  }
-
-  if (uniqueTpRows.length >= suppressGoogleWhenTPCount) {
-    return merged
+  const googleSlots = computeGoogleMergeSlots(uniqueTpRows.length, options)
+  if (googleSlots <= 0 || googlePlaces.length === 0) {
+    return dedupeRestaurantSearchResults(merged)
   }
 
   const tpNames = new Set(uniqueTpRows.map((r) => normName(r.title)))
@@ -147,7 +163,7 @@ export function mergeRestaurantResults(
 
   let googleAdded = 0
   for (const place of googlePlaces) {
-    if (googleAdded >= googleLimit) break
+    if (googleAdded >= googleSlots) break
     if (!place.place_id || !place.name) continue
     if (tpPlaceIds.has(place.place_id)) continue
     if (tpNames.has(normName(place.name))) continue

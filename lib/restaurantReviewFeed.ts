@@ -33,7 +33,7 @@ export function restaurantPreviewToTrendingRow(
             ? {
                 avatarUrl: author.user.avatarUrl,
                 email: author.user.email,
-                displayName: null,
+                displayName: author.user.displayName ?? null,
               }
             : null,
         }

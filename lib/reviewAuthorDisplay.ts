@@ -18,6 +18,8 @@ export function resolveReviewAuthorLabel(
 ): string {
   const u = profile?.username?.trim()
   if (u) return u.startsWith('@') ? u : `@${u}`
+  const displayName = profile?.user?.displayName?.trim()
+  if (displayName) return displayName
   const email = profile?.user?.email?.trim()
   if (email && email.includes('@')) return email.split('@')[0] ?? fallback
   return fallback
