@@ -1,11 +1,17 @@
 import { ActivityIndicator, Image, Pressable, Text, View } from 'react-native'
 import { AppIcon } from '@/components/ui/AppIcon'
+import { RatingDisplay } from '@/components/ui/RatingDisplay'
 
 import { BRAND_PRIMARY } from '@/constants/brand'
-import { formatRestaurantSearchResultAddress } from '@/lib/restaurantDiscoveryHelpers'
+import { DEFAULT_RESTAURANT_IMAGE } from '@/constants/images'
+import {
+  formatRestaurantSearchResultAddress,
+  listRowRatingForSearchResult,
+} from '@/lib/restaurantDiscoveryHelpers'
+import { resolveEffectiveFeaturedImageUrl } from '@/lib/featuredImageUtils'
 import type { RestaurantSearchResult } from '@/types/restaurantSearchResult'
 
-const DEFAULT_IMAGE = 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400&q=80'
+const DEFAULT_IMAGE = DEFAULT_RESTAURANT_IMAGE
 
 function AddButton({
   onPress,
@@ -47,8 +53,9 @@ export function ListPickerDiscoveryRow({
   disabled?: boolean
 }): JSX.Element {
   const title = result.title
-  const imageUrl = result.featured_image_url ?? DEFAULT_IMAGE
+  const imageUrl = resolveEffectiveFeaturedImageUrl(result.featured_image_url) ?? DEFAULT_IMAGE
   const address = formatRestaurantSearchResultAddress(result)
+  const rating = listRowRatingForSearchResult(result)
 
   return (
     <View className="flex-row items-center gap-3 border-b border-gray-50 px-4 py-3">
@@ -67,6 +74,7 @@ export function ListPickerDiscoveryRow({
           </Text>
         ) : null}
       </View>
+      {rating != null ? <RatingDisplay value={rating} size="sm" /> : null}
       <AddButton onPress={onAdd} disabled={disabled} busy={adding} />
     </View>
   )

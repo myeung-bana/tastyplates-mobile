@@ -122,6 +122,37 @@ function Divider(): JSX.Element {
   return <View className="mx-2 w-px self-stretch bg-[#CACACA]" style={{ minHeight: 72 }} />
 }
 
+const COUNT_BADGE_HEIGHT = 20
+
+/** Orange review-count chip — circle for 1 digit, pill for longer counts. */
+function CountBadge({ count }: { count: string }): JSX.Element {
+  const len = count.length
+  const paddingHorizontal = len <= 1 ? 0 : Math.min(12, 4 + len * 0.75)
+  const minWidth = len <= 1 ? COUNT_BADGE_HEIGHT : undefined
+
+  return (
+    <View
+      style={{
+        backgroundColor: BRAND_PRIMARY,
+        height: COUNT_BADGE_HEIGHT,
+        minWidth,
+        paddingHorizontal,
+        borderRadius: COUNT_BADGE_HEIGHT / 2,
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}
+    >
+      <Text className="font-neusans text-[10px] font-bold leading-none text-white">{count}</Text>
+    </View>
+  )
+}
+
+function countBadgeTrailingSpace(count: string): number {
+  const len = count.length
+  if (len <= 1) return 18
+  return 14 + len * 8
+}
+
 function MetricColumn({
   title,
   value,
@@ -144,14 +175,14 @@ function MetricColumn({
         {locked ? (
           <AppIcon name="lock" size={24} color="#9ca3af" />
         ) : (
-          <View className="relative mb-1 pr-4">
+          <View
+            className="relative mb-1"
+            style={{ paddingRight: count != null ? countBadgeTrailingSpace(count) : 0 }}
+          >
             <Text className="font-neusans text-2xl font-bold text-gray-800">{value ?? '—'}</Text>
             {count != null ? (
-              <View
-                className="absolute -bottom-0.5 -right-4 h-5 w-5 items-center justify-center rounded-full"
-                style={{ backgroundColor: BRAND_PRIMARY }}
-              >
-                <Text className="font-neusans text-[10px] font-bold text-white">{count}</Text>
+              <View className="absolute -bottom-0.5 right-0">
+                <CountBadge count={count} />
               </View>
             ) : null}
           </View>

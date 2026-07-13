@@ -17,9 +17,11 @@ import { useNhostClient } from '@nhost/react'
 import * as Haptics from 'expo-haptics'
 import { AppIcon } from '@/components/ui/AppIcon'
 
+import { EditProfileLocationField } from '@/components/profile/EditProfileLocationField'
 import { EditProfilePalateSummary } from '@/components/profile/EditProfilePalateSummary'
 import { EditProfileTopNav } from '@/components/profile/EditProfileTopNav'
 import { ProfileAvatarImage } from '@/components/profile/ProfileAvatarImage'
+import { ProfileCityPickerOverlay } from '@/components/profile/ProfileCityPickerOverlay'
 import {
   BORDER_SUBTLE,
   BRAND_PRIMARY,
@@ -38,23 +40,48 @@ import { SCREEN_EDIT_PROFILE_PALATES, SCREEN_LOGIN } from '@/constants/screens'
 import { aboutMeMaxLimit, palateLimit } from '@/constants/validation'
 import { useAuth } from '@/hooks/useAuth'
 import { invalidateOwnRestaurantUserCache } from '@/hooks/useOwnProfilePresentation'
+import type { ProfileCitySelection } from '@/lib/googlePlaces'
 import { pickProfilePhoto } from '@/lib/pickProfilePhoto'
 import { palateKeysFromProfile } from '@/lib/profilePalateKeys'
 import {
   fetchRestaurantUserById,
   normalizeLegacyProfileAvatar,
   updateRestaurantUserProfile,
+  type UserProfileLocationSnapshot,
 } from '@/services/restaurantUserService'
 import { uploadPickedImage } from '@/lib/uploadPickedImage'
 import { toast } from '@/utils/toast'
 
 const AVATAR_SIZE = 112
 
+type LocationPickerTarget = 'current' | 'hometown'
+
+type ProfileLocationFormValue = {
+  label: string
+  latitude: number
+  longitude: number
+  googlePlaceId: string | null
+  cmsSlug: string | null
+}
+
 type FormSnapshot = {
   aboutMe: string
   palateKeys: string[]
   avatarPreview: string | null
   pendingPhotoUri: string | null
+  currentLocation: ProfileLocationFormValue | null
+  hometownLocation: ProfileLocationFormValue | null
+}
+
+function locationFormKey(loc: ProfileLocationFormValue | null): string {
+  if (!loc) return ''
+  return JSON.stringify({
+    label: loc.label.trim(),
+    lat: loc.latitude,
+    lng: loc.longitude,
+    placeId: loc.googlePlaceId ?? '',
+    cmsSlug: loc.cmsSlug ?? '',
+  })
 }
 
 function snapshotKey(s: FormSnapshot): string {
@@ -62,7 +89,33 @@ function snapshotKey(s: FormSnapshot): string {
     aboutMe: s.aboutMe.trim(),
     palates: [...s.palateKeys].sort(),
     avatar: s.pendingPhotoUri ?? s.avatarPreview ?? '',
+    current: locationFormKey(s.currentLocation),
+    hometown: locationFormKey(s.hometownLocation),
   })
+}
+
+function locationFromApiRow(row: UserProfileLocationSnapshot | null | undefined): ProfileLocationFormValue | null {
+  if (!row?.label?.trim()) return null
+  const lat = row.latitude
+  const lng = row.longitude
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null
+  return {
+    label: row.label.trim(),
+    latitude: lat!,
+    longitude: lng!,
+    googlePlaceId: row.google_place_id?.trim() || null,
+    cmsSlug: row.slug?.trim().toLowerCase() || null,
+  }
+}
+
+function selectionToFormValue(selection: ProfileCitySelection): ProfileLocationFormValue {
+  return {
+    label: selection.label,
+    latitude: selection.latitude,
+    longitude: selection.longitude,
+    googlePlaceId: selection.google_place_id?.trim() || null,
+    cmsSlug: selection.location_slug?.trim().toLowerCase() || null,
+  }
 }
 
 export default function EditProfileScreen(): JSX.Element {
@@ -83,6 +136,11 @@ export default function EditProfileScreen(): JSX.Element {
     mimeType: string
   } | null>(null)
   const [username, setUsername] = useState('')
+  const [currentLocation, setCurrentLocation] = useState<ProfileLocationFormValue | null>(null)
+  const [hometownLocation, setHometownLocation] = useState<ProfileLocationFormValue | null>(null)
+  const [activeLocationPicker, setActiveLocationPicker] = useState<LocationPickerTarget | null>(
+    null,
+  )
   const [bioError, setBioError] = useState<string | null>(null)
   const [palateError, setPalateError] = useState<string | null>(null)
 
@@ -106,18 +164,25 @@ export default function EditProfileScreen(): JSX.Element {
         const keys = palateKeysFromProfile(row.palates)
         const avatar = normalizeLegacyProfileAvatar(row.avatarUrl, row.profile_image)
         const handle = row.username?.trim().replace(/^@/, '') ?? ''
+        const current = locationFromApiRow(row.current_location)
+        const hometown = locationFromApiRow(row.hometown)
 
         setAboutMe(bio)
         setSelectedPalates(new Set(keys))
         setAvatarPreview(avatar)
         setPendingPhoto(null)
         setUsername(handle)
+        setCurrentLocation(current)
+        setHometownLocation(hometown)
+        setActiveLocationPicker(null)
 
         initialRef.current = {
           aboutMe: bio,
           palateKeys: keys,
           avatarPreview: avatar,
           pendingPhotoUri: null,
+          currentLocation: current,
+          hometownLocation: hometown,
         }
       } catch (e) {
         if (!cancelled) {
@@ -139,8 +204,31 @@ export default function EditProfileScreen(): JSX.Element {
       palateKeys: Array.from(selectedPalates),
       avatarPreview,
       pendingPhotoUri: pendingPhoto?.uri ?? null,
+      currentLocation,
+      hometownLocation,
     }),
-    [aboutMe, selectedPalates, avatarPreview, pendingPhoto],
+    [aboutMe, selectedPalates, avatarPreview, pendingPhoto, currentLocation, hometownLocation],
+  )
+
+  const handleOpenLocationPicker = useCallback((target: LocationPickerTarget) => {
+    setActiveLocationPicker(target)
+  }, [])
+
+  const handleCloseLocationPicker = useCallback(() => {
+    setActiveLocationPicker(null)
+  }, [])
+
+  const handleSelectProfileCity = useCallback(
+    (selection: ProfileCitySelection) => {
+      const value = selectionToFormValue(selection)
+      if (activeLocationPicker === 'current') {
+        setCurrentLocation(value)
+      } else if (activeLocationPicker === 'hometown') {
+        setHometownLocation(value)
+      }
+      setActiveLocationPicker(null)
+    },
+    [activeLocationPicker],
   )
 
   const isDirty = useMemo(() => {
@@ -214,6 +302,36 @@ export default function EditProfileScreen(): JSX.Element {
       }
       if (profileImageUrl) payload.profile_image = profileImageUrl
 
+      const initial = initialRef.current
+      if (
+        initial &&
+        locationFormKey(currentLocation) !== locationFormKey(initial.currentLocation)
+      ) {
+        payload.current_location = currentLocation
+          ? {
+              label: currentLocation.label,
+              latitude: currentLocation.latitude,
+              longitude: currentLocation.longitude,
+              google_place_id: currentLocation.googlePlaceId,
+              location_slug: currentLocation.cmsSlug,
+            }
+          : null
+      }
+      if (
+        initial &&
+        locationFormKey(hometownLocation) !== locationFormKey(initial.hometownLocation)
+      ) {
+        payload.hometown = hometownLocation
+          ? {
+              label: hometownLocation.label,
+              latitude: hometownLocation.latitude,
+              longitude: hometownLocation.longitude,
+              google_place_id: hometownLocation.googlePlaceId,
+              location_slug: hometownLocation.cmsSlug,
+            }
+          : null
+      }
+
       await updateRestaurantUserProfile(payload)
       invalidateOwnRestaurantUserCache(user.id)
       await nhost.auth.refreshSession()
@@ -226,7 +344,17 @@ export default function EditProfileScreen(): JSX.Element {
       setUploadingPhoto(false)
       setSaving(false)
     }
-  }, [aboutMe, doneEnabled, nhost.auth, pendingPhoto, router, selectedPalates, user?.id])
+  }, [
+    aboutMe,
+    currentLocation,
+    doneEnabled,
+    hometownLocation,
+    nhost.auth,
+    pendingPhoto,
+    router,
+    selectedPalates,
+    user?.id,
+  ])
 
   if (!authLoading && !isAuthenticated) {
     return <Redirect href={SCREEN_LOGIN} />
@@ -289,30 +417,16 @@ export default function EditProfileScreen(): JSX.Element {
                     />
                   )}
                   <View
-                    className="absolute -bottom-1 -right-1 items-center justify-center rounded-full border-2 border-white bg-white p-2 shadow-sm"
-                    style={{ elevation: 2 }}
+                    className="absolute -bottom-1 -right-1 items-center justify-center rounded-full p-2"
+                    style={{ backgroundColor: BRAND_PRIMARY }}
                   >
-                    <AppIcon name="edit-3" size={18} color={TEXT_HEADING} />
+                    <AppIcon name="edit-3" size={18} color="#ffffff" />
                   </View>
                 </View>
               </Pressable>
 
-              <Pressable
-                onPress={handleChangePhoto}
-                disabled={saving}
-                className="mt-3 active:opacity-80"
-                accessibilityRole="button"
-                accessibilityLabel="Change profile photo"
-              >
-                <Text className="text-sm font-medium" style={{ color: BRAND_PRIMARY }}>
-                  Change profile photo
-                </Text>
-              </Pressable>
-              <Text className="mt-1 text-xs" style={{ color: TEXT_MUTED }}>
-                Square crop · max 5 MB
-              </Text>
               {uploadingPhoto ? (
-                <Text className="mt-2 text-xs" style={{ color: TEXT_MUTED }}>
+                <Text className="mt-3 text-xs" style={{ color: TEXT_MUTED }}>
                   Uploading photo…
                 </Text>
               ) : null}
@@ -323,6 +437,23 @@ export default function EditProfileScreen(): JSX.Element {
             </View>
 
             <View className="mt-8 px-5">
+              <EditProfileLocationField
+                label="Where do you currently live"
+                helper="Search any city worldwide — not limited to TastyPlates markets."
+                valueLabel={currentLocation?.label ?? null}
+                onPress={() => handleOpenLocationPicker('current')}
+                disabled={saving}
+              />
+              <EditProfileLocationField
+                label="Where is your hometown"
+                helper="Optional — share where your food journey started."
+                valueLabel={hometownLocation?.label ?? null}
+                onPress={() => handleOpenLocationPicker('hometown')}
+                disabled={saving}
+              />
+            </View>
+
+            <View className="mt-3 px-5">
               <Text className="mb-2 text-sm font-medium" style={{ color: TEXT_HEADING }}>
                 Bio
               </Text>
@@ -377,6 +508,27 @@ export default function EditProfileScreen(): JSX.Element {
           </ScrollView>
         </KeyboardAvoidingView>
       )}
+
+      <ProfileCityPickerOverlay
+        visible={activeLocationPicker !== null}
+        title={
+          activeLocationPicker === 'hometown'
+            ? 'Where is your hometown'
+            : 'Where do you currently live'
+        }
+        selectedPlaceId={
+          activeLocationPicker === 'hometown'
+            ? hometownLocation?.googlePlaceId ?? null
+            : currentLocation?.googlePlaceId ?? null
+        }
+        selectedCmsSlug={
+          activeLocationPicker === 'hometown'
+            ? hometownLocation?.cmsSlug ?? null
+            : currentLocation?.cmsSlug ?? null
+        }
+        onSelectCity={handleSelectProfileCity}
+        onClose={handleCloseLocationPicker}
+      />
     </View>
   )
 }

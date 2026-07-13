@@ -1,12 +1,10 @@
 import { useEffect, useState, useCallback } from 'react'
 import { View, ActivityIndicator, Text } from 'react-native'
-import * as Haptics from 'expo-haptics'
 import { router } from 'expo-router'
 
 import { ArticleListCard } from '@/components/articles/ArticleListCard'
-import { Button } from '@/components/ui/Button'
 import { fetchArticles, type ArticleApi } from '@/lib/homeContentApi'
-import { SCREEN_ARTICLE_DETAIL, SCREEN_ARTICLES_LIST } from '@/constants/screens'
+import { SCREEN_ARTICLE_DETAIL } from '@/constants/screens'
 import { BRAND_PRIMARY, TEXT_MUTED } from '@/constants/brand'
 import { HomeSectionCard } from '@/components/home/HomeSectionCard'
 import { useLocation } from '@/contexts/LocationContext'
@@ -39,11 +37,6 @@ export function HomeArticlesSection() {
     })
   }
 
-  const viewAllArticles = () => {
-    void Haptics.selectionAsync()
-    router.push(SCREEN_ARTICLES_LIST)
-  }
-
   return (
     <HomeSectionCard title="Articles" className="pb-8" shadowed={false} padded={false}>
       {loading ? (
@@ -64,18 +57,10 @@ export function HomeArticlesSection() {
             </View>
           ) : (
             <Text className="py-4 text-center text-sm" style={{ color: TEXT_MUTED }}>
-              No featured articles for this location yet. Browse all stories below.
+              No featured articles for this location yet.
             </Text>
           )}
-          <View className={articles.length > 0 ? 'mt-5 items-center' : 'mt-2 items-center'}>
-            <Button
-              variant="primary"
-              onPress={viewAllArticles}
-              className="w-full max-w-sm"
-            >
-              View Articles
-            </Button>
-          </View>
+          <View className={articles.length > 0 ? 'mt-5 h-12' : 'mt-2 h-8'} />
         </>
       )}
     </HomeSectionCard>

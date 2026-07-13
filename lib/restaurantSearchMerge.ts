@@ -1,6 +1,10 @@
 import type { NearbyPlaceRow } from '@/lib/googlePlaces'
 import { googlePlacePhotoUrl } from '@/lib/googlePlaces'
 import {
+  adaptGooglePlaceTypes,
+  type AdaptGooglePlaceTypesOptions,
+} from '@/lib/adaptGooglePlaceTypes'
+import {
   GOOGLE_GAP_FILL_MAX,
   SEARCH_BROWSE_LIMIT,
 } from '@/lib/restaurantSearchConfig'
@@ -9,6 +13,7 @@ import {
   normalizeCuisineList,
   type RestaurantListRow,
 } from '@/services/restaurantsV2Service'
+import { resolveEffectiveFeaturedImageUrl } from '@/lib/featuredImageUtils'
 import type {
   GoogleRestaurantResult,
   RestaurantSearchResult,
@@ -30,7 +35,7 @@ function toTPResult(row: RestaurantListRow): TPRestaurantResult {
     uuid: row.uuid,
     slug: row.slug,
     title: row.title,
-    featured_image_url: row.featured_image_url,
+    featured_image_url: resolveEffectiveFeaturedImageUrl(row.featured_image_url),
     listing_street: row.listing_street,
     address: row.address,
     average_rating: row.average_rating,
@@ -44,7 +49,11 @@ function toTPResult(row: RestaurantListRow): TPRestaurantResult {
   }
 }
 
-function toGoogleResult(place: NearbyPlaceRow): GoogleRestaurantResult {
+function toGoogleResult(
+  place: NearbyPlaceRow,
+  tagOptions?: AdaptGooglePlaceTypesOptions,
+): GoogleRestaurantResult {
+  const { cuisines, categories } = adaptGooglePlaceTypes(place.types, tagOptions)
   return {
     source: 'google',
     place_id: place.place_id,
@@ -54,9 +63,12 @@ function toGoogleResult(place: NearbyPlaceRow): GoogleRestaurantResult {
       : null,
     address: place.address,
     google_rating: place.google_rating ?? null,
+    google_review_count: place.google_review_count ?? null,
     latitude: place.latitude ?? null,
     longitude: place.longitude ?? null,
     types: place.types ?? null,
+    cuisines,
+    categories,
   }
 }
 
@@ -117,6 +129,10 @@ export interface MergeRestaurantResultsOptions {
   palateSlug?: string | null
   /** @deprecated Ignored — cuisine browse uses the same gap-fill rules. */
   cuisineFilterActive?: boolean
+  /** When browsing by cuisine, fills Google card pills when types are vague. */
+  googleCuisineFallback?: AdaptGooglePlaceTypesOptions['cuisineFallback']
+  /** When browsing by category, fills Google card labels when types are vague. */
+  googleCategoryFallback?: AdaptGooglePlaceTypesOptions['categoryFallback']
 }
 
 /** How many Google slots to append after TP rows for a single merge. */
@@ -161,13 +177,18 @@ export function mergeRestaurantResults(
       .filter((id): id is string => id != null && id.length > 0),
   )
 
+  const tagOptions: AdaptGooglePlaceTypesOptions = {
+    cuisineFallback: options.googleCuisineFallback,
+    categoryFallback: options.googleCategoryFallback,
+  }
+
   let googleAdded = 0
   for (const place of googlePlaces) {
     if (googleAdded >= googleSlots) break
     if (!place.place_id || !place.name) continue
     if (tpPlaceIds.has(place.place_id)) continue
     if (tpNames.has(normName(place.name))) continue
-    merged.push(toGoogleResult(place))
+    merged.push(toGoogleResult(place, tagOptions))
     googleAdded++
   }
 

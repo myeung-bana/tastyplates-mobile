@@ -10,8 +10,10 @@ import { pushPublicProfile } from '@/lib/publicProfileNavigation'
 import { useNhostSession } from '@/hooks/useNhostSession'
 import { useOwnProfilePresentation } from '@/hooks/useOwnProfilePresentation'
 import { useOwnProfileStats } from '@/hooks/useOwnProfileStats'
+import { useLocationHierarchy } from '@/hooks/useLocationHierarchy'
 import { useProfileRecentActivity } from '@/hooks/useProfileRecentActivity'
 import type { RestaurantUserRow } from '@/services/restaurantUserService'
+import { formatProfileLocationCityCountry } from '@/utils/locationUtils'
 import {
   SCREEN_EDIT_PROFILE,
   SCREEN_REVIEW_VIEWER,
@@ -31,6 +33,8 @@ export function ProfileSignedInView() {
   } = useOwnProfilePresentation()
   const statsApi = useOwnProfileStats(userId)
   const activityApi = useProfileRecentActivity(userId, 3, { withAuth: true })
+  const { hierarchy } = useLocationHierarchy(Boolean(userId))
+  const hierarchyCountries = hierarchy?.hierarchy.countries ?? null
   const [pullRefreshing, setPullRefreshing] = useState(false)
 
   const refreshAll = useCallback(async () => {
@@ -126,6 +130,11 @@ export function ProfileSignedInView() {
         following: statsApi.following,
       }}
       statsLoading={statsLoading}
+      currentLocationLabel={formatProfileLocationCityCountry(
+        ru?.current_location,
+        hierarchyCountries,
+      )}
+      hometownLabel={formatProfileLocationCityCountry(ru?.hometown, hierarchyCountries)}
       pullRefreshing={pullRefreshing}
       onRefresh={onPullRefresh}
       onPressAvatarOwn={() => router.push(SCREEN_EDIT_PROFILE)}

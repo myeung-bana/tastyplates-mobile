@@ -15,7 +15,9 @@ import { usePathname, useRouter } from 'expo-router'
 
 import { RatingDisplay } from '@/components/ui/RatingDisplay'
 import { BRAND_PRIMARY } from '@/constants/brand'
+import { DEFAULT_RESTAURANT_IMAGE } from '@/constants/images'
 import { useAuth } from '@/hooks/useAuth'
+import { resolveEffectiveFeaturedImageUrl } from '@/lib/featuredImageUtils'
 import { coerceResumeHref, pushLoginScreen } from '@/lib/authRoutes'
 import { coerceRatingNumber, hasDisplayableRating } from '@/lib/ratingDisplayUtils'
 import {
@@ -29,7 +31,7 @@ import {
   type RestaurantListCuisine,
 } from '@/services/restaurantsV2Service'
 
-const DEFAULT_IMAGE = 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400&q=80'
+const DEFAULT_IMAGE = DEFAULT_RESTAURANT_IMAGE
 
 const TEXT_COLOR = '#31343F'
 const CUISINE_PILL_BG = '#ff7c0a'
@@ -159,7 +161,7 @@ export function RestaurantBrowseCard({
   searchPalateReviewCount,
   ratingMode = 'overall',
 }: RestaurantBrowseCardProps) {
-  const uri = (imageUrl && imageUrl.trim()) || DEFAULT_IMAGE
+  const uri = resolveEffectiveFeaturedImageUrl(imageUrl) ?? DEFAULT_IMAGE
   const router = useRouter()
   const pathname = usePathname()
   const { isAuthenticated } = useAuth()

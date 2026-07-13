@@ -4,6 +4,8 @@ import { AppIcon } from '@/components/ui/AppIcon'
 
 import { Button } from '@/components/ui/Button'
 import { BRAND_PRIMARY } from '@/constants/brand'
+import { DEFAULT_RESTAURANT_IMAGE } from '@/constants/images'
+import { resolveEffectiveFeaturedImageUrl } from '@/lib/featuredImageUtils'
 import { googlePlacePhotoUrl } from '@/lib/googlePlaces'
 import type { MatchedRestaurant } from '@/lib/findTastyPlatesMatch'
 import type { PlacesDetailsResult } from '@/lib/googlePlaces'
@@ -64,16 +66,16 @@ export function RestaurantMatchInlineMobile({
             We found this restaurant in our database.
           </Text>
           <View className="mb-3 flex-row gap-3 rounded-xl bg-gray-50 p-3">
-            {existingRestaurant.featured_image_url ? (
-              <Image
-                source={{ uri: existingRestaurant.featured_image_url }}
-                style={{ width: 52, height: 52, borderRadius: 12 }}
-                resizeMode="cover"
-                accessibilityIgnoresInvertColors
-              />
-            ) : (
-              <View className="h-[52px] w-[52px] rounded-xl bg-gray-200" />
-            )}
+            <Image
+              source={{
+                uri:
+                  resolveEffectiveFeaturedImageUrl(existingRestaurant.featured_image_url) ??
+                  DEFAULT_RESTAURANT_IMAGE,
+              }}
+              style={{ width: 52, height: 52, borderRadius: 12 }}
+              resizeMode="cover"
+              accessibilityIgnoresInvertColors
+            />
             <View className="min-w-0 flex-1">
               <Text className="font-neusans text-sm font-medium text-[#31343F]" numberOfLines={2}>
                 {existingRestaurant.title}

@@ -155,6 +155,62 @@ export function googlePlacePhotoUrl(photoReference: string, maxWidth = 560): str
   return `${GEOCODE_BASE}/photo?maxwidth=${maxWidth}&photoreference=${ref}&key=${encodeURIComponent(key)}`
 }
 
+/** Autocomplete global cities (not limited to CMS restaurant_locations). */
+export async function autocompleteCities(input: string): Promise<PlacesAutocompletePrediction[]> {
+  const key = getPlacesApiKey()
+  const q = input.trim()
+  if (!key || q.length < 2) return []
+
+  const params = new URLSearchParams({
+    input: q,
+    key,
+    types: '(cities)',
+  })
+
+  const url = `${GEOCODE_BASE}/autocomplete/json?${params.toString()}`
+  const res = await fetch(url)
+  const raw = (await res.json()) as AutocompletePayload
+  if (raw.status !== 'OK' && raw.status !== 'ZERO_RESULTS') {
+    throw new Error(raw.error_message || `City autocomplete failed (${raw.status})`)
+  }
+  return raw.predictions ?? []
+}
+
+export interface ProfileCitySelection {
+  label: string
+  latitude: number
+  longitude: number
+  google_place_id?: string | null
+  /** CMS `restaurant_locations` slug when picked from supported cities. */
+  location_slug?: string | null
+}
+
+/** Resolve a city autocomplete row into profile-ready label + coordinates. */
+export async function resolveProfileCitySelection(
+  prediction: PlacesAutocompletePrediction,
+  signal?: AbortSignal,
+): Promise<ProfileCitySelection | null> {
+  const details = await fetchGooglePlaceDetails(prediction.place_id, signal)
+  const lat = details?.geometry?.location?.lat
+  const lng = details?.geometry?.location?.lng
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null
+
+  const label =
+    prediction.description?.trim() ||
+    details?.formatted_address?.trim() ||
+    details?.name?.trim() ||
+    ''
+
+  if (!label.length) return null
+
+  return {
+    label,
+    latitude: lat!,
+    longitude: lng!,
+    google_place_id: prediction.place_id,
+  }
+}
+
 /** Autocomplete (establishment-heavy) with optional geo bias circle. */
 export async function autocompletePlacesEstablishments(
   input: string,
@@ -233,6 +289,7 @@ export interface NearbyPlaceRow {
   longitude?: number | null
   photo_reference: string | null
   google_rating?: number | null
+  google_review_count?: number | null
   types?: string[] | null
 }
 
@@ -259,12 +316,10 @@ function parseNearbyPlaceRow(entry: unknown): NearbyPlaceRow | null {
     firstPhoto?.photo_reference && typeof firstPhoto.photo_reference === 'string'
       ? firstPhoto.photo_reference
       : null
-  const address: string | null =
-    typeof p.vicinity === 'string'
-      ? p.vicinity
-      : typeof p.formatted_address === 'string'
-        ? p.formatted_address
-        : null
+  const formattedAddress =
+    typeof p.formatted_address === 'string' ? p.formatted_address.trim() : ''
+  const vicinity = typeof p.vicinity === 'string' ? p.vicinity.trim() : ''
+  const address = formattedAddress || vicinity || null
 
   const placeId = typeof p.place_id === 'string' ? p.place_id : ''
   if (!placeId || !name) return null
@@ -277,6 +332,8 @@ function parseNearbyPlaceRow(entry: unknown): NearbyPlaceRow | null {
     longitude: plng,
     photo_reference: photoRef,
     google_rating: typeof p.rating === 'number' ? p.rating : null,
+    google_review_count:
+      typeof p.user_ratings_total === 'number' ? p.user_ratings_total : null,
     types,
   }
 }

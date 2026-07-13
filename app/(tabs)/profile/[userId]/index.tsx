@@ -14,6 +14,7 @@ import {
 } from '@/constants/screens'
 import { useFollowTarget } from '@/hooks/useFollowTarget'
 import { useAuth } from '@/hooks/useAuth'
+import { useLocationHierarchy } from '@/hooks/useLocationHierarchy'
 import { useProfileRecentActivity } from '@/hooks/useProfileRecentActivity'
 import { useUserData } from '@nhost/react'
 import {
@@ -30,6 +31,7 @@ import {
   type RestaurantUserRow,
 } from '@/services/restaurantUserService'
 import { fetchPublicProfileCounts } from '@/services/profileStatsService'
+import { formatProfileLocationCityCountry } from '@/utils/locationUtils'
 
 /**
  * `[userId]` is either `auth`/profile UUID (Hasura user id, legacy `RestaurantUserRow.id`)
@@ -56,6 +58,8 @@ export default function PublicProfileIndexScreen() {
 
   const isOwnProfile = Boolean(viewerId && ru?.id && viewerId === ru.id)
   const activityApi = useProfileRecentActivity(ru?.id, 3, { withAuth: isOwnProfile })
+  const { hierarchy } = useLocationHierarchy(Boolean(ru?.id))
+  const hierarchyCountries = hierarchy?.hierarchy.countries ?? null
 
   const loadProfile = useCallback(async () => {
     if (!slug) {
@@ -161,6 +165,11 @@ export default function PublicProfileIndexScreen() {
   const palatesMerged = parseProfilePalates(ru.palates)
   const memberSinceLabel = ru.created_at ? formatMemberSince(ru.created_at) : ''
   const bio = ru.about_me?.trim()?.length ? ru.about_me.trim() : null
+  const currentLocationLabel = formatProfileLocationCityCountry(
+    ru.current_location,
+    hierarchyCountries,
+  )
+  const hometownLabel = formatProfileLocationCityCountry(ru.hometown, hierarchyCountries)
 
   const followUi =
     isAuthenticated && !isOwnProfile
@@ -213,6 +222,8 @@ export default function PublicProfileIndexScreen() {
           following: counts.following,
         }}
         statsLoading={false}
+        currentLocationLabel={currentLocationLabel}
+        hometownLabel={hometownLabel}
         pullRefreshing={pullRefreshing}
         onRefresh={onPullRefresh}
         onPressAvatarOwn={

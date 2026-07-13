@@ -11,8 +11,9 @@ export type SvgIconComponent = ComponentType<SvgProps>
 
 export const STAR_FILLED: SvgIconComponent = StarFilledIcon
 
+/** Last-resort restaurant tile / hero fallback — real photos always take priority. */
 export const DEFAULT_RESTAURANT_IMAGE =
-  'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400&q=80'
+  'https://tastyplates-bucket.s3.ap-northeast-2.amazonaws.com/uploads/tastyplates_placeholder_portrait.jpg'
 
 export const RECOGNITION_TAGS: ReadonlyArray<{
   name: string

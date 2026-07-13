@@ -1,5 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { AppIcon } from '@/components/ui/AppIcon'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   ActivityIndicator,
   Pressable,
@@ -10,98 +9,154 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { Redirect, useRouter } from 'expo-router'
 
-import {
-  LocationPickerSheet,
-  type LocationPickerSheetHandle,
-} from '@/components/onboarding/LocationPickerSheet'
-import { OnboardingLogo } from '@/components/onboarding/OnboardingLogo'
-import { OnboardingStepIndicator } from '@/components/onboarding/OnboardingStepIndicator'
+import { EditProfileLocationField } from '@/components/profile/EditProfileLocationField'
+import { ProfileCityPickerOverlay } from '@/components/profile/ProfileCityPickerOverlay'
+import { OnboardingTopNav } from '@/components/onboarding/OnboardingTopNav'
 import { getPresetLocationByKey } from '@/constants/locations'
+import { BRAND_PRIMARY, TEXT_HEADING, TEXT_MUTED } from '@/constants/brand'
 import { SCREEN_LOGIN } from '@/constants/screens'
 import { useLocation } from '@/contexts/LocationContext'
 import { useAuth } from '@/hooks/useAuth'
 import { DEV_MODE } from '@/lib/devMode'
+import type { ProfileCitySelection } from '@/lib/googlePlaces'
+import {
+  locationFromProfileSnapshot,
+  locationValueFromLegacyDraftKey,
+  selectionToLocationValue,
+} from '@/lib/onboardingLocation'
 import {
   cityNodeToSavedLocation,
+  enrichSavedLocationFromHierarchy,
   fetchLocationHierarchy,
-  findCityInHierarchy,
-  type GetLocationsData,
-  type LocationCityNode,
   loadOnboardingDraft,
   mergeOnboardingDraft,
+  type GetLocationsData,
+  type OnboardingLocationValue,
 } from '@/services/onboardingService'
+import { fetchRestaurantUserById } from '@/services/restaurantUserService'
 import { toast } from '@/utils/toast'
+
+type LocationPickerTarget = 'current' | 'hometown'
 
 export default function OnboardingStep2(): JSX.Element {
   const router = useRouter()
-  const sheetRef = useRef<LocationPickerSheetHandle>(null)
   const { setLocationPreference } = useLocation()
   const { isAuthenticated, loading: authLoading, user } = useAuth()
   const [hierarchy, setHierarchy] = useState<GetLocationsData | null>(null)
-  const [loadingHi, setLoadingHi] = useState(true)
-  const [countryKey, setCountryKey] = useState<string | null>(null)
-  const [selectedCity, setSelectedCity] = useState<LocationCityNode | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [currentLocation, setCurrentLocation] = useState<OnboardingLocationValue | null>(null)
+  const [hometownLocation, setHometownLocation] = useState<OnboardingLocationValue | null>(null)
+  const [activePicker, setActivePicker] = useState<LocationPickerTarget | null>(null)
+  const draftUsernameRef = useRef<string | null>(null)
 
   useEffect(() => {
+    if (!user?.id) {
+      setLoading(false)
+      return
+    }
+
     let cancelled = false
     void (async () => {
       try {
-        const data = await fetchLocationHierarchy()
+        const [data, draft, row] = await Promise.all([
+          fetchLocationHierarchy(),
+          loadOnboardingDraft(),
+          fetchRestaurantUserById(user.id),
+        ])
         if (cancelled) return
+
         setHierarchy(data)
-        const draft = await loadOnboardingDraft()
-        const firstCountry = data.hierarchy.countries[0]?.key ?? null
-        let nextCountry = firstCountry
-        if (draft.location_key) {
-          const city = findCityInHierarchy(data, draft.location_key)
-          if (city) {
-            setSelectedCity(city)
-            nextCountry = city.parentKey
-          }
+        draftUsernameRef.current = draft.username?.trim() || null
+
+        if (!draft.username?.trim()) {
+          router.replace('/onboarding/step1')
+          return
         }
-        setCountryKey(nextCountry ?? firstCountry)
+
+        let current =
+          draft.current_location ??
+          locationValueFromLegacyDraftKey(draft.location_key, draft.location_label, data) ??
+          locationFromProfileSnapshot(row.current_location)
+
+        let hometown = draft.hometown_location ?? locationFromProfileSnapshot(row.hometown)
+
+        setCurrentLocation(current)
+        setHometownLocation(hometown)
       } catch (e) {
-        toast.error(e instanceof Error ? e.message : 'Could not load regions')
+        toast.error(e instanceof Error ? e.message : 'Could not load locations')
       } finally {
-        if (!cancelled) setLoadingHi(false)
+        if (!cancelled) setLoading(false)
       }
     })()
+
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [router, user?.id])
 
-  const countries = hierarchy?.hierarchy.countries ?? []
-
-  const citiesForCountry = useMemo(() => {
-    if (!countryKey) return []
-    const c = countries.find((x) => x.key === countryKey)
-    return c?.cities ?? []
-  }, [countries, countryKey])
+  const syncBrowseLocation = useCallback(
+    (loc: OnboardingLocationValue | null) => {
+      if (!loc?.cmsSlug || !hierarchy) return
+      const city = hierarchy.hierarchy.countries
+        .flatMap((c) => c.cities)
+        .find((c) => c.key.trim().toLowerCase() === loc.cmsSlug)
+      if (!city) return
+      const country = hierarchy.hierarchy.countries.find((c) => c.key === city.parentKey)
+      const pref = enrichSavedLocationFromHierarchy(
+        cityNodeToSavedLocation(city, country),
+        hierarchy,
+      )
+      setLocationPreference(pref)
+    },
+    [hierarchy, setLocationPreference],
+  )
 
   const onContinue = useCallback(async () => {
-    if (!selectedCity) {
-      toast.error('Choose a city to continue.')
+    if (!currentLocation) {
+      toast.error('Choose where you currently live to continue.')
       return
     }
-    const country =
-      hierarchy?.hierarchy.countries.find((row) => row.key === selectedCity.parentKey) ?? undefined
-    const pref = cityNodeToSavedLocation(selectedCity, country)
+
     await mergeOnboardingDraft({
-      location_key: pref.key,
-      location_label: pref.label,
+      current_location: currentLocation,
+      hometown_location: hometownLocation,
+      location_key: undefined,
+      location_label: undefined,
     })
-    setLocationPreference(pref)
+    syncBrowseLocation(currentLocation)
     router.push('/onboarding/step3')
-  }, [hierarchy, router, selectedCity, setLocationPreference])
+  }, [currentLocation, hometownLocation, router, syncBrowseLocation])
 
   const onDevSkip = useCallback(async () => {
     const tokyo = getPresetLocationByKey('tokyo')
     if (!tokyo) return
-    await mergeOnboardingDraft({ location_key: tokyo.key, location_label: tokyo.label })
+    const value: OnboardingLocationValue = {
+      label: tokyo.label,
+      latitude: tokyo.coordinates?.latitude ?? 35.6764,
+      longitude: tokyo.coordinates?.longitude ?? 139.65,
+      googlePlaceId: null,
+      cmsSlug: tokyo.key,
+    }
+    await mergeOnboardingDraft({
+      current_location: value,
+      hometown_location: null,
+    })
     setLocationPreference(tokyo)
     router.push('/onboarding/step3')
   }, [router, setLocationPreference])
+
+  const handleSelectCity = useCallback(
+    (selection: ProfileCitySelection) => {
+      const value = selectionToLocationValue(selection)
+      if (activePicker === 'current') {
+        setCurrentLocation(value)
+      } else if (activePicker === 'hometown') {
+        setHometownLocation(value)
+      }
+      setActivePicker(null)
+    },
+    [activePicker],
+  )
 
   if (!authLoading && !isAuthenticated) {
     return <Redirect href={SCREEN_LOGIN} />
@@ -111,116 +166,65 @@ export default function OnboardingStep2(): JSX.Element {
     return (
       <SafeAreaView className="flex-1 bg-white" edges={['top', 'left', 'right']}>
         <View className="flex-1 items-center justify-center px-6">
-          <Text className="text-center text-base text-gray-600">Verify your email before continuing.</Text>
+          <Text className="text-center text-base" style={{ color: TEXT_MUTED }}>
+            Verify your email before continuing.
+          </Text>
         </View>
       </SafeAreaView>
     )
   }
 
-  const busy = authLoading || loadingHi
+  const busy = authLoading || loading
 
   return (
-    <SafeAreaView className="flex-1 bg-white" edges={['top', 'left', 'right']}>
-      <ScrollView contentContainerClassName="grow px-4 pb-10 pt-4">
-        <View className="mb-2 flex-row items-center">
-          <Pressable
-            accessibilityRole="button"
-            onPress={() => {
-              router.back()
-            }}
-            hitSlop={8}
-            className="mr-2 rounded-full p-1 active:bg-gray-100"
-          >
-            <AppIcon name="chevron-left" size={24} color="#374151" />
-          </Pressable>
-          <Text className="text-base font-medium text-gray-800">Back</Text>
-        </View>
-
-        <OnboardingLogo />
-        <OnboardingStepIndicator currentStep={2} />
-
-        <Text className="mb-2 text-lg font-semibold" style={{ color: '#31343F' }}>
-          Where are you based?
+    <View className="flex-1 bg-white">
+      <OnboardingTopNav title="Set Location" onBack={() => router.back()} />
+      <ScrollView contentContainerClassName="grow px-5 pb-10 pt-6" keyboardShouldPersistTaps="handled">
+        <Text className="mb-2 text-lg font-semibold" style={{ color: TEXT_HEADING }}>
+          Where do you live?
         </Text>
-        <Text className="mb-6 text-base text-gray-600">
-          We use this to tune restaurant search and maps near you.
+        <Text className="mb-6 text-base leading-relaxed" style={{ color: TEXT_MUTED }}>
+          Helps personalize restaurants near you. Search any city worldwide.
         </Text>
 
         {busy ? (
           <View className="items-center py-12">
-            <ActivityIndicator color="#ff7c0a" />
+            <ActivityIndicator color={BRAND_PRIMARY} />
           </View>
         ) : (
           <>
-            <Text className="mb-2 text-sm font-medium text-gray-700">Country</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-5">
-              <View className="flex-row flex-wrap gap-2">
-                {countries.map((c) => {
-                  const on = c.key === countryKey
-                  return (
-                    <Pressable
-                      key={c.key}
-                      onPress={() => {
-                        setCountryKey(c.key)
-                        setSelectedCity(null)
-                      }}
-                      className={`rounded-full border px-4 py-2 ${on ? 'border-[#ff7c0a] bg-orange-50' : 'border-gray-200 bg-white'}`}
-                    >
-                      <Text className={`text-sm font-medium ${on ? 'text-[#ff7c0a]' : 'text-gray-700'}`}>
-                        {c.label}
-                      </Text>
-                    </Pressable>
-                  )
-                })}
-              </View>
-            </ScrollView>
+            <EditProfileLocationField
+              label="Where do you currently live"
+              valueLabel={currentLocation?.label ?? null}
+              onPress={() => setActivePicker('current')}
+            />
+            <EditProfileLocationField
+              label="Where is your hometown"
+              helper="Optional — share where your food journey started."
+              valueLabel={hometownLocation?.label ?? null}
+              onPress={() => setActivePicker('hometown')}
+            />
 
-            <Text className="mb-2 text-sm font-medium text-gray-700">City</Text>
-            <View className="mb-4 flex-row flex-wrap gap-2">
-              {citiesForCountry.map((city) => {
-                const on = selectedCity?.key === city.key
-                return (
-                  <Pressable
-                    key={city.key}
-                    onPress={() => {
-                      setSelectedCity(city)
-                    }}
-                    className={`rounded-full border px-3 py-2 ${on ? 'border-[#ff7c0a] bg-orange-50' : 'border-gray-200 bg-gray-50'}`}
-                  >
-                    <Text className={`text-sm font-medium ${on ? 'text-[#ff7c0a]' : 'text-gray-800'}`}>
-                      {city.label}
-                    </Text>
-                  </Pressable>
-                )
-              })}
-            </View>
+            {currentLocation && hometownLocation === null ? (
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => setHometownLocation({ ...currentLocation })}
+                className="mb-6 active:opacity-80"
+              >
+                <Text className="text-sm font-medium" style={{ color: BRAND_PRIMARY }}>
+                  Same as current residence for hometown
+                </Text>
+              </Pressable>
+            ) : null}
 
             <Pressable
               accessibilityRole="button"
-              onPress={() => {
-                sheetRef.current?.present()
-              }}
-              className="mb-8 flex-row items-center justify-center rounded-xl border border-gray-200 py-3 active:bg-gray-50"
-            >
-              <AppIcon name="globe" size={20} color="#374151" />
-              <Text className="ml-2 text-base font-semibold text-gray-800">Browse all regions</Text>
-            </Pressable>
-
-            {selectedCity ? (
-              <Text className="mb-4 text-center text-sm text-gray-600">
-                Selected: <Text className="font-semibold text-gray-900">{selectedCity.label}</Text>
-              </Text>
-            ) : (
-              <Text className="mb-4 text-center text-sm text-gray-500">Tap a city to select it.</Text>
-            )}
-
-            <Pressable
-              accessibilityRole="button"
-              disabled={!selectedCity}
+              disabled={!currentLocation}
               onPress={() => {
                 void onContinue()
               }}
-              className="items-center rounded-xl bg-[#ff7c0a] py-4 active:opacity-90 disabled:opacity-50"
+              className="items-center rounded-xl py-4 active:opacity-90 disabled:opacity-50"
+              style={{ backgroundColor: BRAND_PRIMARY }}
             >
               <Text className="text-base font-semibold text-white">Continue</Text>
             </Pressable>
@@ -240,14 +244,24 @@ export default function OnboardingStep2(): JSX.Element {
         )}
       </ScrollView>
 
-      <LocationPickerSheet
-        ref={sheetRef}
-        countries={countries}
-        onSelect={(city) => {
-          setCountryKey(city.parentKey)
-          setSelectedCity(city)
-        }}
+      <ProfileCityPickerOverlay
+        visible={activePicker !== null}
+        title={
+          activePicker === 'hometown' ? 'Where is your hometown' : 'Where do you currently live'
+        }
+        selectedPlaceId={
+          activePicker === 'hometown'
+            ? hometownLocation?.googlePlaceId ?? null
+            : currentLocation?.googlePlaceId ?? null
+        }
+        selectedCmsSlug={
+          activePicker === 'hometown'
+            ? hometownLocation?.cmsSlug ?? null
+            : currentLocation?.cmsSlug ?? null
+        }
+        onSelectCity={handleSelectCity}
+        onClose={() => setActivePicker(null)}
       />
-    </SafeAreaView>
+    </View>
   )
 }

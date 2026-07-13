@@ -1,13 +1,14 @@
 import type { LocationCoordinates } from '@/constants/locations'
-import { geoQueryFromCityCenter, isWithinRadiusKm, CITY_SEARCH_RADIUS_KM } from '@/lib/geoUtils'
+import { geoQueryFromCityCenter } from '@/lib/geoUtils'
+import { enrichGoogleCandidatesWithDetails } from '@/lib/googlePlaceEnrichment'
 import {
   autocompletePlacesEstablishments,
-  fetchGooglePlaceDetails,
   getNearbyRestaurants,
   isRestaurantLikeGooglePlace,
 } from '@/lib/googlePlaces'
 import type { NearbyPlaceRow } from '@/lib/googlePlaces'
 import { mergeRestaurantResults, computeGoogleMergeSlots } from '@/lib/restaurantSearchMerge'
+import { googleTagFallbacksFromBrowseFilters } from '@/lib/adaptGooglePlaceTypes'
 import { splitDiscoveryResults } from '@/lib/restaurantDiscoveryHelpers'
 import {
   GOOGLE_GAP_FILL_MAX_PICKER,
@@ -69,62 +70,6 @@ function predictionsToCandidates(
   }
 
   return googleCandidates
-}
-
-async function enrichGoogleCandidatesWithDetails(
-  candidates: NearbyPlaceRow[],
-  coordinates: LocationCoordinates | null,
-  maxEnrich: number,
-  signal?: AbortSignal,
-): Promise<NearbyPlaceRow[]> {
-  if (candidates.length === 0 || maxEnrich <= 0) return candidates
-
-  const toEnrich = candidates.slice(0, maxEnrich)
-  const enriched = await Promise.allSettled(
-    toEnrich.map(async (candidate) => {
-      const details = await fetchGooglePlaceDetails(candidate.place_id, signal)
-      if (!details) return candidate
-
-      const lat = details.geometry?.location?.lat ?? null
-      const lng = details.geometry?.location?.lng ?? null
-
-      if (
-        coordinates &&
-        lat != null &&
-        lng != null &&
-        !isWithinRadiusKm(coordinates, lat, lng, CITY_SEARCH_RADIUS_KM)
-      ) {
-        return candidate
-      }
-
-      return {
-        ...candidate,
-        latitude: lat,
-        longitude: lng,
-        google_rating: details.rating ?? candidate.google_rating ?? null,
-        photo_reference: details.photos?.[0]?.photo_reference ?? candidate.photo_reference,
-        address:
-          details.formatted_address ??
-          details.vicinity ??
-          candidate.address,
-        types: details.types ?? candidate.types,
-      } satisfies NearbyPlaceRow
-    }),
-  )
-
-  if (signal?.aborted) return candidates
-
-  const enrichedByPlaceId = new Map<string, NearbyPlaceRow>()
-  toEnrich.forEach((candidate, index) => {
-    const result = enriched[index]
-    if (result.status === 'fulfilled' && result.value) {
-      enrichedByPlaceId.set(candidate.place_id, result.value)
-    }
-  })
-
-  return candidates
-    .map((c) => enrichedByPlaceId.get(c.place_id) ?? c)
-    .filter((c) => isRestaurantLikeGooglePlace(c.types, c.name))
 }
 
 function tpGeoParams(
@@ -258,7 +203,7 @@ export async function hybridSearch(
       googleCandidates,
       coordinates,
       googleSlots,
-      signal,
+      { signal },
     )
   }
 
@@ -273,10 +218,20 @@ export async function hybridSearch(
     }
   }
 
+  const tagFallbacks = googleTagFallbacksFromBrowseFilters(
+    options.cuisineSlugs?.[0],
+    options.categorySlugs?.[0],
+  )
+  const googleTagOptions = {
+    googleCuisineFallback: tagFallbacks.cuisineFallback ?? null,
+    googleCategoryFallback: tagFallbacks.categoryFallback ?? null,
+  }
+
   const results = mergeRestaurantResults(tpRows, googleCandidates, {
     targetPageSize: limit,
     googleLimit: googleGapMax,
     palateSlug,
+    ...googleTagOptions,
   })
 
   const { tpResults, googleResults } = splitDiscoveryResults(results)
@@ -361,9 +316,16 @@ export async function nearbyHybridDiscovery(
   const tpRows = tpResult.status === 'fulfilled' ? tpResult.value.restaurants : []
   const googleRows = googleResult.status === 'fulfilled' ? googleResult.value : []
 
+  const tagFallbacks = googleTagFallbacksFromBrowseFilters(
+    options.cuisineSlugs?.[0],
+    options.categorySlugs?.[0],
+  )
+
   const merged = mergeRestaurantResults(tpRows, googleRows, {
     targetPageSize: limitForHybridSearchMode('listPicker'),
     googleLimit: GOOGLE_GAP_FILL_MAX_PICKER,
+    googleCuisineFallback: tagFallbacks.cuisineFallback ?? null,
+    googleCategoryFallback: tagFallbacks.categoryFallback ?? null,
   })
 
   const { tpResults, googleResults } = splitDiscoveryResults(merged)

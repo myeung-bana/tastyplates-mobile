@@ -1,4 +1,5 @@
 import { DEFAULT_RESTAURANT_IMAGE } from '@/constants/images'
+import { resolveEffectiveFeaturedImageUrl } from '@/lib/featuredImageUtils'
 import {
   formatRestaurantCardAddress,
   formatShortFormattedAddress,
@@ -86,7 +87,7 @@ export function mapHasuraRestaurantToListItem(row: HasuraRestaurantRow): MyListR
     id: row.uuid ?? String(row.id ?? ''),
     slug: row.slug ?? '',
     name: row.title ?? 'Restaurant',
-    image: row.featured_image_url ?? DEFAULT_RESTAURANT_IMAGE,
+    image: resolveEffectiveFeaturedImageUrl(row.featured_image_url) ?? DEFAULT_RESTAURANT_IMAGE,
     listingStreet: row.listing_street ?? null,
     googleMapUrl,
     listingCategories,

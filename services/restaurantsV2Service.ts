@@ -218,7 +218,8 @@ export function formatShortFormattedAddress(
 ): string | null {
   const raw = formatted?.trim()
   if (!raw) return null
-  const parts = raw.split(',').map((p) => p.trim()).filter(Boolean)
+  const normalized = raw.replace(/[，、]/g, ',')
+  const parts = normalized.split(',').map((p) => p.trim()).filter(Boolean)
   if (parts.length === 0) return null
   if (parts.length === 1) return parts[0]
   return `${parts[0]}, ${parts[1]}`

@@ -3,15 +3,15 @@ import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-nati
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { Redirect, useRouter } from 'expo-router'
 import { useNhostClient } from '@nhost/react'
-import { AppIcon } from '@/components/ui/AppIcon'
 
-import { OnboardingLogo } from '@/components/onboarding/OnboardingLogo'
-import { OnboardingStepIndicator } from '@/components/onboarding/OnboardingStepIndicator'
+import { OnboardingTopNav } from '@/components/onboarding/OnboardingTopNav'
+import { BRAND_PRIMARY, TEXT_HEADING, TEXT_MUTED } from '@/constants/brand'
 import { palateLimit } from '@/constants/validation'
 import { SCREEN_HOME, SCREEN_LOGIN } from '@/constants/screens'
 import { useAuth } from '@/hooks/useAuth'
 import { DEV_MODE } from '@/lib/devMode'
 import { flattenPalateSlugOptions } from '@/lib/onboardingPalates'
+import { locationValueToApiInput } from '@/lib/onboardingLocation'
 import {
   clearOnboardingDraft,
   completeOnboardingProfile,
@@ -35,6 +35,10 @@ export default function OnboardingStep3(): JSX.Element {
         router.replace('/onboarding/step1')
         return
       }
+      if (!d.current_location?.label?.trim()) {
+        router.replace('/onboarding/step2')
+        return
+      }
       setDraft(d)
     })
   }, [router])
@@ -43,20 +47,46 @@ export default function OnboardingStep3(): JSX.Element {
 
   const atLimit = selected.size >= palateLimit
 
-  const togglePalate = useCallback(
-    (key: string) => {
-      setSelected((prev) => {
-        const next = new Set(prev)
-        if (next.has(key)) {
-          next.delete(key)
-          return next
-        }
-        if (next.size >= palateLimit) return next
-        next.add(key)
+  const togglePalate = useCallback((key: string) => {
+    setSelected((prev) => {
+      const next = new Set(prev)
+      if (next.has(key)) {
+        next.delete(key)
         return next
+      }
+      if (next.size >= palateLimit) return next
+      next.add(key)
+      return next
+    })
+  }, [])
+
+  const submitProfile = useCallback(
+    async (palates: string[]) => {
+      if (!draft?.username?.trim() || !draft.current_location) return
+
+      const currentApi = locationValueToApiInput(draft.current_location)
+      if (!currentApi) {
+        toast.error('Current location is missing. Go back to step 2.')
+        return
+      }
+
+      const hometownApi =
+        draft.hometown_location != null
+          ? locationValueToApiInput(draft.hometown_location)
+          : null
+
+      await completeOnboardingProfile({
+        username: draft.username.trim(),
+        palates,
+        current_location: currentApi,
+        hometown: hometownApi,
       })
+      await clearOnboardingDraft()
+      await setOnboardingJustCompletedFlag()
+      await nhost.auth.refreshSession()
+      router.replace(SCREEN_HOME)
     },
-    [],
+    [draft, nhost.auth, router],
   )
 
   const onDone = useCallback(async () => {
@@ -67,21 +97,14 @@ export default function OnboardingStep3(): JSX.Element {
     }
     setSaving(true)
     try {
-      await completeOnboardingProfile({
-        username: draft.username.trim(),
-        palates: Array.from(selected),
-      })
-      await clearOnboardingDraft()
-      await setOnboardingJustCompletedFlag()
-      await nhost.auth.refreshSession()
-      router.replace(SCREEN_HOME)
+      await submitProfile(Array.from(selected))
       toast.success('Welcome to Tastyplates')
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'Could not save your profile')
     } finally {
       setSaving(false)
     }
-  }, [draft?.username, nhost.auth, router, selected])
+  }, [draft?.username, selected, submitProfile])
 
   const onDevSkip = useCallback(async () => {
     if (!draft?.username?.trim()) return
@@ -90,20 +113,13 @@ export default function OnboardingStep3(): JSX.Element {
       .map((x) => x.key)
     setSaving(true)
     try {
-      await completeOnboardingProfile({
-        username: draft.username.trim(),
-        palates: keys,
-      })
-      await clearOnboardingDraft()
-      await setOnboardingJustCompletedFlag()
-      await nhost.auth.refreshSession()
-      router.replace(SCREEN_HOME)
+      await submitProfile(keys)
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'DEV skip failed')
     } finally {
       setSaving(false)
     }
-  }, [draft?.username, nhost.auth, router])
+  }, [draft?.username, submitProfile])
 
   if (!authLoading && !isAuthenticated) {
     return <Redirect href={SCREEN_LOGIN} />
@@ -113,7 +129,9 @@ export default function OnboardingStep3(): JSX.Element {
     return (
       <SafeAreaView className="flex-1 bg-white" edges={['top', 'left', 'right']}>
         <View className="flex-1 items-center justify-center px-6">
-          <Text className="text-center text-base text-gray-600">Verify your email before continuing.</Text>
+          <Text className="text-center text-base" style={{ color: TEXT_MUTED }}>
+            Verify your email before continuing.
+          </Text>
         </View>
       </SafeAreaView>
     )
@@ -123,7 +141,7 @@ export default function OnboardingStep3(): JSX.Element {
     return (
       <SafeAreaView className="flex-1 bg-white" edges={['top', 'left', 'right']}>
         <View className="flex-1 items-center justify-center">
-          <ActivityIndicator color="#ff7c0a" />
+          <ActivityIndicator color={BRAND_PRIMARY} />
         </View>
       </SafeAreaView>
     )
@@ -133,30 +151,16 @@ export default function OnboardingStep3(): JSX.Element {
   const doneEnabled = selected.size === palateLimit && !busy
 
   return (
-    <SafeAreaView className="flex-1 bg-white" edges={['top', 'left', 'right']}>
-      <ScrollView contentContainerClassName="grow px-4 pb-10 pt-4">
-        <View className="mb-2 flex-row items-center">
-          <Pressable
-            accessibilityRole="button"
-            onPress={() => {
-              router.back()
-            }}
-            hitSlop={8}
-            className="mr-2 rounded-full p-1 active:bg-gray-100"
-          >
-            <AppIcon name="chevron-left" size={24} color="#374151" />
-          </Pressable>
-          <Text className="text-base font-medium text-gray-800">Back</Text>
-        </View>
-
-        <OnboardingLogo />
-        <OnboardingStepIndicator currentStep={3} />
-
-        <Text className="mb-2 text-lg font-semibold" style={{ color: '#31343F' }}>
+    <View className="flex-1 bg-white">
+      <OnboardingTopNav title="Select Palate" onBack={() => router.back()} />
+      <ScrollView contentContainerClassName="grow px-5 pb-10 pt-6">
+        <Text className="mb-2 text-lg font-semibold" style={{ color: TEXT_HEADING }}>
           Pick your palates
         </Text>
-        <Text className="mb-2 text-base text-gray-600">Choose exactly {palateLimit} cuisines you care about most.</Text>
-        <Text className="mb-6 text-sm text-gray-500">
+        <Text className="mb-2 text-base leading-relaxed" style={{ color: TEXT_MUTED }}>
+          Choose exactly {palateLimit} cuisines you care about most.
+        </Text>
+        <Text className="mb-6 text-sm" style={{ color: TEXT_MUTED }}>
           {selected.size === 0
             ? `Pick ${palateLimit} options below.`
             : selected.size === 1
@@ -172,9 +176,7 @@ export default function OnboardingStep3(): JSX.Element {
               <Pressable
                 key={p.key}
                 disabled={busy}
-                onPress={() => {
-                  togglePalate(p.key)
-                }}
+                onPress={() => togglePalate(p.key)}
                 className={`rounded-full border px-3 py-2 ${on ? 'border-[#ff7c0a] bg-orange-50' : 'border-gray-200 bg-white'}`}
                 style={{ opacity: dim ? 0.4 : 1 }}
               >
@@ -192,7 +194,8 @@ export default function OnboardingStep3(): JSX.Element {
           onPress={() => {
             void onDone()
           }}
-          className="items-center rounded-xl bg-[#ff7c0a] py-4 active:opacity-90 disabled:opacity-50"
+          className="items-center rounded-xl py-4 active:opacity-90 disabled:opacity-50"
+          style={{ backgroundColor: BRAND_PRIMARY }}
         >
           {busy ? (
             <ActivityIndicator color="#fff" />
@@ -214,6 +217,6 @@ export default function OnboardingStep3(): JSX.Element {
           </Pressable>
         ) : null}
       </ScrollView>
-    </SafeAreaView>
+    </View>
   )
 }

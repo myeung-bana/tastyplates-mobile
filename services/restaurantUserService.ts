@@ -2,6 +2,44 @@ import { nhost } from '@/lib/nhost'
 import { tastyplatesFetch, unwrapEnvelope, getNhostFunctionsBase } from '@/lib/tastyplatesFetch'
 import type { HasuraRestaurantRow } from '@/lib/myListsRestaurant'
 
+/** Snapshot of residence / hometown on the user profile (CMS-linked or free-form geographic). */
+export interface UserProfileLocationSnapshot {
+  location_id: number | null
+  slug: string | null
+  label: string
+  type: string
+  latitude: number | null
+  longitude: number | null
+  google_place_id?: string | null
+}
+
+export interface UserProfileGeographicLocationInput {
+  label: string
+  latitude: number
+  longitude: number
+  google_place_id?: string | null
+  location_slug?: string | null
+  location_id?: number | null
+}
+
+/** Serialize profile location for update-restaurant-user (omit empty optional CMS fields). */
+export function serializeProfileLocationInput(
+  loc: UserProfileGeographicLocationInput | null,
+): UserProfileGeographicLocationInput | null {
+  if (!loc) return null
+  const out: UserProfileGeographicLocationInput = {
+    label: loc.label.trim(),
+    latitude: loc.latitude,
+    longitude: loc.longitude,
+  }
+  const placeId = loc.google_place_id?.trim()
+  if (placeId) out.google_place_id = placeId
+  const slug = loc.location_slug?.trim().toLowerCase()
+  if (slug) out.location_slug = slug
+  if (loc.location_id != null && loc.location_id > 0) out.location_id = loc.location_id
+  return out
+}
+
 /** Row from `restaurant-users/get-restaurant-user-by-username` / `get-restaurant-user-by-id`. */
 export interface RestaurantUserRow {
   id: string
@@ -20,6 +58,11 @@ export interface RestaurantUserRow {
   birthdate?: string | null
   gender?: string | null
   auth_method?: string | null
+  /** Legacy single point — mirrors current residence when set. */
+  latitude?: number | null
+  longitude?: number | null
+  current_location?: UserProfileLocationSnapshot | null
+  hometown?: UserProfileLocationSnapshot | null
 }
 
 export interface GetRestaurantUserByUsernameResponse {
@@ -143,6 +186,12 @@ export interface UpdateRestaurantUserProfileParams {
   display_name?: string
   birthdate?: string
   gender?: string
+  current_location?: UserProfileGeographicLocationInput | null
+  hometown?: UserProfileGeographicLocationInput | null
+  /** @deprecated Prefer `current_location` with label + coordinates */
+  current_location_slug?: string | null
+  /** @deprecated Prefer `hometown` with label + coordinates */
+  hometown_location_slug?: string | null
 }
 
 interface UpdateRestaurantUserResponse {
@@ -159,6 +208,18 @@ export async function updateRestaurantUserProfile(
   if (params.display_name !== undefined) body.display_name = params.display_name
   if (params.birthdate !== undefined) body.birthdate = params.birthdate
   if (params.gender !== undefined) body.gender = params.gender
+  if (params.current_location !== undefined) {
+    body.current_location = serializeProfileLocationInput(params.current_location)
+  }
+  if (params.hometown !== undefined) {
+    body.hometown = serializeProfileLocationInput(params.hometown)
+  }
+  if (params.current_location_slug !== undefined) {
+    body.current_location_slug = params.current_location_slug
+  }
+  if (params.hometown_location_slug !== undefined) {
+    body.hometown_location_slug = params.hometown_location_slug
+  }
 
   const envelope = await tastyplatesFetch<UpdateRestaurantUserResponse>(
     'restaurant-users/update-restaurant-user',

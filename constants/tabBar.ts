@@ -34,7 +34,10 @@ export function getPillExpandedWidth(screenWidth: number): number {
 }
 
 /** Solid pill surface — consistent on simulator and device (no blur split). */
-export const PILL_SURFACE_COLOR = 'rgba(255, 255, 255, 0.96)'
+export const PILL_SURFACE_COLOR = 'rgba(255, 255, 255, 0.86)'
+
+/** Extra bottom padding on tab scenes so scrollable content clears the floating pill. */
+export const TAB_SCENE_EXTRA_BOTTOM_PADDING = -75
 
 export const PILL_BORDER_COLOR = 'rgba(0, 0, 0, 0.06)'
 
@@ -61,14 +64,10 @@ export function getFloatingTabBarOccupiedHeight(insets: Pick<EdgeInsets, 'bottom
 }
 
 /**
- * Tab scene `paddingBottom` — floating pill overlays content on iOS (0).
- * Android reserves space so the viewport ends above the nav + gesture bar.
+ * Tab scene `paddingBottom` — floating pill height + safe area + extra clearance.
  */
 export function getTabSceneStylePaddingBottom(insets: Pick<EdgeInsets, 'bottom'>): number {
-  if (Platform.OS === 'android') {
-    return getFloatingTabBarOccupiedHeight(insets)
-  }
-  return 0
+  return getFloatingTabBarOccupiedHeight(insets) + TAB_SCENE_EXTRA_BOTTOM_PADDING
 }
 
 /** @alias {@link getFloatingTabBarOccupiedHeight} — use {@link getTabSceneStylePaddingBottom} for scene layout. */

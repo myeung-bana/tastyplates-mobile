@@ -36,6 +36,9 @@ export interface GoogleRestaurantResult {
   latitude?: number | null
   longitude?: number | null
   types?: string[] | null
+  /** Derived from Google `types` (+ active browse filters) for card parity with TP rows. */
+  cuisines: RestaurantListCuisine[]
+  categories: RestaurantListCategory[]
 }
 
 export type RestaurantSearchResult = TPRestaurantResult | GoogleRestaurantResult

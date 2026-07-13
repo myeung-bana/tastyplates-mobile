@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type ComponentRef } from 'react'
 import {
   ActivityIndicator,
   FlatList,
@@ -9,7 +9,7 @@ import {
   View,
   useWindowDimensions,
 } from 'react-native'
-import BottomSheet, { BottomSheetFlatList } from '@gorhom/bottom-sheet'
+import BottomSheet, { BottomSheetFlatList, type BottomSheetFlatListMethods } from '@gorhom/bottom-sheet'
 import MapView, { PROVIDER_GOOGLE, type Region } from 'react-native-maps'
 import type { MapPressEvent } from 'react-native-maps'
 import * as Haptics from 'expo-haptics'
@@ -35,26 +35,32 @@ import {
 } from '@/constants/screens'
 import { useLocation } from '@/contexts/LocationContext'
 import { useTabBarScrollHandler } from '@/hooks/useTabBarScrollHandler'
+import type { LocationCoordinates } from '@/constants/locations'
 import {
   CITY_SEARCH_RADIUS_KM,
+  MAP_INITIAL_VIEW_RADIUS_KM,
+  MAP_PAN_SEARCH_RADIUS_KM,
+  coordinatesFromRegion,
+  coordinatesMovedEnough,
+  isValidMapRegion,
   isWithinRadiusKm,
   mapRegionForRadiusKm,
+  radiusKmFromMapRegion,
 } from '@/lib/geoUtils'
 import {
+  browseCardPropsFromSearchResult,
   cityNameFromLocation,
-  formatRestaurantSearchResultAddress,
 } from '@/lib/restaurantDiscoveryHelpers'
 import { usePersonalisedRestaurants, preferenceStatForSearchResult } from '@/hooks/usePersonalisedRestaurants'
 import { readCategoryParam, isCategoryFilterActive } from '@/lib/categorySearch'
 import { labelForPalateKey } from '@/lib/palateLabels'
 import { isCuisineFilterActive, isNoCuisineFilter, readCuisineParam } from '@/lib/palateSearch'
-import { coerceRatingNumber } from '@/lib/ratingDisplayUtils'
 import {
   restaurantSearchResultCoords,
   restaurantSearchResultId,
 } from '@/lib/restaurantSearchMerge'
 import type { RestaurantSearchResult } from '@/types/restaurantSearchResult'
-import { isGoogleResult, isTPResult } from '@/types/restaurantSearchResult'
+import { isTPResult } from '@/types/restaurantSearchResult'
 
 const ROW_GAP = 12
 /** Collapsed — maximizes map for pinch/zoom; shows handle + list header peek. */
@@ -67,6 +73,8 @@ const SHEET_DROP_PX = 10
 const SHEET_MIN_HEIGHT_PX = 96
 /** Top chrome sits 10px below the screen top on map Explore. */
 const MAP_OVERLAY_TOP_OFFSET = 10
+const MAP_REGION_DEBOUNCE_MS = 500
+const MAP_PROGRAMMATIC_MOVE_MS = 750
 
 function singleParam(v: string | string[] | undefined): string | undefined {
   if (v == null) return undefined
@@ -81,7 +89,32 @@ export default function RestaurantsScreen() {
   const insets = useSafeAreaInsets()
   const { location } = useLocation()
   const locationKey = location.key
-  const coordinates = location.coordinates ?? null
+  const cityCoordinates = location.coordinates ?? null
+
+  const [mapPan, setMapPan] = useState<{
+    locationKey: string
+    center: LocationCoordinates
+    radiusKm: number
+  } | null>(null)
+
+  const mapSearchCenter =
+    mapPan && mapPan.locationKey === locationKey ? mapPan.center : null
+  const mapSearchRadiusKm =
+    mapPan && mapPan.locationKey === locationKey
+      ? mapPan.radiusKm
+      : MAP_PAN_SEARCH_RADIUS_KM
+  const searchCenter = mapSearchCenter ?? cityCoordinates
+  const searchRadiusKm = mapSearchCenter != null ? mapSearchRadiusKm : CITY_SEARCH_RADIUS_KM
+  const isMapAreaSearch = mapSearchCenter != null
+
+  const hookCoordinates = useMemo(
+    () => searchCenter,
+    [
+      searchCenter?.latitude,
+      searchCenter?.longitude,
+      isMapAreaSearch,
+    ],
+  )
 
   const cardWidth = useMemo(
     () => (screenWidth > 0 ? getRestaurantBrowseCardWidth(screenWidth) : undefined),
@@ -90,10 +123,10 @@ export default function RestaurantsScreen() {
 
   const cityName = useMemo(() => cityNameFromLocation(location), [location.label, location.key])
 
-  const cityMapRegion: Region | undefined = useMemo(() => {
-    if (!coordinates) return undefined
-    return mapRegionForRadiusKm(coordinates, CITY_SEARCH_RADIUS_KM)
-  }, [coordinates?.latitude, coordinates?.longitude])
+  const initialMapRegion = useMemo(() => {
+    if (!cityCoordinates) return undefined
+    return mapRegionForRadiusKm(cityCoordinates, MAP_INITIAL_VIEW_RADIUS_KM) ?? undefined
+  }, [cityCoordinates?.latitude, cityCoordinates?.longitude])
 
   const raw = useLocalSearchParams<{
     cuisine?: string | string[]
@@ -137,21 +170,29 @@ export default function RestaurantsScreen() {
     categoryParam: category,
     searchQuery,
     locationKey,
-    coordinates,
+    coordinates: hookCoordinates,
     cityName,
+    searchRadiusKm,
   })
 
   const [selectedId, setSelectedId] = useState<string | null>(null)
 
   const mapRef = useRef<MapView>(null)
-  const mapGestureRef = useRef<NativeViewGestureHandler>(null)
+  const mapGestureRef = useRef<ComponentRef<typeof NativeViewGestureHandler>>(null)
   const bottomSheetRef = useRef<BottomSheet>(null)
-  const sheetListRef = useRef<FlatList<RestaurantSearchResult>>(null)
+  const sheetListRef = useRef<BottomSheetFlatListMethods>(null)
   const loadMoreLockRef = useRef(false)
   /** Skip clearing pin selection while reopening sheet for map pin preview. */
   const pinPreviewSnapRef = useRef(false)
   /** Skip redundant animateToRegion when MapView `initialRegion` already matches. */
   const lastMapRegionKeyRef = useRef<string | null>(null)
+  /** Ignore region callbacks while animating programmatically (city change, pin focus). */
+  const skipRegionFetchRef = useRef(false)
+  const regionDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const lastMapSearchCenterRef = useRef<LocationCoordinates | null>(null)
+  /** Ignore the first region callback after MapView mounts (layout settle). */
+  const mapReadyRef = useRef(false)
+  const mapReadyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const snapPoints = useMemo(() => {
     const scenePad = getTabSceneStylePaddingBottom(insets)
@@ -166,14 +207,40 @@ export default function RestaurantsScreen() {
   }, [screenHeight, insets.bottom])
 
   useEffect(() => {
-    if (!mapRef.current || !cityMapRegion) return
-    const key = `${locationKey}|${cityMapRegion.latitude}|${cityMapRegion.longitude}|${cityMapRegion.latitudeDelta}`
+    lastMapSearchCenterRef.current = null
+  }, [locationKey])
+
+  useEffect(() => {
+    mapReadyRef.current = false
+    if (mapReadyTimerRef.current) clearTimeout(mapReadyTimerRef.current)
+    mapReadyTimerRef.current = setTimeout(() => {
+      mapReadyRef.current = true
+    }, MAP_PROGRAMMATIC_MOVE_MS)
+    return () => {
+      if (mapReadyTimerRef.current) clearTimeout(mapReadyTimerRef.current)
+    }
+  }, [initialMapRegion, locationKey])
+
+  useEffect(() => {
+    return () => {
+      if (regionDebounceRef.current) clearTimeout(regionDebounceRef.current)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!mapRef.current || !initialMapRegion) return
+    const key = `${locationKey}|${initialMapRegion.latitude}|${initialMapRegion.longitude}|${initialMapRegion.latitudeDelta}`
     if (lastMapRegionKeyRef.current === key) return
     const isInitial = lastMapRegionKeyRef.current === null
     lastMapRegionKeyRef.current = key
     if (isInitial) return
-    mapRef.current.animateToRegion(cityMapRegion, 400)
-  }, [cityMapRegion, locationKey])
+    skipRegionFetchRef.current = true
+    mapRef.current.animateToRegion(initialMapRegion, 400)
+    const timer = setTimeout(() => {
+      skipRegionFetchRef.current = false
+    }, MAP_PROGRAMMATIC_MOVE_MS)
+    return () => clearTimeout(timer)
+  }, [initialMapRegion, locationKey])
 
   const handleLoadMore = useCallback(() => {
     if (loadMoreLockRef.current) return
@@ -196,8 +263,16 @@ export default function RestaurantsScreen() {
 
   const onRefresh = useCallback(() => {
     setSelectedId(null)
-    void refresh({ isPullRefresh: true })
-  }, [refresh])
+    if (!searchCenter) {
+      void refresh({ isPullRefresh: true })
+      return
+    }
+    void refresh({
+      isPullRefresh: true,
+      center: searchCenter,
+      radiusKm: searchRadiusKm,
+    })
+  }, [refresh, searchCenter, searchRadiusKm])
 
   const clearCuisine = useCallback(() => {
     router.setParams({ cuisine: undefined, palate: undefined })
@@ -239,6 +314,7 @@ export default function RestaurantsScreen() {
       coords.longitude != null &&
       mapRef.current
     ) {
+      skipRegionFetchRef.current = true
       mapRef.current.animateToRegion(
         {
           latitude: coords.latitude,
@@ -248,6 +324,9 @@ export default function RestaurantsScreen() {
         },
         400,
       )
+      setTimeout(() => {
+        skipRegionFetchRef.current = false
+      }, MAP_PROGRAMMATIC_MOVE_MS)
     }
   }, [])
 
@@ -302,6 +381,37 @@ export default function RestaurantsScreen() {
     [clearPinSelection],
   )
 
+  const handleRegionChangeComplete = useCallback(
+    (region: Region, details?: { isGesture?: boolean }) => {
+      if (!mapReadyRef.current || skipRegionFetchRef.current) return
+      if (!isValidMapRegion(region)) return
+      if (details?.isGesture === false) return
+
+      if (regionDebounceRef.current) clearTimeout(regionDebounceRef.current)
+      regionDebounceRef.current = setTimeout(() => {
+        const center = coordinatesFromRegion(region)
+        if (!center) return
+
+        const radiusKm = radiusKmFromMapRegion(region)
+        if (!Number.isFinite(radiusKm) || radiusKm <= 0) return
+
+        if (details?.isGesture !== true) {
+          const anchor = cityCoordinates
+          if (!anchor || !coordinatesMovedEnough(anchor, center, 0.5)) return
+        }
+
+        const last = lastMapSearchCenterRef.current
+        if (last && !coordinatesMovedEnough(last, center)) return
+
+        lastMapSearchCenterRef.current = center
+        setMapPan({ locationKey, center, radiusKm })
+        setSelectedId(null)
+        void refresh({ isMapPan: true, center, radiusKm })
+      }, MAP_REGION_DEBOUNCE_MS)
+    },
+    [refresh, cityCoordinates, locationKey],
+  )
+
   const trustSetReviewerLabel = useMemo(() => {
     if (trustSet.length === 0) return null
     return trustSet.map((slug) => labelForPalateKey(slug)).join(' & ')
@@ -309,8 +419,11 @@ export default function RestaurantsScreen() {
 
   const listHeaderText = useMemo(() => {
     const count = displayRows.length
-    const locality = location.label?.trim() || 'your area'
-    const title = `${count} listing${count === 1 ? '' : 's'} within ${CITY_SEARCH_RADIUS_KM} km of ${locality}`
+    const radiusLabel = Math.round(searchRadiusKm)
+    const locality = isMapAreaSearch
+      ? 'this map area'
+      : location.label?.trim() || 'your area'
+    const title = `${count} listing${count === 1 ? '' : 's'} within ${radiusLabel} km of ${locality}`
     if (isPersonalised && trustSetReviewerLabel) {
       return {
         title,
@@ -324,49 +437,47 @@ export default function RestaurantsScreen() {
       }
     }
     return { title, subtitle: null as string | null }
-  }, [displayRows.length, location.label, isPersonalised, trustSetReviewerLabel, cuisineFilterActive, categoryFilterActive])
+  }, [displayRows.length, location.label, isPersonalised, trustSetReviewerLabel, cuisineFilterActive, categoryFilterActive, isMapAreaSearch, searchRadiusKm])
 
   const emptyMessage = useMemo(() => {
     if (searchQuery || cuisineFilterActive || categoryFilterActive) {
       return 'No restaurants match your search. Try adjusting keywords, cuisine, or category.'
     }
-    return `No restaurants found within ${CITY_SEARCH_RADIUS_KM} km. Try another city.`
-  }, [searchQuery, cuisineFilterActive, categoryFilterActive])
+    return `No restaurants found within ${Math.round(searchRadiusKm)} km. Try moving the map or another city.`
+  }, [searchQuery, cuisineFilterActive, categoryFilterActive, searchRadiusKm])
 
   const renderResultCard = useCallback(
     (item: RestaurantSearchResult) => {
-      const overallRating = isGoogleResult(item)
-        ? coerceRatingNumber(item.google_rating)
-        : coerceRatingNumber(item.average_rating)
-
       const palateStat = isPersonalised
         ? preferenceStatForSearchResult(item, getForRestaurantUuid)
         : null
+
+      const cardProps = browseCardPropsFromSearchResult(item, {
+        isPersonalised,
+        cityLabel: location.label,
+        palateStat,
+      })
 
       return (
         <RestaurantBrowseCard
           title={item.title}
           slug={isTPResult(item) ? item.slug : undefined}
           imageUrl={item.featured_image_url}
-          subtitle={formatRestaurantSearchResultAddress(item)}
-          listingCategories={isTPResult(item) ? item.cuisines : undefined}
-          categories={isTPResult(item) ? item.categories : undefined}
-          rating={overallRating}
-          reviewCount={
-            isTPResult(item)
-              ? (item.ratings_count ?? undefined)
-              : (item.google_review_count ?? undefined)
-          }
-          ratingMode={isPersonalised ? 'palate-match' : 'overall'}
-          searchPalateRating={palateStat?.avg ?? null}
-          searchPalateReviewCount={palateStat?.count}
+          subtitle={cardProps.subtitle}
+          listingCategories={item.cuisines}
+          categories={item.categories}
+          rating={cardProps.rating}
+          showReviewCount={false}
+          ratingMode={cardProps.ratingMode}
+          searchPalateRating={cardProps.searchPalateRating}
+          searchPalateReviewCount={cardProps.searchPalateReviewCount}
           containerStyle={cardWidth != null ? { width: cardWidth } : undefined}
           onPress={() => handleCardPress(item)}
           onCommentPress={() => handleCardPress(item)}
         />
       )
     },
-    [cardWidth, getForRestaurantUuid, handleCardPress, isPersonalised],
+    [cardWidth, getForRestaurantUuid, handleCardPress, isPersonalised, location.label],
   )
 
   const renderBrowseCard = useCallback(
@@ -394,6 +505,9 @@ export default function RestaurantsScreen() {
           ) : null}
           {prefStatsLoading && isPersonalised ? (
             <Text className="mt-0.5 font-neusans text-xs text-gray-500">Updating match order…</Text>
+          ) : null}
+          {refreshing && isMapAreaSearch ? (
+            <Text className="mt-0.5 font-neusans text-xs text-gray-500">Updating listings for this map area…</Text>
           ) : null}
         </View>
 
@@ -432,6 +546,8 @@ export default function RestaurantsScreen() {
       listHeaderText.title,
       prefStatsError,
       prefStatsLoading,
+      refreshing,
+      isMapAreaSearch,
       isPersonalised,
       renderResultCard,
       selectedPinResult,
@@ -439,7 +555,7 @@ export default function RestaurantsScreen() {
     ],
   )
 
-  const showMapLayout = cityMapRegion != null
+  const showMapLayout = initialMapRegion != null
   const showMapExperience = showMapLayout && !loading && !(error && displayRows.length === 0)
   const { onScroll, scrollEventThrottle } = useTabBarScrollHandler({ enabled: !showMapExperience })
   const hasActiveFilters = cuisineFilterActive || categoryFilterActive || Boolean(searchQuery?.trim())
@@ -462,18 +578,18 @@ export default function RestaurantsScreen() {
   ) : null
 
   const mapMarkers = useMemo(() => {
-    if (!coordinates) return displayRows
+    if (!searchCenter) return displayRows
     return displayRows.filter((result) => {
       const coords = restaurantSearchResultCoords(result)
       if (coords.latitude == null || coords.longitude == null) return false
       return isWithinRadiusKm(
-        coordinates,
+        searchCenter,
         coords.latitude,
         coords.longitude,
-        CITY_SEARCH_RADIUS_KM,
+        searchRadiusKm,
       )
     })
-  }, [displayRows, coordinates])
+  }, [displayRows, searchCenter, searchRadiusKm])
 
   return (
     <View
@@ -487,17 +603,18 @@ export default function RestaurantsScreen() {
           <NativeViewGestureHandler
             ref={mapGestureRef}
             disallowInterruption
-            style={[StyleSheet.absoluteFillObject, { top: -insets.top }]}
           >
+            <View style={[StyleSheet.absoluteFillObject, { top: -insets.top }]}>
             <MapView
               ref={mapRef}
               style={StyleSheet.absoluteFillObject}
               provider={PROVIDER_GOOGLE}
-              initialRegion={cityMapRegion}
+              initialRegion={initialMapRegion}
               showsUserLocation
               showsMyLocationButton={false}
               mapPadding={{ top: 0, right: 0, bottom: 0, left: 0 }}
               onPress={handleMapPress}
+              onRegionChangeComplete={handleRegionChangeComplete}
             >
               {mapMarkers.map((result) => {
                 const id = restaurantSearchResultId(result)
@@ -511,6 +628,7 @@ export default function RestaurantsScreen() {
                 )
               })}
             </MapView>
+            </View>
           </NativeViewGestureHandler>
 
           <View

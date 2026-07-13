@@ -1,10 +1,16 @@
 import { Image, Pressable, Text, View } from 'react-native'
 import { AppIcon } from '@/components/ui/AppIcon'
+import { RatingDisplay } from '@/components/ui/RatingDisplay'
 
-import { formatRestaurantSearchResultAddress } from '@/lib/restaurantDiscoveryHelpers'
+import { DEFAULT_RESTAURANT_IMAGE } from '@/constants/images'
+import {
+  formatRestaurantSearchResultAddress,
+  listRowRatingForSearchResult,
+} from '@/lib/restaurantDiscoveryHelpers'
+import { resolveEffectiveFeaturedImageUrl } from '@/lib/featuredImageUtils'
 import type { RestaurantSearchResult } from '@/types/restaurantSearchResult'
 
-const DEFAULT_IMAGE = 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400&q=80'
+const DEFAULT_IMAGE = DEFAULT_RESTAURANT_IMAGE
 
 interface RestaurantListRowProps {
   result: RestaurantSearchResult
@@ -18,8 +24,9 @@ export function RestaurantListRow({
   onPress,
 }: RestaurantListRowProps): JSX.Element {
   const title = result.title
-  const imageUrl = result.featured_image_url ?? DEFAULT_IMAGE
+  const imageUrl = resolveEffectiveFeaturedImageUrl(result.featured_image_url) ?? DEFAULT_IMAGE
   const address = formatRestaurantSearchResultAddress(result)
+  const rating = listRowRatingForSearchResult(result)
 
   return (
     <Pressable
@@ -43,6 +50,10 @@ export function RestaurantListRow({
           </Text>
         ) : null}
       </View>
+
+      {rating != null ? (
+        <RatingDisplay value={rating} size="sm" />
+      ) : null}
 
       <AppIcon name="chevron-right" size={16} color="#e5e7eb" />
     </Pressable>

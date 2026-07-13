@@ -5,8 +5,11 @@ import {
   type SavedLocationPreference,
 } from '@/constants/locations'
 import { tastyplatesFetch, unwrapEnvelope } from '@/lib/tastyplatesFetch'
-import type { RestaurantUserRow } from '@/services/restaurantUserService'
-import { ensureRestaurantUserProfileApi } from '@/services/restaurantUserService'
+import type { RestaurantUserRow, UserProfileGeographicLocationInput } from '@/services/restaurantUserService'
+import {
+  ensureRestaurantUserProfileApi,
+  serializeProfileLocationInput,
+} from '@/services/restaurantUserService'
 
 /** Draft onboarding fields between steps (AsyncStorage). */
 export const ONBOARDING_REGISTRATION_KEY = 'tastyplates_onboarding_registration_v1'
@@ -14,9 +17,21 @@ export const ONBOARDING_REGISTRATION_KEY = 'tastyplates_onboarding_registration_
 /** Skip one onboarding-gate fetch after successful completion. */
 export const ONBOARDING_JUST_COMPLETED_KEY = 'tastyplates_onboarding_just_completed_v1'
 
+export type OnboardingLocationValue = {
+  label: string
+  latitude: number
+  longitude: number
+  googlePlaceId: string | null
+  cmsSlug: string | null
+}
+
 export type OnboardingRegistrationDraft = {
   username?: string
+  current_location?: OnboardingLocationValue | null
+  hometown_location?: OnboardingLocationValue | null
+  /** @deprecated Migrated to `current_location` on read */
   location_key?: string
+  /** @deprecated Migrated to `current_location` on read */
   location_label?: string
 }
 
@@ -72,17 +87,28 @@ export interface UpdateRestaurantUserResponse {
 }
 
 /**
- * Complete onboarding: username, palate slugs, flag. Requires JWT.
- * Palates stored as JSON array of cuisine slug strings (see `palateOptions` keys).
+ * Complete onboarding: username, palates, locations, flag. Requires JWT.
  */
 export async function completeOnboardingProfile(params: {
   username: string
   palates: string[]
+  current_location: UserProfileGeographicLocationInput
+  hometown?: UserProfileGeographicLocationInput | null
 }): Promise<void> {
-  const payload = {
+  const current = serializeProfileLocationInput(params.current_location)
+  if (!current) {
+    throw new Error('Current location is required to complete onboarding')
+  }
+
+  const payload: Record<string, unknown> = {
     username: params.username.trim(),
     palates: params.palates,
     onboarding_complete: true,
+    current_location: current,
+  }
+
+  if (params.hometown !== undefined) {
+    payload.hometown = serializeProfileLocationInput(params.hometown)
   }
 
   const envelope = await tastyplatesFetch<UpdateRestaurantUserResponse>(
@@ -155,14 +181,17 @@ export async function loadOnboardingDraft(): Promise<OnboardingRegistrationDraft
   }
 }
 
+/** Strip legacy keys after migrating to `current_location`. */
+export async function persistOnboardingDraft(draft: OnboardingRegistrationDraft): Promise<void> {
+  const { location_key: _lk, location_label: _ll, ...rest } = draft
+  await AsyncStorage.setItem(ONBOARDING_REGISTRATION_KEY, JSON.stringify(rest))
+}
+
 export async function mergeOnboardingDraft(
   partial: Partial<OnboardingRegistrationDraft>,
 ): Promise<void> {
   const prev = await loadOnboardingDraft()
-  await AsyncStorage.setItem(
-    ONBOARDING_REGISTRATION_KEY,
-    JSON.stringify({ ...prev, ...partial }),
-  )
+  await persistOnboardingDraft({ ...prev, ...partial })
 }
 
 export async function clearOnboardingDraft(): Promise<void> {

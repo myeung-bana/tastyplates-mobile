@@ -7,6 +7,7 @@ import { LocationPickerScrollPanel } from '@/components/navigation/LocationPicke
 import { AppIcon } from '@/components/ui/AppIcon'
 import { TEXT_MUTED, mergeTextInputBodyTypography } from '@/constants/brand'
 import type { SavedLocationPreference } from '@/constants/locations'
+import { filterCountriesByKeyword } from '@/lib/filterLocationCountries'
 import {
   cityNodeToSavedLocation,
   type GetLocationsData,
@@ -21,24 +22,6 @@ interface LocationPickerOverlayProps {
   selectedLocation: SavedLocationPreference
   setLocationPreference: (pref: SavedLocationPreference) => void
   onClose: () => void
-}
-
-function filterCountriesByKeyword(
-  countries: LocationCountryNode[],
-  keyword: string,
-): LocationCountryNode[] {
-  const q = keyword.trim().toLowerCase()
-  if (!q) return countries
-
-  return countries
-    .map((country) => {
-      const countryMatch = country.label.toLowerCase().includes(q)
-      const cities = countryMatch
-        ? country.cities
-        : country.cities.filter((city) => city.label.toLowerCase().includes(q))
-      return { ...country, cities }
-    })
-    .filter((country) => country.cities.length > 0)
 }
 
 /** Full-screen location picker — search bar + palate-style city pills. */

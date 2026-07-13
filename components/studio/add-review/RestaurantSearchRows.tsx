@@ -2,6 +2,18 @@ import { Image, Pressable, Text, View } from 'react-native'
 import { AppIcon } from '@/components/ui/AppIcon'
 
 import { googlePlacePhotoUrl, type NearbyPlaceRow, type PlacesAutocompletePrediction } from '@/lib/googlePlaces'
+import { formatShortFormattedAddress } from '@/services/restaurantsV2Service'
+import { coerceRatingNumber, hasDisplayableRating } from '@/lib/ratingDisplayUtils'
+import { RatingDisplay } from '@/components/ui/RatingDisplay'
+
+function formatNearbyRowAddress(address: string | null | undefined): string | null {
+  return formatShortFormattedAddress(address) ?? address?.trim() ?? null
+}
+
+function formatNearbyRowRating(row: NearbyPlaceRow): number | null {
+  const rating = coerceRatingNumber(row.google_rating)
+  return hasDisplayableRating(rating) ? rating : null
+}
 
 type NearbyProps = {
   row: NearbyPlaceRow
@@ -9,6 +21,9 @@ type NearbyProps = {
 }
 
 export function NearbyRestaurantRow({ row, onPress }: NearbyProps): JSX.Element {
+  const address = formatNearbyRowAddress(row.address)
+  const rating = formatNearbyRowRating(row)
+
   return (
     <Pressable
       accessibilityRole="button"
@@ -31,12 +46,13 @@ export function NearbyRestaurantRow({ row, onPress }: NearbyProps): JSX.Element 
         <Text className="font-neusans text-[15px] font-medium text-[#31343F]" numberOfLines={1}>
           {row.name}
         </Text>
-        {row.address ? (
+        {address ? (
           <Text className="mt-0.5 font-neusans text-[13px] text-gray-500" numberOfLines={1}>
-            {row.address}
+            {address}
           </Text>
         ) : null}
       </View>
+      {rating != null ? <RatingDisplay value={rating} size="sm" /> : null}
       <AppIcon name="chevron-right" size={16} color="#e5e7eb" />
     </Pressable>
   )

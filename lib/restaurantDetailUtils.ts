@@ -1,8 +1,9 @@
 import { extractRestaurantTagNames } from '@/lib/restaurantPalates'
+import { resolveEffectiveFeaturedImageUrl } from '@/lib/featuredImageUtils'
+import { DEFAULT_RESTAURANT_IMAGE } from '@/constants/images'
 import type { RestaurantDetailRow } from '@/services/restaurantDetailService'
 
-const PLACEHOLDER =
-  'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=1200&q=80'
+const PLACEHOLDER = DEFAULT_RESTAURANT_IMAGE
 
 export interface OpeningHours {
   [day: string]: string
@@ -53,8 +54,10 @@ function collectUploadedImageUrls(raw: unknown): string[] {
 }
 
 export function buildRestaurantImageGallery(r: RestaurantDetailRow): string[] {
-  const featured = r.featured_image_url?.trim()
+  const featured = resolveEffectiveFeaturedImageUrl(r.featured_image_url)
   const extras = collectUploadedImageUrls(r.uploaded_images)
+    .map((u) => resolveEffectiveFeaturedImageUrl(u))
+    .filter((u): u is string => u != null)
   const set = new Set<string>()
   if (featured) set.add(featured)
   extras.forEach((u) => set.add(u))

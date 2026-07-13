@@ -70,6 +70,8 @@ export interface UnifiedProfileViewProps {
   memberSinceLabel: string
   stats: UnifiedProfileStatModel
   statsLoading: boolean
+  currentLocationLabel?: string | null
+  hometownLabel?: string | null
   pullRefreshing: boolean
   onRefresh: () => Promise<void>
   /** Own profile — avatar taps open edit profile. */
@@ -98,6 +100,8 @@ export function UnifiedProfileView({
   memberSinceLabel,
   stats,
   statsLoading,
+  currentLocationLabel = null,
+  hometownLabel = null,
   pullRefreshing,
   onRefresh,
   onPressAvatarOwn,
@@ -181,6 +185,8 @@ export function UnifiedProfileView({
             memberSinceLabel={memberSinceLabel}
             stats={stats}
             statsLoading={statsLoading}
+            currentLocationLabel={currentLocationLabel}
+            hometownLabel={hometownLabel}
             onPressAvatarOwn={onPressAvatarOwn}
             onPressSettings={onPressSettings}
             followButton={followButton}
@@ -278,6 +284,8 @@ function ProfileMeSection({
   memberSinceLabel,
   stats,
   statsLoading,
+  currentLocationLabel,
+  hometownLabel,
   onPressAvatarOwn,
   followButton,
   showFollowPlaceholder,
@@ -294,6 +302,8 @@ function ProfileMeSection({
   memberSinceLabel: string
   stats: UnifiedProfileStatModel
   statsLoading: boolean
+  currentLocationLabel: string | null
+  hometownLabel: string | null
   onPressAvatarOwn?: () => void
   followButton?: UnifiedProfileFollowButtonModel | null
   showFollowPlaceholder?: boolean
@@ -391,6 +401,12 @@ function ProfileMeSection({
         />
       </View>
 
+      <ProfileLocationInfoRows
+        isOwnProfile={isOwnProfile}
+        currentLocationLabel={currentLocationLabel}
+        hometownLabel={hometownLabel}
+      />
+
       <View className="mt-6 flex-row flex-wrap items-center justify-center gap-3">
         {isOwnProfile ? (
           <>
@@ -471,6 +487,64 @@ function ProfileStatColumn(props: {
   }
 
   return <View className="min-w-[88px] items-center px-1">{inner}</View>
+}
+
+function ProfileLocationInfoRows({
+  isOwnProfile,
+  currentLocationLabel,
+  hometownLabel,
+}: {
+  isOwnProfile: boolean
+  currentLocationLabel: string | null
+  hometownLabel: string | null
+}): JSX.Element {
+  const emptyHint = isOwnProfile ? 'Add from Edit profile' : 'Not set'
+
+  return (
+    <View className="mt-5">
+      <ProfileLocationInfoRow
+        label="Current Location"
+        value={currentLocationLabel?.trim() || emptyHint}
+        muted={!currentLocationLabel?.trim()}
+      />
+      <ProfileLocationInfoRow
+        label="Hometown"
+        value={hometownLabel?.trim() || emptyHint}
+        muted={!hometownLabel?.trim()}
+        dividerTop
+      />
+    </View>
+  )
+}
+
+function ProfileLocationInfoRow({
+  label,
+  value,
+  muted = false,
+  dividerTop = false,
+}: {
+  label: string
+  value: string
+  muted?: boolean
+  dividerTop?: boolean
+}): JSX.Element {
+  return (
+    <View
+      className="min-h-[44px] flex-row items-center justify-between px-1 py-2.5"
+      style={dividerTop ? { borderTopWidth: 1, borderTopColor: '#e5e7eb' } : undefined}
+    >
+      <Text className="text-sm font-medium" style={{ color: TEXT_MUTED }}>
+        {label}
+      </Text>
+      <Text
+        className="ml-4 max-w-[58%] text-right text-sm"
+        style={{ color: muted ? TEXT_MUTED : TEXT_BODY }}
+        numberOfLines={1}
+      >
+        {value}
+      </Text>
+    </View>
+  )
 }
 
 function ProfileShareButton({ onPress }: { onPress: () => void }): JSX.Element {

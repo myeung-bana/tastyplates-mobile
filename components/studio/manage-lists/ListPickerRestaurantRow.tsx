@@ -7,6 +7,18 @@ import {
   type NearbyPlaceRow,
   type PlacesAutocompletePrediction,
 } from '@/lib/googlePlaces'
+import { formatShortFormattedAddress } from '@/services/restaurantsV2Service'
+import { coerceRatingNumber, hasDisplayableRating } from '@/lib/ratingDisplayUtils'
+import { RatingDisplay } from '@/components/ui/RatingDisplay'
+
+function formatNearbyRowAddress(address: string | null | undefined): string | null {
+  return formatShortFormattedAddress(address) ?? address?.trim() ?? null
+}
+
+function formatNearbyRowRating(row: NearbyPlaceRow): number | null {
+  const rating = coerceRatingNumber(row.google_rating)
+  return hasDisplayableRating(rating) ? rating : null
+}
 
 function AddButton({
   onPress,
@@ -47,6 +59,9 @@ export function ListPickerNearbyRow({
   adding?: boolean
   disabled?: boolean
 }): JSX.Element {
+  const address = formatNearbyRowAddress(row.address)
+  const rating = formatNearbyRowRating(row)
+
   return (
     <View className="flex-row items-center gap-3 border-b border-gray-50 px-4 py-3">
       {row.photo_reference ? (
@@ -65,12 +80,13 @@ export function ListPickerNearbyRow({
         <Text className="font-neusans text-[15px] font-medium text-[#31343F]" numberOfLines={1}>
           {row.name}
         </Text>
-        {row.address ? (
+        {address ? (
           <Text className="mt-0.5 font-neusans text-[13px] text-gray-500" numberOfLines={1}>
-            {row.address}
+            {address}
           </Text>
         ) : null}
       </View>
+      {rating != null ? <RatingDisplay value={rating} size="sm" /> : null}
       <AddButton onPress={onAdd} disabled={disabled} busy={adding} />
     </View>
   )

@@ -4,6 +4,12 @@ import { expandCategoryParamToSlugs } from '@/lib/categorySearch'
 import { RESTAURANT_PARENT_CATEGORIES } from '@/constants/restaurantCategories'
 import { QUICK_FINDS } from '@/constants/quickFinds'
 import {
+  coerceRatingNumber,
+  hasDisplayableRating,
+} from '@/lib/ratingDisplayUtils'
+import { restaurantSearchResultRating } from '@/lib/restaurantSearchMerge'
+import type { PreferenceStat } from '@/services/preferenceStatsService'
+import {
   formatRestaurantCardAddress,
   formatShortFormattedAddress,
 } from '@/services/restaurantsV2Service'
@@ -13,11 +19,75 @@ import { isGoogleResult, isTPResult } from '@/types/restaurantSearchResult'
 /** Browse/search card subtitle — street and city only. */
 export function formatRestaurantSearchResultAddress(
   result: RestaurantSearchResult,
+  cityFallback?: string | null,
 ): string | null {
   if (isTPResult(result)) {
     return formatRestaurantCardAddress(result.listing_street, result.address)
   }
-  return formatShortFormattedAddress(result.address)
+  const formatted = formatShortFormattedAddress(result.address)
+  if (formatted) return formatted
+  const raw = result.address?.trim()
+  if (raw && raw.length > 0) return raw
+  const city = cityFallback?.trim()
+  return city && city.length > 0 ? city : null
+}
+
+export type BrowseCardPropsFromSearchResult = {
+  subtitle: string | null
+  rating: number | null
+  ratingMode: 'overall' | 'palate-match'
+  searchPalateRating: number | null
+  searchPalateReviewCount?: number | null
+}
+
+/**
+ * Unified browse-card display props for TP + Google gap-fill rows.
+ * Google listings always use overall Google rating (no palate match).
+ */
+export function browseCardPropsFromSearchResult(
+  item: RestaurantSearchResult,
+  options: {
+    isPersonalised: boolean
+    cityLabel?: string | null
+    palateStat?: PreferenceStat | null
+  },
+): BrowseCardPropsFromSearchResult {
+  const subtitle = formatRestaurantSearchResultAddress(item, options.cityLabel)
+
+  if (isGoogleResult(item)) {
+    return {
+      subtitle,
+      rating: coerceRatingNumber(item.google_rating),
+      ratingMode: 'overall',
+      searchPalateRating: null,
+    }
+  }
+
+  const overallRating = coerceRatingNumber(item.average_rating)
+  if (options.isPersonalised && options.palateStat) {
+    return {
+      subtitle,
+      rating: overallRating,
+      ratingMode: 'palate-match',
+      searchPalateRating: options.palateStat.avg ?? null,
+      searchPalateReviewCount: options.palateStat.count ?? null,
+    }
+  }
+
+  return {
+    subtitle,
+    rating: overallRating,
+    ratingMode: 'overall',
+    searchPalateRating: null,
+  }
+}
+
+/** Compact list-row rating — Google overall or TP overall (not palate match). */
+export function listRowRatingForSearchResult(
+  result: RestaurantSearchResult,
+): number | null {
+  const rating = restaurantSearchResultRating(result)
+  return hasDisplayableRating(rating) ? rating : null
 }
 
 /** First segment of location label for backend `city_name` filter. */

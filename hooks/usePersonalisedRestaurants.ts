@@ -3,7 +3,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { LocationCoordinates } from '@/constants/locations'
 import { resolveTrustSet } from '@/lib/cuisineTaxonomy'
 import { expandCategoryParamToSlugs, isCategoryFilterActive, isNoCategoryFilter } from '@/lib/categorySearch'
+import { googleTagFallbacksFromBrowseFilters } from '@/lib/adaptGooglePlaceTypes'
 import { googleKeywordForCategory, googleKeywordForCuisine } from '@/lib/restaurantDiscoveryHelpers'
+import { enrichGoogleCandidatesWithDetails } from '@/lib/googlePlaceEnrichment'
 import {
   CITY_SEARCH_RADIUS_KM,
   CITY_SEARCH_RADIUS_METERS,
@@ -28,6 +30,7 @@ import {
   SEARCH_BROWSE_LIMIT,
 } from '@/lib/restaurantSearchConfig'
 import {
+  computeGoogleMergeSlots,
   dedupeRestaurantSearchResults,
   mergeRestaurantResults,
   restaurantSearchResultId,
@@ -45,6 +48,7 @@ import type { RestaurantSearchResult } from '@/types/restaurantSearchResult'
 import { isTPResult } from '@/types/restaurantSearchResult'
 
 const PAGE_SIZE = SEARCH_BROWSE_LIMIT
+const EMPTY_TRUST_SET: string[] = []
 
 export interface UsePersonalisedRestaurantsParams {
   cuisineParam: string | null | undefined
@@ -53,6 +57,8 @@ export interface UsePersonalisedRestaurantsParams {
   locationKey: string
   coordinates: LocationCoordinates | null
   cityName: string | undefined
+  /** Geo query + Google nearby radius; defaults to {@link CITY_SEARCH_RADIUS_KM}. */
+  searchRadiusKm?: number
 }
 
 export interface UsePersonalisedRestaurantsResult {
@@ -67,13 +73,19 @@ export interface UsePersonalisedRestaurantsResult {
   prefStatsLoading: boolean
   prefStatsError: string | null
   getForRestaurantUuid: (restaurantUuid: string | null | undefined) => PreferenceStat | null
-  refresh: (options?: { isPullRefresh?: boolean }) => Promise<void>
+  refresh: (options?: {
+    isPullRefresh?: boolean
+    isMapPan?: boolean
+    center?: LocationCoordinates
+    radiusKm?: number
+  }) => Promise<void>
   loadMore: () => Promise<void>
 }
 
 function filterGooglePlacesWithinCityRadiusLocal(
   places: NearbyPlaceRow[],
   center: LocationCoordinates | null,
+  radiusKm: number,
 ): NearbyPlaceRow[] {
   const restaurantLike = places.filter((place) =>
     isRestaurantLikeGooglePlace(place.types, place.name),
@@ -81,7 +93,7 @@ function filterGooglePlacesWithinCityRadiusLocal(
   if (!center) return restaurantLike
   return restaurantLike.filter((place) => {
     if (place.latitude == null || place.longitude == null) return true
-    return isWithinRadiusKm(center, place.latitude, place.longitude, CITY_SEARCH_RADIUS_KM)
+    return isWithinRadiusKm(center, place.latitude, place.longitude, radiusKm)
   })
 }
 
@@ -92,6 +104,7 @@ export function usePersonalisedRestaurants({
   locationKey,
   coordinates,
   cityName,
+  searchRadiusKm = CITY_SEARCH_RADIUS_KM,
 }: UsePersonalisedRestaurantsParams): UsePersonalisedRestaurantsResult {
   const { isAuthenticated } = useAuth()
   const { palate: userPalate } = useUserPalate()
@@ -111,12 +124,17 @@ export function usePersonalisedRestaurants({
     return expanded.length > 0 ? expanded : undefined
   }, [categoryParam])
 
-  const geoParams = useMemo(() => geoQueryFromCityCenter(coordinates), [coordinates])
+  const geoParams = useMemo(
+    () => geoQueryFromCityCenter(coordinates, searchRadiusKm),
+    [coordinates?.latitude, coordinates?.longitude, searchRadiusKm],
+  )
 
   const trustSet = useMemo(() => {
-    if (!isAuthenticated || !userPalate?.length || !cuisineFilterActive) return []
+    if (!isAuthenticated || !userPalate?.length || !cuisineFilterActive) return EMPTY_TRUST_SET
     return resolveTrustSet({ cuisineParam, userPalate })
   }, [cuisineParam, cuisineFilterActive, isAuthenticated, userPalate])
+
+  const trustSetKey = trustSet.join(',')
 
   const isPersonalised = trustSet.length > 0
   const listOrderBy = cuisineFilterActive || categoryFilterActive ? 'rating_desc' : undefined
@@ -134,21 +152,21 @@ export function usePersonalisedRestaurants({
 
   const loadMoreLockRef = useRef(false)
 
-  const mergeOptions = useMemo(
-    () => ({
+  const mergeOptions = useMemo(() => {
+    const tagFallbacks = googleTagFallbacksFromBrowseFilters(
+      cuisineFilterActive ? cuisineParam : null,
+      categoryFilterActive ? categoryParam : null,
+    )
+    return {
       targetPageSize: PAGE_SIZE,
       googleLimit: GOOGLE_GAP_FILL_MAX,
-    }),
-    [],
-  )
+      googleCuisineFallback: tagFallbacks.cuisineFallback ?? null,
+      googleCategoryFallback: tagFallbacks.categoryFallback ?? null,
+    }
+  }, [cuisineFilterActive, categoryFilterActive, cuisineParam, categoryParam])
 
   useEffect(() => {
-    if (!isPersonalised) {
-      setPrefStats(new Map())
-      setPrefStatsError(null)
-      setPrefStatsLoading(false)
-      return
-    }
+    if (!isPersonalised) return
 
     let cancelled = false
     setPrefStatsLoading(true)
@@ -171,22 +189,50 @@ export function usePersonalisedRestaurants({
     return () => {
       cancelled = true
     }
-  }, [isPersonalised, trustSet])
+  }, [isPersonalised, trustSetKey])
+
+  useEffect(() => {
+    if (isPersonalised) return
+    setPrefStats(new Map())
+    setPrefStatsError(null)
+    setPrefStatsLoading(false)
+  }, [isPersonalised])
 
   const fetchFirstPage = useCallback(
-    async (options?: { isPullRefresh?: boolean }) => {
+    async (options?: {
+      isPullRefresh?: boolean
+      isMapPan?: boolean
+      center?: LocationCoordinates
+      radiusKm?: number
+    }) => {
       const isPull = options?.isPullRefresh ?? false
-      if (isPull) {
+      const isMapPan = options?.isMapPan ?? false
+      const queryCenter = options?.center ?? coordinates
+      const queryRadiusKm = options?.radiusKm ?? searchRadiusKm
+      const queryGeoParams = geoQueryFromCityCenter(queryCenter, queryRadiusKm)
+      const safeRadiusKm =
+        Number.isFinite(queryRadiusKm) && queryRadiusKm > 0
+          ? queryRadiusKm
+          : CITY_SEARCH_RADIUS_KM
+      const queryNearbyMeters = Math.min(
+        CITY_SEARCH_RADIUS_METERS,
+        Math.round(safeRadiusKm * 1000),
+      )
+
+      if (isPull || isMapPan) {
         setRefreshing(true)
       } else {
         setLoading(true)
+        setCursor(null)
+      }
+      if (!isMapPan) {
         setCursor(null)
       }
       setError(null)
 
       try {
         if (searchQuery?.trim()) {
-          const hybrid = await hybridSearch(searchQuery, locationKey, coordinates, {
+          const hybrid = await hybridSearch(searchQuery, locationKey, queryCenter, {
             mode: 'browse',
             cuisineSlugs,
             categorySlugs,
@@ -211,12 +257,12 @@ export function usePersonalisedRestaurants({
               order_by: listOrderBy,
               cuisineSlugs,
               categorySlugs,
-              ...geoParams,
+              ...queryGeoParams,
             }),
-            coordinates
+            queryCenter
               ? getNearbyRestaurants(
-                  coordinates,
-                  CITY_SEARCH_RADIUS_METERS,
+                  queryCenter,
+                  queryNearbyMeters,
                   googleKeyword,
                   {
                     maxResults: GOOGLE_NEARBY_MAX_RESULTS,
@@ -227,10 +273,24 @@ export function usePersonalisedRestaurants({
           ])
 
           const tpRows = tpData.status === 'fulfilled' ? (tpData.value.restaurants ?? []) : []
-          const googleRows =
+          let googleRows =
             googlePlaces.status === 'fulfilled'
-              ? filterGooglePlacesWithinCityRadiusLocal(googlePlaces.value, coordinates)
+              ? filterGooglePlacesWithinCityRadiusLocal(
+                  googlePlaces.value,
+                  queryCenter,
+                  safeRadiusKm,
+                )
               : []
+
+          const googleSlots = computeGoogleMergeSlots(tpRows.length, mergeOptions)
+          if (googleSlots > 0 && googleRows.length > 0 && queryCenter) {
+            googleRows = await enrichGoogleCandidatesWithDetails(
+              googleRows,
+              queryCenter,
+              googleSlots,
+              { radiusKm: safeRadiusKm },
+            )
+          }
 
           if (tpData.status === 'fulfilled') {
             setCursor(tpData.value.meta.cursor)
@@ -249,7 +309,7 @@ export function usePersonalisedRestaurants({
           )
         }
       } catch (e) {
-        if (!isPull) {
+        if (!isPull && !isMapPan) {
           setRows([])
           setHasMore(false)
         }
@@ -271,14 +331,26 @@ export function usePersonalisedRestaurants({
       cuisineParam,
       categoryParam,
       mergeOptions,
-      geoParams,
       cityName,
+      searchRadiusKm,
     ],
   )
 
+  const fetchFirstPageRef = useRef(fetchFirstPage)
+  fetchFirstPageRef.current = fetchFirstPage
+
   useEffect(() => {
-    void fetchFirstPage()
-  }, [fetchFirstPage])
+    void fetchFirstPageRef.current()
+  }, [
+    locationKey,
+    searchQuery,
+    cuisineParam,
+    categoryParam,
+    listOrderBy,
+    cityName,
+    cuisineFilterActive,
+    categoryFilterActive,
+  ])
 
   const loadMore = useCallback(async () => {
     if (loadMoreLockRef.current || !hasMore || loadingMore || loading || !cursor) return
@@ -343,7 +415,12 @@ export function usePersonalisedRestaurants({
   )
 
   const refresh = useCallback(
-    async (options?: { isPullRefresh?: boolean }) => {
+    async (options?: {
+      isPullRefresh?: boolean
+      isMapPan?: boolean
+      center?: LocationCoordinates
+      radiusKm?: number
+    }) => {
       await fetchFirstPage(options)
     },
     [fetchFirstPage],

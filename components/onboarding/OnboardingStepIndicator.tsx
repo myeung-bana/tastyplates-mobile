@@ -4,7 +4,7 @@ import { AppIcon } from '@/components/ui/AppIcon'
 
 const STEPS: { id: 1 | 2 | 3; label: string }[] = [
   { id: 1, label: 'Username' },
-  { id: 2, label: 'Region' },
+  { id: 2, label: 'Location' },
   { id: 3, label: 'Palate' },
 ]
 
