@@ -116,6 +116,10 @@ export default function OnboardingStep2(): JSX.Element {
       toast.error('Choose where you currently live to continue.')
       return
     }
+    if (!hometownLocation) {
+      toast.error('Choose your hometown to continue.')
+      return
+    }
 
     await mergeOnboardingDraft({
       current_location: currentLocation,
@@ -139,7 +143,7 @@ export default function OnboardingStep2(): JSX.Element {
     }
     await mergeOnboardingDraft({
       current_location: value,
-      hometown_location: null,
+      hometown_location: value,
     })
     setLocationPreference(tokyo)
     router.push('/onboarding/step3')
@@ -180,7 +184,7 @@ export default function OnboardingStep2(): JSX.Element {
     <View className="flex-1 bg-white">
       <OnboardingTopNav title="Set Location" onBack={() => router.back()} />
       <ScrollView contentContainerClassName="grow px-5 pb-10 pt-6" keyboardShouldPersistTaps="handled">
-        <Text className="mb-2 text-lg font-semibold" style={{ color: TEXT_HEADING }}>
+        <Text className="mb-2 text-[21px] font-semibold" style={{ color: TEXT_HEADING }}>
           Where do you live?
         </Text>
         <Text className="mb-6 text-base leading-relaxed" style={{ color: TEXT_MUTED }}>
@@ -200,7 +204,6 @@ export default function OnboardingStep2(): JSX.Element {
             />
             <EditProfileLocationField
               label="Where is your hometown"
-              helper="Optional — share where your food journey started."
               valueLabel={hometownLocation?.label ?? null}
               onPress={() => setActivePicker('hometown')}
             />
@@ -219,7 +222,7 @@ export default function OnboardingStep2(): JSX.Element {
 
             <Pressable
               accessibilityRole="button"
-              disabled={!currentLocation}
+              disabled={!currentLocation || !hometownLocation}
               onPress={() => {
                 void onContinue()
               }}

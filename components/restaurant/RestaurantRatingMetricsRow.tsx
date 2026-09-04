@@ -3,6 +3,7 @@ import { AppIcon } from '@/components/ui/AppIcon'
 
 import { BRAND_PRIMARY, TEXT_HEADING } from '@/constants/brand'
 import { labelForPalateKey } from '@/lib/palateLabels'
+import type { SearchScoreMode } from '@/hooks/useRestaurantScores'
 
 export type RestaurantRatingMetricsRowProps = {
   overallAvg: number | null
@@ -11,8 +12,10 @@ export type RestaurantRatingMetricsRowProps = {
   authenticCount: number
   searchAvg: number | null
   searchCount: number
+  searchMode?: SearchScoreMode
+  searchGroupName?: string | null
+  searchUnlocked?: boolean
   isAuthenticated: boolean
-  cuisineFilterActive: boolean
   isPersonalised: boolean
   trustSet: string[]
   sharedAvg: number | null
@@ -42,8 +45,10 @@ export function RestaurantRatingMetricsRow({
   authenticCount,
   searchAvg,
   searchCount,
+  searchMode = 'none',
+  searchGroupName = null,
+  searchUnlocked: searchUnlockedProp,
   isAuthenticated,
-  cuisineFilterActive,
   isPersonalised,
   trustSet,
   sharedAvg,
@@ -51,22 +56,35 @@ export function RestaurantRatingMetricsRow({
   sharedUnlocked,
   embedded = false,
 }: RestaurantRatingMetricsRowProps): JSX.Element {
-  const searchUnlocked = cuisineFilterActive
+  const searchUnlocked =
+    searchUnlockedProp ?? (searchMode === 'cuisine_filter' || searchMode === 'personalised')
 
-  const searchTitle = isPersonalised ? 'Your Score' : 'Search Score'
+  const searchTitle =
+    searchMode === 'group' && searchGroupName
+      ? `${searchGroupName} Score`
+      : isPersonalised
+        ? 'Your Score'
+        : 'Search Score'
 
   const trustReviewerLabel =
     trustSet.length > 0 ? trustSet.map((slug) => labelForPalateKey(slug)).join(' & ') : null
 
-  const searchSubtitle = !cuisineFilterActive
-    ? isAuthenticated
-      ? 'Browse by cuisine\nto unlock'
-      : 'Sign in to see\nyour score'
-    : isPersonalised && trustReviewerLabel
-      ? `Rated by ${trustReviewerLabel}\nreviewers`
-      : !isAuthenticated
-        ? 'Avg. from reviewers\nwith this cuisine'
-        : "How much we'd\nthink you'd like"
+  const searchSubtitle =
+    searchMode === 'group'
+      ? searchUnlocked
+        ? `Avg. from ${searchGroupName ?? 'your group'}\nreviewers`
+        : isAuthenticated
+          ? 'Not enough reviews\nfor your group'
+          : 'Sign in to see\nyour score'
+      : searchMode === 'none'
+        ? isAuthenticated
+          ? 'Set your palate\nto unlock'
+          : 'Sign in to see\nyour score'
+        : isPersonalised && trustReviewerLabel
+          ? `Rated by ${trustReviewerLabel}\nreviewers`
+          : !isAuthenticated
+            ? 'Avg. from reviewers\nwith this cuisine'
+            : "How much we'd\nthink you'd like"
 
   const sharedSubtitle = sharedUnlocked
     ? 'What shared\npreference users think'

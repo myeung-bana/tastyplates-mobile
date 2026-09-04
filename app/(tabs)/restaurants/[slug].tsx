@@ -57,6 +57,9 @@ export default function RestaurantDetailScreen() {
     summary,
     searchAvg,
     searchCount,
+    searchMode,
+    searchGroupName,
+    searchUnlocked,
     sharedAvg,
     sharedCount,
     sharedUnlocked,
@@ -206,6 +209,9 @@ export default function RestaurantDetailScreen() {
         reviewTotal={state.reviewTotal}
         searchAvg={searchAvg}
         searchCount={searchCount}
+        searchMode={searchMode}
+        searchGroupName={searchGroupName}
+        searchUnlocked={searchUnlocked}
         sharedAvg={sharedAvg}
         sharedCount={sharedCount}
         sharedUnlocked={sharedUnlocked}

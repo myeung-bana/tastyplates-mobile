@@ -198,6 +198,9 @@ export interface RestaurantDetailViewProps {
   reviewTotal: number
   searchAvg?: number | null
   searchCount?: number
+  searchMode?: import('@/hooks/useRestaurantScores').SearchScoreMode
+  searchGroupName?: string | null
+  searchUnlocked?: boolean
   sharedAvg?: number | null
   sharedCount?: number
   sharedUnlocked?: boolean
@@ -220,6 +223,9 @@ export function RestaurantDetailView({
   reviewTotal,
   searchAvg = null,
   searchCount = 0,
+  searchMode = 'none',
+  searchGroupName = null,
+  searchUnlocked = false,
   sharedAvg = null,
   sharedCount = 0,
   sharedUnlocked = false,
@@ -481,8 +487,10 @@ export function RestaurantDetailView({
           authenticCount={authCount}
           searchAvg={searchAvg}
           searchCount={searchCount}
+          searchMode={searchMode}
+          searchGroupName={searchGroupName}
+          searchUnlocked={searchUnlocked}
           isAuthenticated={isAuthenticated}
-          cuisineFilterActive={cuisineFilterActive}
           isPersonalised={isPersonalised}
           trustSet={trustSet}
           sharedAvg={sharedAvg}

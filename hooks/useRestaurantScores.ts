@@ -11,12 +11,20 @@ import { useAuth } from '@/hooks/useAuth'
 import { useUserPalate } from '@/hooks/useUserPalate'
 import { getRatingSummary, type RatingSummaryRow } from '@/services/restaurantDetailService'
 import {
+  getGroupScoresForPalates,
+  lookupGroupScoreByUuid,
+  type GroupScore,
+} from '@/services/groupScoreService'
+import {
   getPreferenceStatsForPalates,
   lookupPreferenceStatByUuid,
   type PreferenceStat,
 } from '@/services/preferenceStatsService'
 
 const SHARED_SCORE_MIN_REVIEWS = 3
+const GROUP_SCORE_MIN_REVIEWS = 3
+
+export type SearchScoreMode = 'none' | 'cuisine_filter' | 'personalised' | 'group'
 
 export interface UseRestaurantScoresParams {
   restaurantUuid: string | null | undefined
@@ -28,6 +36,9 @@ export interface UseRestaurantScoresResult {
   summary: RatingSummaryRow | null
   searchAvg: number | null
   searchCount: number
+  searchGroupName: string | null
+  searchMode: SearchScoreMode
+  searchUnlocked: boolean
   sharedAvg: number | null
   sharedCount: number
   sharedUnlocked: boolean
@@ -63,6 +74,8 @@ export function useRestaurantScores({
   }, [cuisineParam, cuisineFilterActive, isAuthenticated, userPalate])
 
   const isPersonalised = trustSet.length > 0
+  const useGroupScoreFallback =
+    isAuthenticated && Boolean(userPalate?.length) && !cuisineFilterActive
 
   const searchPalates = useMemo(() => {
     if (!cuisineFilterActive || !cuisineParam) return []
@@ -72,6 +85,7 @@ export function useRestaurantScores({
 
   const [summary, setSummary] = useState<RatingSummaryRow | null>(null)
   const [searchStat, setSearchStat] = useState<PreferenceStat | null>(null)
+  const [groupScore, setGroupScore] = useState<GroupScore | null>(null)
   const [sharedStat, setSharedStat] = useState<PreferenceStat | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -87,6 +101,7 @@ export function useRestaurantScores({
     if (!enabled || !uuid) {
       setSummary(null)
       setSearchStat(null)
+      setGroupScore(null)
       setSharedStat(null)
       setLoading(false)
       setError(null)
@@ -102,22 +117,29 @@ export function useRestaurantScores({
         ? getPreferenceStatsForPalates(searchPalates)
         : Promise.resolve(new Map<string, PreferenceStat>())
 
+    const groupPromise =
+      useGroupScoreFallback && userPalate?.length
+        ? getGroupScoresForPalates(userPalate, [uuid])
+        : Promise.resolve(new Map<string, GroupScore>())
+
     const sharedPromise =
       isAuthenticated && userPalate?.length
         ? getPreferenceStatsForPalates(userPalate)
         : Promise.resolve(new Map<string, PreferenceStat>())
 
-    void Promise.all([getRatingSummary(uuid), searchPromise, sharedPromise])
-      .then(([summaryRow, searchMap, sharedMap]) => {
+    void Promise.all([getRatingSummary(uuid), searchPromise, groupPromise, sharedPromise])
+      .then(([summaryRow, searchMap, groupMap, sharedMap]) => {
         if (cancelled) return
         setSummary(summaryRow)
         setSearchStat(lookupPreferenceStatByUuid(searchMap, uuid))
+        setGroupScore(lookupGroupScoreByUuid(groupMap, uuid))
         setSharedStat(lookupPreferenceStatByUuid(sharedMap, uuid))
       })
       .catch((e) => {
         if (cancelled) return
         setSummary(null)
         setSearchStat(null)
+        setGroupScore(null)
         setSharedStat(null)
         setError(e instanceof Error ? e.message : 'Failed to load ratings')
       })
@@ -128,15 +150,52 @@ export function useRestaurantScores({
     return () => {
       cancelled = true
     }
-  }, [enabled, uuid, searchPalates, isAuthenticated, userPalate, reloadToken])
+  }, [
+    enabled,
+    uuid,
+    searchPalates,
+    useGroupScoreFallback,
+    isAuthenticated,
+    userPalate,
+    reloadToken,
+  ])
+
+  const searchMode: SearchScoreMode = useMemo(() => {
+    if (searchPalates.length > 0) {
+      return isPersonalised ? 'personalised' : 'cuisine_filter'
+    }
+    if (useGroupScoreFallback) return 'group'
+    return 'none'
+  }, [searchPalates.length, isPersonalised, useGroupScoreFallback])
+
+  const searchAvg = useMemo(() => {
+    if (searchMode === 'group') return groupScore?.avg ?? null
+    return searchStat?.avg ?? null
+  }, [searchMode, groupScore, searchStat])
+
+  const searchCount = useMemo(() => {
+    if (searchMode === 'group') return groupScore?.review_count ?? 0
+    return searchStat?.count ?? 0
+  }, [searchMode, groupScore, searchStat])
+
+  const searchGroupName = searchMode === 'group' ? (groupScore?.group_name ?? null) : null
+
+  const searchUnlocked = useMemo(() => {
+    if (searchMode === 'cuisine_filter' || searchMode === 'personalised') return true
+    if (searchMode === 'group') return searchCount >= GROUP_SCORE_MIN_REVIEWS
+    return false
+  }, [searchMode, searchCount])
 
   const sharedCount = sharedStat?.count ?? 0
   const sharedUnlocked = isAuthenticated && sharedCount >= SHARED_SCORE_MIN_REVIEWS
 
   return {
     summary,
-    searchAvg: searchStat?.avg ?? null,
-    searchCount: searchStat?.count ?? 0,
+    searchAvg,
+    searchCount,
+    searchGroupName,
+    searchMode,
+    searchUnlocked,
     sharedAvg: sharedUnlocked ? (sharedStat?.avg ?? null) : null,
     sharedCount,
     sharedUnlocked,

@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native'
+import { ActivityIndicator, Pressable, ScrollView, Text, TextInput, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { Redirect, useRouter } from 'expo-router'
 import { useNhostClient } from '@nhost/react'
 
 import { OnboardingTopNav } from '@/components/onboarding/OnboardingTopNav'
-import { BRAND_PRIMARY, TEXT_HEADING, TEXT_MUTED } from '@/constants/brand'
+import { AppIcon } from '@/components/ui/AppIcon'
+import { BRAND_PRIMARY, TEXT_HEADING, TEXT_MUTED, mergeTextInputBodyTypography } from '@/constants/brand'
 import { palateLimit } from '@/constants/validation'
 import { SCREEN_HOME, SCREEN_LOGIN } from '@/constants/screens'
 import { useAuth } from '@/hooks/useAuth'
@@ -21,6 +22,13 @@ import {
 } from '@/services/onboardingService'
 import { toast } from '@/utils/toast'
 
+function onboardingPalateSubtitle(selectedCount: number): string {
+  if (selectedCount === 0) return 'Select a cuisine you grew up with'
+  if (selectedCount === 1) return 'Pick 1 more.'
+  if (selectedCount >= palateLimit) return "You're set — tap Done when ready."
+  return ''
+}
+
 export default function OnboardingStep3(): JSX.Element {
   const router = useRouter()
   const nhost = useNhostClient()
@@ -28,6 +36,7 @@ export default function OnboardingStep3(): JSX.Element {
   const [draft, setDraft] = useState<OnboardingRegistrationDraft | null>(null)
   const [selected, setSelected] = useState<Set<string>>(() => new Set())
   const [saving, setSaving] = useState(false)
+  const [filterKeyword, setFilterKeyword] = useState('')
 
   useEffect(() => {
     void loadOnboardingDraft().then((d) => {
@@ -45,7 +54,13 @@ export default function OnboardingStep3(): JSX.Element {
 
   const options = useMemo(() => flattenPalateSlugOptions(), [])
 
-  const atLimit = selected.size >= palateLimit
+  const filteredOptions = useMemo(() => {
+    const q = filterKeyword.trim().toLowerCase()
+    if (!q) return options
+    return options.filter(
+      (p) => p.label.toLowerCase().includes(q) || p.key.toLowerCase().includes(q),
+    )
+  }, [filterKeyword, options])
 
   const togglePalate = useCallback((key: string) => {
     setSelected((prev) => {
@@ -149,44 +164,76 @@ export default function OnboardingStep3(): JSX.Element {
 
   const busy = saving || authLoading
   const doneEnabled = selected.size === palateLimit && !busy
+  const atLimit = selected.size >= palateLimit
+  const showFilterEmpty = filterKeyword.trim().length > 0 && filteredOptions.length === 0
 
   return (
     <View className="flex-1 bg-white">
       <OnboardingTopNav title="Select Palate" onBack={() => router.back()} />
-      <ScrollView contentContainerClassName="grow px-5 pb-10 pt-6">
-        <Text className="mb-2 text-lg font-semibold" style={{ color: TEXT_HEADING }}>
-          Pick your palates
+      <ScrollView
+        contentContainerClassName="grow px-5 pb-10 pt-6"
+        keyboardShouldPersistTaps="handled"
+      >
+        <Text className="mb-2 text-[21px] font-semibold" style={{ color: TEXT_HEADING }}>
+          Pick {palateLimit} that Describe Your Food Palate
         </Text>
-        <Text className="mb-2 text-base leading-relaxed" style={{ color: TEXT_MUTED }}>
-          Choose exactly {palateLimit} cuisines you care about most.
-        </Text>
-        <Text className="mb-6 text-sm" style={{ color: TEXT_MUTED }}>
-          {selected.size === 0
-            ? `Pick ${palateLimit} options below.`
-            : selected.size === 1
-              ? 'Pick 1 more.'
-              : "You're set — tap Done when ready."}
+        <Text className="mb-6 text-base leading-relaxed" style={{ color: TEXT_MUTED, minHeight: 24 }}>
+          {onboardingPalateSubtitle(selected.size)}
         </Text>
 
-        <View className="mb-8 flex-row flex-wrap gap-2">
-          {options.map((p) => {
-            const on = selected.has(p.key)
-            const dim = atLimit && !on
-            return (
-              <Pressable
-                key={p.key}
-                disabled={busy}
-                onPress={() => togglePalate(p.key)}
-                className={`rounded-full border px-3 py-2 ${on ? 'border-[#ff7c0a] bg-orange-50' : 'border-gray-200 bg-white'}`}
-                style={{ opacity: dim ? 0.4 : 1 }}
-              >
-                <Text className={`text-sm font-medium ${on ? 'text-[#ff7c0a]' : 'text-gray-800'}`}>
-                  {p.label}
-                </Text>
-              </Pressable>
-            )
-          })}
+        <View className="mb-5 min-h-[44px] flex-row items-center rounded-[14px] bg-gray-100 px-3">
+          <AppIcon name="search" size={18} color={TEXT_MUTED} />
+          <TextInput
+            style={[
+              { flex: 1, marginLeft: 8, marginRight: 4, fontSize: 16 },
+              mergeTextInputBodyTypography(),
+            ]}
+            placeholder="Search cuisines..."
+            placeholderTextColor="#9ca3af"
+            value={filterKeyword}
+            onChangeText={setFilterKeyword}
+            returnKeyType="search"
+            autoCapitalize="none"
+            autoCorrect={false}
+            accessibilityLabel="Filter cuisines"
+          />
+          {filterKeyword.length > 0 ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Clear search"
+              hitSlop={10}
+              onPress={() => setFilterKeyword('')}
+            >
+              <AppIcon name="x-circle" size={18} color={TEXT_MUTED} />
+            </Pressable>
+          ) : null}
         </View>
+
+        {showFilterEmpty ? (
+          <Text className="mb-6 text-sm" style={{ color: TEXT_MUTED }}>
+            No cuisines match your search.
+          </Text>
+        ) : (
+          <View className="mb-8 flex-row flex-wrap gap-2">
+            {filteredOptions.map((p) => {
+              const on = selected.has(p.key)
+              const dim = atLimit && !on
+              return (
+                <Pressable
+                  key={p.key}
+                  disabled={busy}
+                  onPress={() => togglePalate(p.key)}
+                  className={`rounded-full border px-3 py-2 ${on ? 'border-[#ff7c0a] bg-orange-50' : 'border-gray-200 bg-white'}`}
+                  style={{ opacity: dim ? 0.4 : 1 }}
+                >
+                  <Text className={`text-sm font-medium ${on ? 'text-[#ff7c0a]' : 'text-gray-800'}`}>
+                    {p.label}
+                  </Text>
+                </Pressable>
+              )
+            })}
+          </View>
+        )}
 
         <Pressable
           accessibilityRole="button"

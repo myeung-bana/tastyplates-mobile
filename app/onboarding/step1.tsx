@@ -201,7 +201,7 @@ export default function OnboardingStep1(): JSX.Element {
           contentContainerClassName="grow px-5 pb-8 pt-6"
           keyboardShouldPersistTaps="handled"
         >
-          <Text className="mb-2 text-lg font-semibold" style={{ color: TEXT_HEADING }}>
+          <Text className="mb-2 text-[21px] font-semibold" style={{ color: TEXT_HEADING }}>
             Choose a username
           </Text>
           <Text className="mb-6 text-base leading-relaxed" style={{ color: TEXT_MUTED }}>
