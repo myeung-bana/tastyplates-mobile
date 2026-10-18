@@ -32,6 +32,7 @@ export async function fetchFollowersList(
 ): Promise<FollowListEntry[]> {
   const envelope = await tastyplatesFetch<{ followers: FollowListEntry[] }>(
     listQuery('restaurant-users/get-followers-list', userId, offset),
+    { withAuth: 'optional' },
   )
   return unwrapEnvelope(envelope).followers ?? []
 }
@@ -42,6 +43,7 @@ export async function fetchFollowingList(
 ): Promise<FollowListEntry[]> {
   const envelope = await tastyplatesFetch<{ following: FollowListEntry[] }>(
     listQuery('restaurant-users/get-following-list', userId, offset),
+    { withAuth: 'optional' },
   )
   return unwrapEnvelope(envelope).following ?? []
 }

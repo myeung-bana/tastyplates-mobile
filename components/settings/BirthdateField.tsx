@@ -16,6 +16,8 @@ import { formatBirthdateDisplay } from '@/lib/formatBirthdate'
 type Props = {
   value: Date | null
   onChange: (date: Date) => void
+  /** When set, shows a "Clear" action while a date is selected. */
+  onClear?: () => void
   disabled?: boolean
   error?: boolean
   maximumDate?: Date
@@ -26,6 +28,7 @@ const DEFAULT_MAX_DATE = new Date()
 export function BirthdateField({
   value,
   onChange,
+  onClear,
   disabled = false,
   error = false,
   maximumDate = DEFAULT_MAX_DATE,
@@ -67,6 +70,22 @@ export function BirthdateField({
         </Text>
         <AppIcon name="chevron-down" size={18} color={TEXT_MUTED} />
       </Pressable>
+
+      {onClear && value && !disabled ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Clear date of birth"
+          onPress={() => {
+            setShowPicker(false)
+            onClear()
+          }}
+          className="mt-2 self-start py-1 active:opacity-70"
+        >
+          <Text className="text-sm font-neusans underline" style={{ color: TEXT_MUTED }}>
+            Clear
+          </Text>
+        </Pressable>
+      ) : null}
 
       {showPicker ? (
         Platform.OS === 'ios' ? (

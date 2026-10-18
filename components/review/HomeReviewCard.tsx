@@ -2,6 +2,7 @@ import { Image, Pressable, Text, View } from 'react-native'
 import { ProfileAvatarImage } from '@/components/profile/ProfileAvatarImage'
 import { RatingDisplay } from '@/components/ui/RatingDisplay'
 import { BORDER_SUBTLE, TEXT_BODY, TEXT_HEADING, TEXT_MUTED } from '@/constants/brand'
+import { useModeration } from '@/contexts/ModerationContext'
 import { stripHtml } from '@/lib/restaurantDetailUtils'
 import { resolveReviewAuthorAvatarUrl, resolveReviewAuthorLabel } from '@/lib/reviewAuthorDisplay'
 import { firstReviewImageUri, reviewHashtagLabels } from '@/lib/reviewDisplayUtils'
@@ -44,6 +45,16 @@ export function HomeReviewCard({
   const bodyRaw = capitalizeWords(stripHtml(review.content ?? '').trim())
   const tags = reviewHashtagLabels(review.hashtags, 3)
   const name = resolveReviewAuthorLabel(review.AuthorProfile)
+  const { openContentActions, canModerate } = useModeration()
+  const openActions = canModerate(review.author_id)
+    ? () =>
+        openContentActions({
+          targetType: 'review',
+          targetId: review.id,
+          ownerId: review.author_id,
+          ownerLabel: name,
+        })
+    : undefined
 
   const imageBlock = (
     <View
@@ -91,7 +102,9 @@ export function HomeReviewCard({
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={`Review ${title || 'Untitled'}`}
+          accessibilityHint={openActions ? 'Long press to report or block' : undefined}
           onPress={onPressCard}
+          onLongPress={openActions}
           className="active:opacity-95"
         >
           {imageBlock}

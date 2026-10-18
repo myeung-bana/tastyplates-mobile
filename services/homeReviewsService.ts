@@ -44,6 +44,7 @@ export async function getLatestReviews(limit = 5): Promise<TrendingReviewRow[]> 
   })
   const envelope = await tastyplatesFetch<GetAllReviewsResponse>(
     `restaurant-reviews/get-all-reviews?${q.toString()}`,
+    { withAuth: 'optional' },
   )
   const data = unwrapEnvelope(envelope)
   return data.reviews ?? []

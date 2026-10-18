@@ -12,19 +12,15 @@ import { Controller, useForm } from 'react-hook-form'
 import type { User } from '@nhost/nhost-js'
 import { z } from 'zod'
 
+import { LegalConsentText } from '@/components/legal/LegalConsentText'
 import { PasswordInput } from '@/components/ui/PasswordInput'
 import {
   BRAND_PRIMARY,
   mergeTextInputBodyTypography,
-  TEXT_BODY,
   TEXT_HEADING,
   TEXT_MUTED,
 } from '@/constants/brand'
-import {
-  SCREEN_PRIVACY_POLICY,
-  SCREEN_TERMS_OF_SERVICE,
-  SCREEN_USER_VERIFICATION,
-} from '@/constants/screens'
+import { SCREEN_USER_VERIFICATION } from '@/constants/screens'
 import { minimumPassword } from '@/constants/validation'
 import { storePendingVerificationEmail } from '@/lib/authProfileSetup'
 import { signUpEmailPasswordDirect } from '@/lib/nhostAuthDirect'
@@ -193,33 +189,8 @@ export function RegisterEmailForm({
         <View className="mb-4" />
       )}
 
-      <View className="mb-6 flex-row flex-wrap items-center justify-center gap-x-1 px-2">
-        <Text className="text-center text-sm leading-relaxed" style={{ color: TEXT_BODY }}>
-          By signing up you agree to our
-        </Text>
-        <Link href={SCREEN_TERMS_OF_SERVICE} asChild>
-          <Pressable>
-            <Text
-              className="text-center text-sm leading-relaxed underline"
-              style={{ color: TEXT_BODY }}
-            >
-              Terms of Service
-            </Text>
-          </Pressable>
-        </Link>
-        <Text className="text-center text-sm leading-relaxed" style={{ color: TEXT_BODY }}>
-          and
-        </Text>
-        <Link href={SCREEN_PRIVACY_POLICY} asChild>
-          <Pressable>
-            <Text
-              className="text-center text-sm leading-relaxed underline"
-              style={{ color: TEXT_BODY }}
-            >
-              Privacy Policy
-            </Text>
-          </Pressable>
-        </Link>
+      <View className="mb-6 px-2">
+        <LegalConsentText prefix="By signing up you confirm you are 13 or older and agree to our" />
       </View>
 
       <Pressable

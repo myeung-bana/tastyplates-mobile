@@ -11,6 +11,7 @@ import {
 import * as Haptics from 'expo-haptics'
 import { router, Stack, useLocalSearchParams } from 'expo-router'
 
+import { ContentActionsButton } from '@/components/moderation/ContentActionsButton'
 import { ProfileAvatarImage } from '@/components/profile/ProfileAvatarImage'
 import { ReviewDetailTopNav } from '@/components/review/ReviewDetailTopNav'
 
@@ -450,7 +451,20 @@ export default function ReviewViewerScreen() {
   return (
     <View className="flex-1 bg-white">
       <Stack.Screen options={{ headerShown: false }} />
-      <ReviewDetailTopNav title="Review" />
+      <ReviewDetailTopNav
+        title="Review"
+        right={
+          review ? (
+            <ContentActionsButton
+              targetType="review"
+              targetId={review.id}
+              ownerId={review.author_id}
+              ownerLabel={author?.username ?? author?.display_name ?? null}
+              onBlocked={() => router.back()}
+            />
+          ) : null
+        }
+      />
       {paramError ? (
         <View className="flex-1 items-center justify-center px-8">
           <Text className="text-center text-base leading-relaxed" style={{ color: TEXT_MUTED }}>

@@ -3,6 +3,21 @@ const appJson = require('./app.json')
 
 const googleMapsApiKey = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY ?? ''
 
+/** Source-map upload runs only when EAS provides the Sentry project + secret auth token. */
+const sentryPlugin =
+  process.env.SENTRY_ORG && process.env.SENTRY_PROJECT && process.env.SENTRY_AUTH_TOKEN
+    ? [
+        [
+          '@sentry/react-native/expo',
+          {
+            organization: process.env.SENTRY_ORG,
+            project: process.env.SENTRY_PROJECT,
+            url: process.env.SENTRY_URL ?? 'https://sentry.io/',
+          },
+        ],
+      ]
+    : []
+
 module.exports = {
   expo: {
     ...appJson.expo,
@@ -35,6 +50,7 @@ module.exports = {
           androidGoogleMapsApiKey: googleMapsApiKey,
         },
       ],
+      ...sentryPlugin,
     ],
   },
 }

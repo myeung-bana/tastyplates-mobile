@@ -141,6 +141,7 @@ export async function fetchRestaurantReviews(
   })
   const envelope = await tastyplatesFetch<GetReviewsByRestaurantResponse>(
     `restaurant-reviews/get-reviews-by-restaurant?${q.toString()}`,
+    { withAuth: 'optional' },
   )
   return unwrapEnvelope(envelope)
 }

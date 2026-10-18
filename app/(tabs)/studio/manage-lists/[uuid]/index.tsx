@@ -25,6 +25,7 @@ import {
   studioManageListEditPath,
 } from '@/constants/screens'
 import { useAddRestaurantOverlay } from '@/contexts/AddRestaurantOverlayContext'
+import { useModeration } from '@/contexts/ModerationContext'
 import { useAuth } from '@/hooks/useAuth'
 import { castHref } from '@/lib/routeParams'
 import { firstSegmentParam } from '@/lib/routeParams'
@@ -132,6 +133,7 @@ export default function ListDetailScreen(): JSX.Element {
 
   const isListOwner =
     Boolean(list?.owner_id) && Boolean(user?.id) && list?.owner_id === user?.id
+  const { openContentActions } = useModeration()
 
   const handleRemoveItem = useCallback(
     async (item: RestaurantListItem) => {
@@ -294,6 +296,25 @@ export default function ListDetailScreen(): JSX.Element {
                   <AppIcon name="share-2" size={14} color="#374151" />
                   <Text className="font-neusans text-sm text-[#374151]">Share Link</Text>
                 </Pressable>
+
+                {list && !isListOwner ? (
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel="Report or block"
+                    onPress={() =>
+                      openContentActions({
+                        targetType: 'list',
+                        targetId: list.uuid,
+                        ownerId: list.owner_id,
+                        onBlocked: () => router.back(),
+                      })
+                    }
+                    className="flex-row items-center gap-2 rounded-[50px] border border-gray-300 bg-white px-4 py-2"
+                  >
+                    <AppIcon name="flag" size={14} color="#374151" />
+                    <Text className="font-neusans text-sm text-[#374151]">Report</Text>
+                  </Pressable>
+                ) : null}
 
                 {isListOwner && !list?.is_public ? (
                   <Pressable

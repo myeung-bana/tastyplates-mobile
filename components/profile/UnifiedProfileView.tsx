@@ -79,6 +79,8 @@ export interface UnifiedProfileViewProps {
   /** Own profile — settings icon beside Share. */
   onPressSettings?: () => void
   followButton?: UnifiedProfileFollowButtonModel | null
+  /** Other user's profile — "•••" menu (report / block). */
+  onPressMore?: () => void
   showFollowPlaceholder?: boolean
   /** Rendered below action buttons on the Me tab (e.g. recent activity). */
   meTabExtra?: ReactNode
@@ -108,6 +110,7 @@ export function UnifiedProfileView({
   onPressSettings,
   followButton,
   showFollowPlaceholder = false,
+  onPressMore,
   meTabExtra,
 }: UnifiedProfileViewProps) {
   const router = useRouter()
@@ -192,6 +195,7 @@ export function UnifiedProfileView({
             followButton={followButton}
             showFollowPlaceholder={showFollowPlaceholder}
             onShare={runShare}
+            onPressMore={onPressMore}
           />
           {meTabExtra}
         </ScrollView>
@@ -291,6 +295,7 @@ function ProfileMeSection({
   showFollowPlaceholder,
   onShare,
   onPressSettings,
+  onPressMore,
 }: {
   isOwnProfile: boolean
   routeUserId: string
@@ -309,6 +314,7 @@ function ProfileMeSection({
   showFollowPlaceholder?: boolean
   onShare: () => void
   onPressSettings?: () => void
+  onPressMore?: () => void
 }) {
   const router = useRouter()
 
@@ -445,6 +451,13 @@ function ProfileMeSection({
               </Text>
             ) : null}
             <ProfileShareButton onPress={onShare} />
+            {onPressMore ? (
+              <ProfileIconCircleButton
+                icon="more-horizontal"
+                accessibilityLabel="More options"
+                onPress={onPressMore}
+              />
+            ) : null}
           </>
         )}
       </View>

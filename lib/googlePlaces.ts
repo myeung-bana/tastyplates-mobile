@@ -133,8 +133,18 @@ export interface PlacesDetailsResult {
   types?: string[]
   rating?: number
   user_ratings_total?: number
-  photos?: { photo_reference: string }[]
+  photos?: { photo_reference: string; html_attributions?: string[] }[]
   reviews?: GooglePlaceReview[]
+}
+
+/** Plain-text author credit for a Places photo (attributions are `<a href>Name</a>` HTML). */
+export function googlePhotoAttributionText(
+  photo: { html_attributions?: string[] } | null | undefined,
+): string | null {
+  const names = (photo?.html_attributions ?? [])
+    .map((html) => html.replace(/<[^>]*>/g, '').trim())
+    .filter(Boolean)
+  return names.length ? names.join(', ') : null
 }
 
 export type FetchGooglePlaceDetailsOptions = {

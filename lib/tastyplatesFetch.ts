@@ -11,8 +11,11 @@ export function getNhostFunctionsBase(): string {
 }
 
 export interface TastyplatesFetchOptions extends RequestInit {
-  /** When true, attaches `Authorization: Bearer` from Nhost if a session exists. */
-  withAuth?: boolean
+  /**
+   * When true, attaches `Authorization: Bearer` from Nhost if a session exists.
+   * `'optional'` does the same for public reads (block filtering) without warning for guests.
+   */
+  withAuth?: boolean | 'optional'
 }
 
 /**
@@ -35,7 +38,7 @@ export async function tastyplatesFetch<T>(
     const token = nhost.auth.getAccessToken() ?? nhost.auth.getSession()?.accessToken ?? null
     if (token) {
       headers.set('Authorization', `Bearer ${token}`)
-    } else if (__DEV__) {
+    } else if (__DEV__ && withAuth === true) {
       console.warn(
         '[tastyplatesFetch] withAuth=true but no access token available.',
         'Path:', path,

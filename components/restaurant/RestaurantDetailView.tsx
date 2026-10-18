@@ -212,7 +212,7 @@ export interface RestaurantDetailViewProps {
   refreshing?: boolean
   onRefresh?: () => void
   /** Google-only listing — hides TP engagement actions, shows add-review CTA. */
-  googlePlaceListing?: { placeId: string; placeName: string }
+  googlePlaceListing?: { placeId: string; placeName: string; photoAttribution?: string | null }
 }
 
 export function RestaurantDetailView({
@@ -433,6 +433,15 @@ export function RestaurantDetailView({
       }
     >
       <RestaurantDetailSummary restaurant={restaurant} />
+
+      {googlePlaceListing ? (
+        <Text className="mx-4 mt-2 font-neusans text-[11px]" style={{ color: TEXT_MUTED }}>
+          Place details from Google
+          {googlePlaceListing.photoAttribution
+            ? ` · Photo: ${googlePlaceListing.photoAttribution}`
+            : ''}
+        </Text>
+      ) : null}
 
       {/* Section 3 — Action buttons */}
       <View className="mx-4 mt-6 flex-row flex-wrap gap-2">

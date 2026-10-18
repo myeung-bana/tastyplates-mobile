@@ -62,7 +62,7 @@ export async function fetchUserReviews(
   if (__DEV__) {
     console.log('[fetchUserReviews]', path)
   }
-  const envelope = await tastyplatesFetch<FetchUserReviewsResult>(path)
+  const envelope = await tastyplatesFetch<FetchUserReviewsResult>(path, { withAuth: 'optional' })
   return unwrapEnvelope(envelope)
 }
 
@@ -89,7 +89,7 @@ export async function fetchProfileUserActivity(
   const envelope = await tastyplatesFetch<{
     activities?: Record<string, unknown>[]
     meta: FollowingFeedMeta
-  }>(`${PROFILE_USER_ACTIVITY_PATH}?${q}`, options?.withAuth ? { withAuth: true } : {})
+  }>(`${PROFILE_USER_ACTIVITY_PATH}?${q}`, { withAuth: options?.withAuth ? true : 'optional' })
 
   const data = unwrapEnvelope(envelope)
   const activities = (data.activities ?? [])

@@ -1,7 +1,10 @@
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import type { User } from '@nhost/nhost-js'
 
-import { ensureRestaurantUserProfileApi } from '@/services/restaurantUserService'
+import {
+  ensureRestaurantUserProfileApi,
+  type AccountDeletionPending,
+} from '@/services/restaurantUserService'
 
 /** Used when sign-up completes without a session (email verification required). */
 export const PENDING_VERIFICATION_EMAIL_KEY = 'tastyplates_pending_verification_email_v1'
@@ -25,8 +28,12 @@ export async function clearPendingVerificationEmail(): Promise<void> {
 /**
  * Ensures a `user_profiles` row exists via `POST restaurant-users/ensure-profile`.
  * Server assigns `user_<random>` when creating. Requires an active Nhost session.
+ * Returns the pending-deletion state when the account is inside its grace period.
  */
-export async function ensureRestaurantUserProfile(user: User): Promise<void> {
-  if (!user.id) return
-  await ensureRestaurantUserProfileApi()
+export async function ensureRestaurantUserProfile(
+  user: User,
+): Promise<AccountDeletionPending | null> {
+  if (!user.id) return null
+  const result = await ensureRestaurantUserProfileApi()
+  return result.deletion ?? null
 }

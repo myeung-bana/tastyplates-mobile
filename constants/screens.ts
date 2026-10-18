@@ -150,6 +150,8 @@ export const SCREEN_SETTINGS = '/settings' as const
 export const SCREEN_SETTINGS_ACCOUNT_SECURITY = '/settings/account-security' as const
 export const SCREEN_SETTINGS_PROFILE = '/settings/account-security/profile' as const
 export const SCREEN_SETTINGS_PASSWORD = '/settings/account-security/password' as const
+export const SCREEN_SETTINGS_DELETE_ACCOUNT = '/settings/account-security/delete-account' as const
+export const SCREEN_SETTINGS_BLOCKED_USERS = '/settings/privacy/blocked-users' as const
 export const SCREEN_SETTINGS_LANGUAGE = '/settings/general/language' as const
 export const SCREEN_SETTINGS_ABOUT = '/settings/support/about' as const
 

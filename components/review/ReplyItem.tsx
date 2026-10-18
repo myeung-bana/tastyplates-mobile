@@ -3,6 +3,7 @@ import { router } from 'expo-router'
 import * as Haptics from 'expo-haptics'
 import { AppIcon } from '@/components/ui/AppIcon'
 
+import { ContentActionsButton } from '@/components/moderation/ContentActionsButton'
 import { ProfileAvatarImage } from '@/components/profile/ProfileAvatarImage'
 import { TEXT_MUTED } from '@/constants/brand'
 import { parseProfilePalates } from '@/lib/profileFormatting'
@@ -117,6 +118,16 @@ export function ReplyItem({
               <Text style={{ fontFamily: NEUSANS, fontSize: 11, color: TEXT_MUTED, marginTop: 2 }}>{when}</Text>
             </View>
 
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
+            <ContentActionsButton
+              targetType="comment"
+              targetId={reply.id}
+              ownerId={authorId}
+              ownerLabel={name}
+              size={16}
+              color={TEXT_MUTED}
+              compact
+            />
             <Pressable
               onPress={handleLike}
               disabled={isLikeLoading}
@@ -137,6 +148,7 @@ export function ReplyItem({
                 </Text>
               ) : null}
             </Pressable>
+            </View>
           </View>
 
           {body ? (

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { ActivityIndicator, Text, View } from 'react-native'
+import { ActivityIndicator, Alert, Text, View } from 'react-native'
 import * as Haptics from 'expo-haptics'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 
@@ -12,6 +12,8 @@ import {
   SCREEN_REVIEW_VIEWER,
   SCREEN_SETTINGS,
 } from '@/constants/screens'
+import { useAuthSheet } from '@/contexts/AuthSheetContext'
+import { useModeration } from '@/contexts/ModerationContext'
 import { useFollowTarget } from '@/hooks/useFollowTarget'
 import { useAuth } from '@/hooks/useAuth'
 import { useLocationHierarchy } from '@/hooks/useLocationHierarchy'
@@ -30,7 +32,9 @@ import {
   normalizeLegacyProfileAvatar,
   type RestaurantUserRow,
 } from '@/services/restaurantUserService'
+import { fetchIsUserBlocked, unblockUser } from '@/services/moderationService'
 import { fetchPublicProfileCounts } from '@/services/profileStatsService'
+import { toast } from '@/utils/toast'
 import { formatProfileLocationCityCountry } from '@/utils/locationUtils'
 
 /**
@@ -99,6 +103,47 @@ export default function PublicProfileIndexScreen() {
     !isAuthenticated || !ru?.id || !viewerId || viewerId === ru.id
 
   const follow = useFollowTarget(ru?.id, viewerId ?? undefined, followDisabled)
+
+  const { openContentActions, openReport } = useModeration()
+  const { openAuthSheet } = useAuthSheet()
+  const [blocked, setBlocked] = useState(false)
+
+  useEffect(() => {
+    if (!isAuthenticated || !ru?.id || isOwnProfile) {
+      setBlocked(false)
+      return
+    }
+    let cancelled = false
+    void fetchIsUserBlocked(ru.id)
+      .then((value) => {
+        if (!cancelled) setBlocked(value)
+      })
+      .catch(() => undefined)
+    return () => {
+      cancelled = true
+    }
+  }, [isAuthenticated, isOwnProfile, ru?.id])
+
+  const handleUnblock = useCallback(
+    (userId: string, label: string) => {
+      Alert.alert(`Unblock ${label}?`, 'They will be able to see and interact with you again.', [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Unblock',
+          onPress: () => {
+            void unblockUser(userId)
+              .then(() => {
+                setBlocked(false)
+                toast.success(`${label} has been unblocked.`)
+                void activityApi.refresh()
+              })
+              .catch(() => toast.error('Could not unblock this user. Please try again.'))
+          },
+        },
+      ])
+    },
+    [activityApi],
+  )
 
   const [pullRefreshing, setPullRefreshing] = useState(false)
 
@@ -171,8 +216,38 @@ export default function PublicProfileIndexScreen() {
   )
   const hometownLabel = formatProfileLocationCityCountry(ru.hometown, hierarchyCountries)
 
+  const onPressMore = isOwnProfile
+    ? undefined
+    : () => {
+        if (!isAuthenticated) {
+          openAuthSheet()
+          return
+        }
+        if (!blocked) {
+          openContentActions({
+            targetType: 'user',
+            targetId: ru.id,
+            ownerId: ru.id,
+            ownerLabel: headlineHandle,
+            onBlocked: () => {
+              setBlocked(true)
+              void activityApi.refresh()
+            },
+          })
+          return
+        }
+        Alert.alert('Options', undefined, [
+          {
+            text: 'Report profile',
+            onPress: () => openReport({ targetType: 'user', targetId: ru.id }),
+          },
+          { text: `Unblock ${headlineHandle}`, onPress: () => handleUnblock(ru.id, headlineHandle) },
+          { text: 'Cancel', style: 'cancel' },
+        ])
+      }
+
   const followUi =
-    isAuthenticated && !isOwnProfile
+    isAuthenticated && !isOwnProfile && !blocked
       ? {
           isFollowing: follow.following,
           loading: follow.loading,
@@ -232,6 +307,7 @@ export default function PublicProfileIndexScreen() {
         onPressSettings={isOwnProfile ? () => router.push(SCREEN_SETTINGS) : undefined}
         followButton={followUi}
         showFollowPlaceholder={!isAuthenticated && !isOwnProfile}
+        onPressMore={onPressMore}
         meTabExtra={meTabExtra}
       />
     </View>

@@ -90,6 +90,7 @@ async function fetchCommentReplies(
 
   const envelope = await tastyplatesFetch<GetRepliesResult>(
     `restaurant-reviews/get-replies?${qs.toString()}`,
+    { withAuth: 'optional' },
   )
   return unwrapEnvelope(envelope)
 }

@@ -1,5 +1,6 @@
 import { ActivityIndicator, Pressable, Text, View } from 'react-native'
 import { AppIcon } from '@/components/ui/AppIcon'
+import { LegalConsentText } from '@/components/legal/LegalConsentText'
 
 import { BRAND_PRIMARY, TEXT_HEADING } from '@/constants/brand'
 
@@ -64,6 +65,10 @@ export function AuthMethodChooser({
           Continue with Email
         </Text>
       </Pressable>
+
+      <View className="mt-4 w-full max-w-sm px-2">
+        <LegalConsentText />
+      </View>
 
       {onSkipLogin ? (
         <Pressable

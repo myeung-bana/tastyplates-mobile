@@ -4,7 +4,11 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { ReviewDetailTopNav } from '@/components/review/ReviewDetailTopNav'
 import { ProfileMenuCard, ProfileMenuRow } from '@/components/profile/UnifiedProfileView'
-import { SCREEN_SETTINGS_PASSWORD, SCREEN_SETTINGS_PROFILE } from '@/constants/screens'
+import {
+  SCREEN_SETTINGS_DELETE_ACCOUNT,
+  SCREEN_SETTINGS_PASSWORD,
+  SCREEN_SETTINGS_PROFILE,
+} from '@/constants/screens'
 
 export default function AccountSecurityScreen(): JSX.Element {
   const router = useRouter()
@@ -35,6 +39,13 @@ export default function AccountSecurityScreen(): JSX.Element {
             subtitle="Send a reset email"
             topBorder
             onPress={() => router.push(SCREEN_SETTINGS_PASSWORD)}
+          />
+          <ProfileMenuRow
+            icon="trash-2"
+            title="Delete Account"
+            subtitle="Permanently delete your account and data"
+            topBorder
+            onPress={() => router.push(SCREEN_SETTINGS_DELETE_ACCOUNT)}
           />
         </ProfileMenuCard>
       </ScrollView>

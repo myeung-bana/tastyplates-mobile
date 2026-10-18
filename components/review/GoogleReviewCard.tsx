@@ -1,6 +1,7 @@
 import { Pressable, Text, View } from 'react-native'
 
 import { ProfileAvatarImage } from '@/components/profile/ProfileAvatarImage'
+import { AppIcon } from '@/components/ui/AppIcon'
 import { RatingDisplay } from '@/components/ui/RatingDisplay'
 import { BORDER_SUBTLE, TEXT_BODY, TEXT_HEADING, TEXT_MUTED } from '@/constants/brand'
 import { stripHtml } from '@/lib/restaurantDetailUtils'
@@ -59,7 +60,12 @@ export function GoogleReviewCard({
         </Text>
 
         <View className="mt-3 flex-row items-center justify-between">
-          <View className="rounded-full border px-2 py-0.5" style={{ borderColor: BORDER_SUBTLE, backgroundColor: '#fafafa' }}>
+          <View
+            accessibilityLabel="Review from Google"
+            className="flex-row items-center gap-1 rounded-full border px-2 py-0.5"
+            style={{ borderColor: BORDER_SUBTLE, backgroundColor: '#fafafa' }}
+          >
+            <AppIcon name="logo-google" size={10} color={TEXT_MUTED} />
             <Text className="text-[10px] font-medium" style={{ color: TEXT_MUTED }}>
               Google
             </Text>

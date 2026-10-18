@@ -3,8 +3,8 @@
 /** Must match `auth.method.emailPassword.passwordMinLength` in `tastyplates-nhost/nhost/nhost.toml`. */
 export const minimumPassword = 9
 
-/** Minimum age for account profile birthdate — aligned with web `ageLimit`. */
-export const ageLimit = 18
+/** Minimum age to use TastyPlates (Terms of Service); birthdate itself is optional. */
+export const ageLimit = 13
 
 export const userNameMinLimit = 3
 export const userNameMaxLimit = 20

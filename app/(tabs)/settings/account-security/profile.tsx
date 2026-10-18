@@ -24,8 +24,6 @@ import {
 } from '@/constants/brand'
 import {
   birthdateLimit,
-  birthdateRequired,
-  genderRequired,
   profileSettingsUpdated,
   profileUpdateFailed,
 } from '@/constants/messages'
@@ -100,25 +98,15 @@ export default function AccountProfileSettingsScreen(): JSX.Element {
   const validate = useCallback((): boolean => {
     let valid = true
 
-    if (!birthdate) {
-      setBirthdateError(birthdateRequired)
-      valid = false
-    } else if (computeAge(birthdate) < ageLimit) {
+    if (birthdate && computeAge(birthdate) < ageLimit) {
       setBirthdateError(birthdateLimit(ageLimit))
       valid = false
     } else {
       setBirthdateError(null)
     }
 
-    if (!gender.trim()) {
-      setGenderError(genderRequired)
-      valid = false
-    } else {
-      setGenderError(null)
-    }
-
     return valid
-  }, [birthdate, gender])
+  }, [birthdate])
 
   const handleCancel = useCallback(() => {
     const initial = initialRef.current
@@ -137,8 +125,8 @@ export default function AccountProfileSettingsScreen(): JSX.Element {
     setSaving(true)
     try {
       await updateRestaurantUserProfile({
-        birthdate: formatBirthdateForApi(birthdate!),
-        gender: gender.trim(),
+        birthdate: birthdate ? formatBirthdateForApi(birthdate) : null,
+        gender: gender.trim() || null,
       })
       initialRef.current = { birthdate, gender: gender.trim() }
       toast.success(profileSettingsUpdated)
@@ -191,19 +179,27 @@ export default function AccountProfileSettingsScreen(): JSX.Element {
               />
             </SettingsFormField>
 
-            <SettingsFormField label="Date of Birth" error={birthdateError}>
+            <SettingsFormField
+              label="Date of Birth (optional)"
+              error={birthdateError}
+              helper="You can leave this blank."
+            >
               <BirthdateField
                 value={birthdate}
                 onChange={(date) => {
                   setBirthdate(date)
                   if (birthdateError) setBirthdateError(null)
                 }}
+                onClear={() => {
+                  setBirthdate(null)
+                  setBirthdateError(null)
+                }}
                 disabled={saving}
                 error={!!birthdateError}
               />
             </SettingsFormField>
 
-            <SettingsFormField label="Gender" error={genderError}>
+            <SettingsFormField label="Gender (optional)" error={genderError}>
               <GenderPickerField
                 value={gender}
                 onChange={(next) => {

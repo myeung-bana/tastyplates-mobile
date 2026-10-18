@@ -109,9 +109,11 @@ export async function fetchRestaurantUserByUsername(
   return unwrapEnvelope(envelope).user
 }
 
+/** Bearer is sent so the owner can still load their own profile while deletion is pending. */
 export async function fetchRestaurantUserById(id: string): Promise<RestaurantUserRow> {
   const envelope = await tastyplatesFetch<GetRestaurantUserByIdResponse>(
     `restaurant-users/get-restaurant-user-by-id?id=${encodeURIComponent(id)}`,
+    { withAuth: true },
   )
   return unwrapEnvelope(envelope).user
 }
@@ -120,6 +122,7 @@ export async function fetchRestaurantUserById(id: string): Promise<RestaurantUse
 export async function tryFetchRestaurantUserById(id: string): Promise<RestaurantUserRow | null> {
   const envelope = await tastyplatesFetch<GetRestaurantUserByIdResponse>(
     `restaurant-users/get-restaurant-user-by-id?id=${encodeURIComponent(id)}`,
+    { withAuth: true },
   )
   if (!envelope.ok) {
     if (envelope.error.includes('404')) return null
@@ -139,9 +142,41 @@ interface CreateRestaurantUserResponse {
   user: RestaurantUserRow
 }
 
+export interface AccountDeletionPending {
+  pending: true
+  scheduled_for: string | null
+}
+
 interface EnsureProfileResponse {
   user: RestaurantUserRow
   created: boolean
+  /** Set while the account is inside its deletion grace period. */
+  deletion?: AccountDeletionPending | null
+}
+
+export interface RequestAccountDeletionResponse {
+  deleted: boolean
+  immediate: boolean
+  scheduled_for: string | null
+  grace_days?: number
+}
+
+/** `POST restaurant-users/delete-restaurant-user` — schedules deletion and revokes all sessions. */
+export async function requestAccountDeletion(): Promise<RequestAccountDeletionResponse> {
+  const envelope = await tastyplatesFetch<RequestAccountDeletionResponse>(
+    'restaurant-users/delete-restaurant-user',
+    { method: 'POST', withAuth: true, body: JSON.stringify({}) },
+  )
+  return unwrapEnvelope(envelope)
+}
+
+/** `POST restaurant-users/restore-account` — cancels a pending deletion. */
+export async function restoreDeletedAccount(): Promise<{ restored: boolean }> {
+  const envelope = await tastyplatesFetch<{ restored: boolean }>(
+    'restaurant-users/restore-account',
+    { method: 'POST', withAuth: true, body: JSON.stringify({}) },
+  )
+  return unwrapEnvelope(envelope)
 }
 
 /** Idempotent — creates `user_profiles` with `user_<random>` when missing. */
@@ -184,8 +219,8 @@ export interface UpdateRestaurantUserProfileParams {
   profile_image?: string
   palates?: string[]
   display_name?: string
-  birthdate?: string
-  gender?: string
+  birthdate?: string | null
+  gender?: string | null
   current_location?: UserProfileGeographicLocationInput | null
   hometown?: UserProfileGeographicLocationInput | null
   /** @deprecated Prefer `current_location` with label + coordinates */

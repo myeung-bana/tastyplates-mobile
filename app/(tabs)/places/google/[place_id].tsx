@@ -12,7 +12,7 @@ import { adaptGooglePlaceToDetailRow } from '@/lib/adaptGooglePlaceDetail'
 import { adaptGoogleReviewsToPreviews } from '@/lib/adaptGooglePlaceReviews'
 import { matchRestaurantForPlace } from '@/lib/findTastyPlatesMatch'
 import type { MatchedRestaurant } from '@/lib/findTastyPlatesMatch'
-import { fetchGooglePlaceDetails } from '@/lib/googlePlaces'
+import { fetchGooglePlaceDetails, googlePhotoAttributionText } from '@/lib/googlePlaces'
 import type { PlacesDetailsResult } from '@/lib/googlePlaces'
 import { firstSegmentParam } from '@/lib/routeParams'
 
@@ -143,7 +143,11 @@ export default function GooglePlaceDetailScreen(): JSX.Element {
         summary={null}
         reviews={googleReviews}
         reviewTotal={reviewTotal}
-        googlePlaceListing={{ placeId: placeId!, placeName }}
+        googlePlaceListing={{
+          placeId: placeId!,
+          placeName,
+          photoAttribution: googlePhotoAttributionText(place.photos?.[0]),
+        }}
       />
     </View>
   )

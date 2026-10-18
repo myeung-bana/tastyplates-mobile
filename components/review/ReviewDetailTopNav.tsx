@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import { View, Text } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
@@ -9,6 +10,8 @@ export interface ReviewDetailTopNavProps {
   title?: string
   /** When false, hides the back button (e.g. success confirmation). */
   showBack?: boolean
+  /** Optional 40×40 trailing control (e.g. overflow menu). */
+  right?: ReactNode
 }
 
 /**
@@ -17,6 +20,7 @@ export interface ReviewDetailTopNavProps {
 export function ReviewDetailTopNav({
   title = 'Review',
   showBack = true,
+  right,
 }: ReviewDetailTopNavProps): JSX.Element {
   const insets = useSafeAreaInsets()
 
@@ -34,7 +38,7 @@ export function ReviewDetailTopNav({
         >
           {title}
         </Text>
-        <View className="h-10 w-10" />
+        <View className="h-10 w-10 items-center justify-center">{right}</View>
       </View>
     </View>
   )
