@@ -29,7 +29,6 @@ export default function ProfileScreen() {
   if (isAuthenticated) {
     return (
       <View className="flex-1 bg-white">
-        <AppTopNav />
         <ProfileSignedInView />
       </View>
     )

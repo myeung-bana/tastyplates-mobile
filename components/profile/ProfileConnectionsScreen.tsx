@@ -142,7 +142,7 @@ function ConnectionsListPanel({
   if (cache.status === 'error') {
     return (
       <View className="flex-1 items-center justify-center px-8">
-        <Text className="text-center text-sm leading-relaxed" style={{ color: TEXT_MUTED }}>
+        <Text className="text-center text-sm leading-relaxed font-body" style={{ color: TEXT_MUTED }}>
           {cache.error ?? 'Could not load list.'}
         </Text>
       </View>
@@ -167,7 +167,7 @@ function ConnectionsListPanel({
       contentContainerStyle={cache.rows.length === 0 ? { flexGrow: 1 } : { paddingBottom: 24 }}
       ListEmptyComponent={
         <View className="flex-1 items-center justify-center px-8 py-16">
-          <Text className="text-center text-sm" style={{ color: TEXT_MUTED }}>
+          <Text className="text-center text-sm font-body" style={{ color: TEXT_MUTED }}>
             There are no users yet.
           </Text>
         </View>
@@ -446,7 +446,7 @@ export function ProfileConnectionsScreen({
       <View className="flex-1 bg-white">
         <ReviewDetailTopNav title={navTitle} />
         <View className="flex-1 items-center justify-center px-8">
-          <Text className="text-center text-base" style={{ color: TEXT_HEADING }}>
+          <Text className="text-center text-base font-body" style={{ color: TEXT_HEADING }}>
             {resolveError}
           </Text>
         </View>

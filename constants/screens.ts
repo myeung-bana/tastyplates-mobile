@@ -24,6 +24,10 @@ export const SCREEN_GET_STARTED = '/get-started' as const
 export const SCREEN_REGISTER = '/register' as const
 export const SCREEN_USER_VERIFICATION = '/user-verification' as const
 export const SCREEN_ONBOARDING = '/onboarding/step1' as const
+export const SCREEN_ONBOARDING_NAME = '/onboarding/step2' as const
+export const SCREEN_ONBOARDING_DISPLAY_NAME = '/onboarding/step3' as const
+export const SCREEN_ONBOARDING_CITIES = '/onboarding/step4' as const
+export const SCREEN_ONBOARDING_PALATE = '/onboarding/step5' as const
 export const SCREEN_FORGOT_PASSWORD = '/forgot-password' as const
 export const SCREEN_RESET_PASSWORD = '/reset-password' as const
 
@@ -118,6 +122,7 @@ export const SCREEN_LISTING_DRAFT = '/listing/draft' as const
 export const SCREEN_OWN_PROFILE = '/(tabs)/profile' as const
 export const SCREEN_EDIT_PROFILE = '/(tabs)/profile/edit' as const
 export const SCREEN_EDIT_PROFILE_PALATES = '/(tabs)/profile/edit-palates' as const
+export const SCREEN_EDIT_PROFILE_DISPLAY_NAME = '/(tabs)/profile/edit-display-name' as const
 export const SCREEN_PUBLIC_PROFILE = '/(tabs)/profile/[userId]' as const
 export const SCREEN_PUBLIC_PROFILE_CONNECTIONS =
   '/(tabs)/profile/[userId]/connections' as const

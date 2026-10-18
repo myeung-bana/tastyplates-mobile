@@ -79,7 +79,7 @@ export default function PublicProfileReviewsListScreen(): JSX.Element {
         <Stack.Screen options={{ headerShown: false }} />
         <ReviewDetailTopNav title="Reviews" />
         <View className="flex-1 items-center justify-center px-8">
-          <Text className="text-center text-base" style={{ color: TEXT_BODY }}>
+          <Text className="text-center text-base font-body" style={{ color: TEXT_BODY }}>
             {resolveError}
           </Text>
         </View>

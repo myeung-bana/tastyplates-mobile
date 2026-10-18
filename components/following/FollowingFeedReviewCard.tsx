@@ -10,6 +10,7 @@ import { resolveReviewAuthorAvatarUrl, resolveReviewAuthorLabel } from '@/lib/re
 import { reviewImageUris } from '@/lib/reviewDisplayUtils'
 import { formatLikeCount, formatRelativeTime } from '@/lib/utils'
 import type { FollowingFeedReviewRow } from '@/services/followingFeedService'
+import { bodyFont } from '@/constants/typography'
 
 const THUMB = 84
 
@@ -218,15 +219,15 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
   },
   headlineUsername: {
-    fontWeight: '700',
+    fontFamily: bodyFont('700'),
     color: TEXT_HEADING,
   },
   headlineVerb: {
-    fontWeight: '400',
+    fontFamily: bodyFont('400'),
     color: TEXT_MUTED,
   },
   headlineRestaurant: {
-    fontWeight: '700',
+    fontFamily: bodyFont('700'),
     color: TEXT_HEADING,
   },
   timeLabel: {
@@ -291,6 +292,6 @@ const styles = StyleSheet.create({
   actionCount: {
     fontSize: 13,
     color: TEXT_MUTED,
-    fontWeight: '500',
+    fontFamily: bodyFont('500'),
   },
 })

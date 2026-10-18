@@ -1,16 +1,33 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { ActivityIndicator, Pressable, Text, TextInput, View } from 'react-native'
+import {
+  ActivityIndicator,
+  AppState,
+  KeyboardAvoidingView,
+  Linking,
+  Platform,
+  Pressable,
+  Text,
+  View,
+} from 'react-native'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useNhostClient, useUserEmail } from '@nhost/react'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
-import { AuthHeroLayout } from '@/components/auth/AuthHeroLayout'
+import { AppIcon } from '@/components/ui/AppIcon'
+import { Button } from '@/components/ui/Button'
+import { TextField } from '@/components/ui/TextField'
 import {
+  BORDER_SUBTLE,
   BRAND_PRIMARY,
-  mergeTextInputBodyTypography,
+  BRAND_PRIMARY_DARK,
+  SURFACE_CARD,
   TEXT_HEADING,
   TEXT_MUTED,
+  TEXT_TERTIARY,
 } from '@/constants/brand'
 import { SCREEN_HOME, SCREEN_LOGIN } from '@/constants/screens'
+import { FONT } from '@/constants/typography'
+import { useAuthSheet } from '@/contexts/AuthSheetContext'
 import { useAuth } from '@/hooks/useAuth'
 import { useSession } from '@/hooks/useSession'
 import {
@@ -34,8 +51,11 @@ function normalizeEmail(value: string | null | undefined): string | null {
   return trimmed?.length ? trimmed : null
 }
 
+/** `/user-verification` (design G4). Resend has a 30 s cooldown; returning to the app re-checks. */
 export default function UserVerificationScreen() {
   const router = useRouter()
+  const insets = useSafeAreaInsets()
+  const { openAuthSheet } = useAuthSheet()
   const nhost = useNhostClient()
   const params = useLocalSearchParams<{ email?: string | string[] }>()
   const paramEmail = normalizeEmail(firstParam(params.email))
@@ -132,14 +152,14 @@ export default function UserVerificationScreen() {
         toast.error(result.error.message ?? 'Could not send email')
         return
       }
-      toast.success('Verification email sent')
+      toast.success('Verification link sent')
       setCooldown(RESEND_COOLDOWN_SECONDS)
     } finally {
       setSending(false)
     }
   }
 
-  const onRefreshedSession = async () => {
+  const onRefreshedSession = async (silent = false) => {
     setRefreshing(true)
     try {
       await nhost.auth.refreshSession()
@@ -156,8 +176,9 @@ export default function UserVerificationScreen() {
         await storePendingVerificationEmail(u.email)
         setPendingEmail(normalizeEmail(u.email))
       }
-      toast.info('Email is not verified yet. Check your inbox and spam folder.')
+      if (!silent) toast.info('Email is not verified yet. Check your inbox and spam folder.')
     } catch {
+      if (silent) return
       if (!isAuthenticated) {
         toast.info('Sign in with your email and password, then tap I\'ve verified again.')
       } else {
@@ -168,84 +189,102 @@ export default function UserVerificationScreen() {
     }
   }
 
-  const resendDisabled = sending || cooldown > 0
-  const resendLabel =
-    sending ? null : cooldown > 0 ? `Resend in ${cooldown}s` : 'Resend email'
+  // Coming back from the mail app: check whether the link was opened.
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active' && isAuthenticated) void onRefreshedSession(true)
+    })
+    return () => sub.remove()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated])
 
-  const subtitle = email
-    ? `We sent a verification link to ${email}. Open the link on this device, then tap "I've verified" below.`
-    : showEmailFallback
-      ? 'Enter the email you signed up with, then tap Resend email. After you open the link on this device, tap I\'ve verified.'
-      : `We sent a verification link to your email. Open the link on this device, then tap "I've verified" below.`
+  const openMailApp = async (): Promise<void> => {
+    const url = Platform.OS === 'ios' ? 'message://' : 'mailto:'
+    try {
+      await Linking.openURL(url)
+    } catch {
+      toast.info('Open your email app to find the link.')
+    }
+  }
+
+  const changeEmail = (): void => {
+    openAuthSheet({ mode: 'signup' })
+  }
 
   return (
-    <>
+    <View style={{ flex: 1, backgroundColor: SURFACE_CARD }}>
       <Stack.Screen options={{ headerShown: false }} />
-      <AuthHeroLayout title="Verify your email" subtitle={subtitle}>
-        {showEmailFallback ? (
-          <View className="mb-4">
-            <Text className="mb-1 text-sm font-medium" style={{ color: TEXT_HEADING }}>
-              Email address
-            </Text>
-            <TextInput
-              autoCapitalize="none"
-              autoComplete="email"
-              autoCorrect={false}
-              keyboardType="email-address"
-              placeholder="you@example.com"
-              placeholderTextColor={TEXT_MUTED}
-              value={manualEmail}
-              onChangeText={setManualEmail}
-              className="rounded-[10px] border border-[#797979] bg-white px-4 py-3 text-base text-gray-900"
-              style={mergeTextInputBodyTypography()}
-            />
-          </View>
-        ) : null}
-
-        <Pressable
-          accessibilityRole="button"
-          disabled={refreshing}
-          onPress={onRefreshedSession}
-          className="mb-4 items-center rounded-full py-4 active:opacity-90 disabled:opacity-50"
-          style={{ backgroundColor: BRAND_PRIMARY }}
-        >
-          {refreshing ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <Text className="text-base font-semibold text-white">I&apos;ve verified</Text>
-          )}
-        </Pressable>
-
-        <Pressable
-          accessibilityRole="button"
-          disabled={resendDisabled}
-          onPress={() => void onResend()}
-          className="mb-4 items-center rounded-full border border-gray-200 py-4 active:bg-gray-50 disabled:opacity-50"
-        >
-          {sending ? (
-            <ActivityIndicator color={BRAND_PRIMARY} />
-          ) : (
-            <Text className="text-base font-semibold" style={{ color: BRAND_PRIMARY }}>
-              {resendLabel}
-            </Text>
-          )}
-        </Pressable>
-
-        {showEmailFallback ? (
-          <Pressable
-            onPress={() => router.replace(SCREEN_LOGIN)}
-            className="mb-4 self-center py-2"
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
+        <View className="flex-1 items-center justify-center" style={{ paddingHorizontal: 32, gap: 16, paddingTop: insets.top }}>
+          <View
+            className="items-center justify-center"
+            style={{ width: 76, height: 76, borderRadius: 38, borderWidth: 2, borderColor: BORDER_SUBTLE }}
           >
-            <Text className="text-sm font-medium" style={{ color: BRAND_PRIMARY }}>
-              Sign in instead
+            <AppIcon name="mail" size={30} color={TEXT_HEADING} />
+          </View>
+          <Text accessibilityRole="header" className="text-center" style={{ fontFamily: FONT.heading, fontSize: 28, lineHeight: 34, color: TEXT_HEADING }}>
+            Check your email
+          </Text>
+          {email ? (
+            <Text className="text-center" style={{ fontFamily: FONT.body, fontSize: 15, lineHeight: 22, color: TEXT_MUTED }}>
+              We sent a verification link to{' '}
+              <Text style={{ fontFamily: FONT.bodySemibold, color: TEXT_HEADING }}>{email}</Text>. Open it on this phone
+              to continue.
+            </Text>
+          ) : (
+            <Text className="text-center" style={{ fontFamily: FONT.body, fontSize: 15, lineHeight: 22, color: TEXT_MUTED }}>
+              Enter the email you signed up with and we’ll send the link again.
+            </Text>
+          )}
+          {showEmailFallback ? (
+            <View style={{ alignSelf: 'stretch' }}>
+              <TextField
+                value={manualEmail}
+                onChangeText={setManualEmail}
+                placeholder="you@example.com"
+                autoCapitalize="none"
+                autoComplete="email"
+                autoCorrect={false}
+                keyboardType="email-address"
+                accessibilityLabel="Email address"
+              />
+            </View>
+          ) : null}
+          <Pressable accessibilityRole="button" onPress={changeEmail} hitSlop={8}>
+            <Text style={{ fontFamily: FONT.bodySemibold, fontSize: 14, color: BRAND_PRIMARY_DARK }}>
+              Wrong email? Change it
             </Text>
           </Pressable>
-        ) : null}
+          {refreshing ? <ActivityIndicator color={BRAND_PRIMARY} /> : null}
+        </View>
 
-        <Pressable onPress={() => router.replace(SCREEN_HOME)} className="self-center py-2">
-          <Text className="text-sm text-gray-500">Browse without verifying</Text>
-        </Pressable>
-      </AuthHeroLayout>
-    </>
+        <View className="px-6" style={{ gap: 10, paddingBottom: Math.max(insets.bottom, 16) + 24 }}>
+          <Button onPress={() => void openMailApp()}>Open mail app</Button>
+          {cooldown > 0 ? (
+            <Button variant="secondary" disabled accessibilityLabel={`Sent. Resend available in ${cooldown} seconds`}>
+              <Text style={{ fontFamily: FONT.heading, fontSize: 17, letterSpacing: 0.6, color: TEXT_TERTIARY }}>
+                Sent · resend in {cooldown}s
+              </Text>
+            </Button>
+          ) : (
+            <Button
+              variant="secondary"
+              loading={sending}
+              onPress={() => void onResend()}
+              style={{ borderColor: BRAND_PRIMARY }}
+            >
+              <Text style={{ fontFamily: FONT.heading, fontSize: 17, letterSpacing: 0.6, color: BRAND_PRIMARY_DARK }}>
+                Resend link
+              </Text>
+            </Button>
+          )}
+          <Pressable onPress={() => router.replace(showEmailFallback ? SCREEN_LOGIN : SCREEN_HOME)} className="items-center py-2">
+            <Text style={{ fontFamily: FONT.body, fontSize: 14, color: TEXT_TERTIARY }}>
+              {showEmailFallback ? 'Sign in instead' : 'Browse without verifying'}
+            </Text>
+          </Pressable>
+        </View>
+      </KeyboardAvoidingView>
+    </View>
   )
 }

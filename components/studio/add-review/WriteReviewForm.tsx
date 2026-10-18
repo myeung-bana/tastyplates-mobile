@@ -2,11 +2,15 @@ import { useCallback, useMemo, useRef, useState } from 'react'
 import {
   KeyboardAvoidingView,
   Platform,
+  Pressable,
   ScrollView,
   Text,
   TextInput,
   View,
 } from 'react-native'
+import { AppIcon } from '@/components/ui/AppIcon'
+import { FONT } from '@/constants/typography'
+import { openLegalPage } from '@/lib/legalLinks'
 import { ReviewRestaurantHeader } from '@/components/studio/add-review/ReviewRestaurantHeader'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { router } from 'expo-router'
@@ -21,7 +25,16 @@ import {
 } from '@/components/studio/add-review/WriteReviewExitSheet'
 import { WriteReviewFooter, getWriteReviewFooterHeight } from '@/components/studio/add-review/WriteReviewFooter'
 import { WriteReviewTopNav } from '@/components/studio/add-review/WriteReviewTopNav'
-import { BORDER_SUBTLE, mergeTextInputBodyTypography } from '@/constants/brand'
+import {
+  BORDER_SUBTLE,
+  BRAND_PRIMARY_DARK,
+  BRAND_PRIMARY_TINT,
+  DANGER,
+  TEXT_HEADING,
+  TEXT_MUTED,
+  TEXT_TERTIARY,
+  mergeTextInputBodyTypography,
+} from '@/constants/brand'
 import {
   commentDuplicateError,
   commentDuplicateWeekError,
@@ -37,6 +50,7 @@ import {
   savedAsDraft,
 } from '@/constants/messages'
 import {
+  imageMBLimit,
   maximumImage,
   minimumImage,
   reviewDescriptionMaxLimit,
@@ -64,15 +78,34 @@ type Props = {
   restaurant: WriteReviewRestaurant
   /** Called before create when listing must be created (create route only). */
   resolveRestaurantUuid?: () => Promise<string>
+  /** Google place not listed yet (design W4): shows the "New to Tastyplates" note. */
+  isNewPlace?: boolean
+}
+
+/** "a rating, review text and a photo" → natural list. */
+function joinMissing(items: string[]): string {
+  if (items.length <= 1) return items[0] ?? ''
+  return `${items.slice(0, -1).join(', ')} and ${items[items.length - 1]}`
+}
+
+function FieldLabel({ label, hint, count }: { label: string; hint: string; count?: string }): JSX.Element {
+  return (
+    <View className="flex-row items-baseline justify-between" style={{ marginBottom: 8 }}>
+      <Text style={{ fontFamily: FONT.bodySemibold, fontSize: 13, color: TEXT_HEADING }}>
+        {label} <Text style={{ fontFamily: FONT.body, color: TEXT_TERTIARY }}>· {hint}</Text>
+      </Text>
+      {count ? <Text style={{ fontFamily: FONT.body, fontSize: 12, color: TEXT_TERTIARY }}>{count}</Text> : null}
+    </View>
+  )
 }
 
 const inputBorder = {
   borderColor: BORDER_SUBTLE,
-  borderWidth: 1,
-  borderRadius: 16,
+  borderWidth: 1.5,
+  borderRadius: 12,
 } as const
 
-export function WriteReviewForm({ restaurant, resolveRestaurantUuid }: Props): JSX.Element {
+export function WriteReviewForm({ restaurant, resolveRestaurantUuid, isNewPlace = false }: Props): JSX.Element {
   const insets = useSafeAreaInsets()
   const user = useUserData()
   const uploadCtx = useUpload()
@@ -80,8 +113,6 @@ export function WriteReviewForm({ restaurant, resolveRestaurantUuid }: Props): J
 
   useHideTabBarWhileFocused()
 
-  const footerHeight = useMemo(() => getWriteReviewFooterHeight(insets), [insets.bottom])
-  const scrollBottomPad = footerHeight + 16
 
   const [rating, setRating] = useState(0)
   const [title, setTitle] = useState('')
@@ -113,6 +144,20 @@ export function WriteReviewForm({ restaurant, resolveRestaurantUuid }: Props): J
       recognitions.length > 0,
     [rating, title, body, previewUris.length, recognitions.length],
   )
+
+  const missing = useMemo(
+    () =>
+      [!rating && 'a rating', !body.trim() && 'review text', previewUris.length === 0 && 'a photo'].filter(
+        (x): x is string => Boolean(x),
+      ),
+    [rating, body, previewUris.length],
+  )
+  const missingMessage = missing.length ? `To publish, add ${joinMissing(missing)}.` : null
+  const footerHeight = useMemo(
+    () => getWriteReviewFooterHeight(insets, Boolean(missingMessage)),
+    [insets, missingMessage],
+  )
+  const scrollBottomPad = footerHeight + 16
 
   const toggleRecognition = useCallback((name: string) => {
     setRecognitions((prev) =>
@@ -197,6 +242,7 @@ export function WriteReviewForm({ restaurant, resolveRestaurantUuid }: Props): J
         } else {
           toast.success(reviewPublishedSuccess)
         }
+        // Publish and draft both land on Manage Reviews (design W5), not the success screen.
         router.replace(SCREEN_STUDIO_REVIEW_LISTING)
       } catch (e) {
         uploadCtx.resetUpload()
@@ -257,77 +303,113 @@ export function WriteReviewForm({ restaurant, resolveRestaurantUuid }: Props): J
         >
           <ReviewRestaurantHeader restaurant={restaurant} />
 
-          <ReviewPhotoGrid
-            previewUris={previewUris}
-            pending={pendingPhotos}
-            onChange={(previews, pending) => {
-              setPreviewUris(previews)
-              setPendingPhotos(pending)
-              setPhotoError('')
-            }}
-            error={photoError}
-          />
+          {isNewPlace ? (
+            <View
+              className="flex-row"
+              style={{
+                marginHorizontal: 16,
+                marginBottom: 16,
+                gap: 10,
+                padding: 12,
+                borderRadius: 12,
+                borderWidth: 1,
+                borderColor: '#FFE2C7',
+                backgroundColor: BRAND_PRIMARY_TINT,
+              }}
+            >
+              <AppIcon name="info" size={16} color={BRAND_PRIMARY_DARK} style={{ marginTop: 1 }} />
+              <View style={{ flex: 1, gap: 2 }}>
+                <Text style={{ fontFamily: FONT.bodySemibold, fontSize: 13, color: TEXT_HEADING }}>New to Tastyplates</Text>
+                <Text style={{ fontFamily: FONT.body, fontSize: 12, lineHeight: 17, color: TEXT_MUTED }}>
+                  This place is added to Tastyplates when you publish or save a draft — not before.
+                </Text>
+              </View>
+            </View>
+          ) : null}
 
-          <HalfStarRating value={rating} onChange={setRating} error={ratingError} />
+          <View className="px-4 pb-5">
+            <FieldLabel label="Rating" hint="required to publish" count={rating ? (rating / 2).toFixed(1) : undefined} />
+            <HalfStarRating value={rating} onChange={setRating} error={ratingError} />
+          </View>
 
-          <View className="px-4 pb-4">
-            <Text className="mb-2 font-neusans text-sm text-[#374151]">Review Title</Text>
+          <View className="px-4 pb-5">
+            <FieldLabel label="Title" hint="optional" count={`${title.length}/${reviewTitleMaxLimit}`} />
             <TextInput
               value={title}
               onChangeText={setTitle}
-              placeholder="Start with a review title..."
-              placeholderTextColor="#797979"
+              placeholder="Sum it up in a line"
+              placeholderTextColor={TEXT_TERTIARY}
               maxLength={reviewTitleMaxLimit}
-              multiline
-              numberOfLines={2}
-              textAlignVertical="top"
-              className="px-4 py-3 font-neusans text-base text-[#31343F]"
-              style={mergeTextInputBodyTypography({ fontSize: 16, ...inputBorder })}
+              accessibilityLabel="Review title"
+              style={mergeTextInputBodyTypography({ fontSize: 16, color: TEXT_HEADING, paddingHorizontal: 16, paddingVertical: 14, ...inputBorder })}
             />
-            <Text
-              className={`mt-1 text-right font-neusans text-xs ${title.length > 40 ? 'text-red-500' : 'text-gray-500'}`}
-            >
-              {title.length}/{reviewTitleMaxLimit}
-            </Text>
             {titleError ? (
-              <Text className="mt-1 font-neusans text-xs text-red-600">{titleError}</Text>
+              <Text style={{ marginTop: 6, fontFamily: FONT.body, fontSize: 12, color: DANGER }}>{titleError}</Text>
             ) : null}
           </View>
 
-          <View className="px-4 pb-4">
-            <Text className="mb-2 font-neusans text-sm text-[#374151]">
-              Tell us about your experience
-            </Text>
+          <View className="px-4 pb-5">
+            <FieldLabel label="Review" hint="required to publish" count={`${body.length}/${reviewDescriptionMaxLimit}`} />
             <TextInput
               value={body}
               onChangeText={setBody}
-              placeholder="Write a review about the food, service or ambiance of the restaurant"
-              placeholderTextColor="#797979"
+              placeholder="The food, the service, the room — what should people know?"
+              placeholderTextColor={TEXT_TERTIARY}
               maxLength={reviewDescriptionMaxLimit}
               multiline
               textAlignVertical="top"
-              className="min-h-[120px] px-4 py-3 font-neusans text-base text-[#31343F]"
-              style={mergeTextInputBodyTypography({ fontSize: 16, minHeight: 120, ...inputBorder })}
+              accessibilityLabel="Review text"
+              style={mergeTextInputBodyTypography({ fontSize: 16, color: TEXT_HEADING, minHeight: 140, paddingHorizontal: 16, paddingVertical: 14, ...inputBorder })}
             />
-            <Text
-              className={`mt-1 text-right font-neusans text-xs ${body.length > 1000 ? 'text-red-500' : 'text-gray-500'}`}
-            >
-              {body.length}/{reviewDescriptionMaxLimit}
-            </Text>
             {bodyError ? (
-              <Text className="mt-1 font-neusans text-xs text-red-600">{bodyError}</Text>
+              <Text style={{ marginTop: 6, fontFamily: FONT.body, fontSize: 12, color: DANGER }}>{bodyError}</Text>
             ) : null}
+            <Pressable
+              accessibilityRole="link"
+              onPress={() => void openLegalPage('content-guidelines')}
+              hitSlop={6}
+              style={{ alignSelf: 'flex-start', marginTop: 8 }}
+            >
+              <Text style={{ fontFamily: FONT.bodySemibold, fontSize: 13, color: BRAND_PRIMARY_DARK }}>Writing Guidelines</Text>
+            </Pressable>
           </View>
 
-          <RecognitionTags selected={recognitions} onToggle={toggleRecognition} />
+          <View className="pb-2">
+            <View className="px-4">
+              <FieldLabel label="Photos" hint="required to publish" count={`${previewUris.length}/${maximumImage}`} />
+            </View>
+            <ReviewPhotoGrid
+              previewUris={previewUris}
+              pending={pendingPhotos}
+              onChange={(previews, pending) => {
+                setPreviewUris(previews)
+                setPendingPhotos(pending)
+                setPhotoError('')
+              }}
+              error={photoError}
+            />
+            <Text style={{ paddingHorizontal: 16, fontFamily: FONT.body, fontSize: 12, color: TEXT_TERTIARY }}>
+              {minimumImage}–{maximumImage} photos · {imageMBLimit} MB each
+            </Text>
+          </View>
+
+          <View className="pt-4">
+            <View className="px-4">
+              <FieldLabel label="Recognition" hint="optional" />
+            </View>
+            <RecognitionTags selected={recognitions} onToggle={toggleRecognition} />
+          </View>
         </ScrollView>
       </KeyboardAvoidingView>
 
       <WriteReviewFooter
         onPublish={() => void submit('approved')}
+        onSaveDraft={() => void submit('draft')}
         publishing={publishing}
         savingDraft={savingDraft}
         insets={insets}
+        disabled={missing.length > 0}
+        missingMessage={missingMessage}
       />
 
       <WriteReviewExitSheet

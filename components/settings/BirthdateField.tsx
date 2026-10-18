@@ -61,7 +61,7 @@ export function BirthdateField({
         }}
       >
         <Text
-          className="flex-1 font-neusans text-base"
+          className="flex-1 text-base font-body"
           style={mergeTextInputBodyTypography({
             color: placeholder ? TEXT_MUTED : TEXT_HEADING,
           })}
@@ -81,7 +81,7 @@ export function BirthdateField({
           }}
           className="mt-2 self-start py-1 active:opacity-70"
         >
-          <Text className="text-sm font-neusans underline" style={{ color: TEXT_MUTED }}>
+          <Text className="text-sm underline font-body" style={{ color: TEXT_MUTED }}>
             Clear
           </Text>
         </Pressable>
@@ -102,7 +102,7 @@ export function BirthdateField({
               className="items-center border-t py-3 active:bg-orange-50/60"
               style={{ borderColor: BORDER_SUBTLE }}
             >
-              <Text className="text-base font-semibold font-neusans" style={{ color: TEXT_HEADING }}>
+              <Text className="text-base font-body-semibold" style={{ color: TEXT_HEADING }}>
                 Done
               </Text>
             </Pressable>

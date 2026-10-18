@@ -1,7 +1,8 @@
 import { Image, Pressable, Text, View } from 'react-native'
 import { ProfileAvatarImage } from '@/components/profile/ProfileAvatarImage'
 import { RatingDisplay } from '@/components/ui/RatingDisplay'
-import { BORDER_SUBTLE, TEXT_BODY, TEXT_HEADING, TEXT_MUTED } from '@/constants/brand'
+import { BORDER_SUBTLE, SURFACE_FOG, TEXT_HEADING, TEXT_MUTED } from '@/constants/brand'
+import { FONT } from '@/constants/typography'
 import { useModeration } from '@/contexts/ModerationContext'
 import { stripHtml } from '@/lib/restaurantDetailUtils'
 import { resolveReviewAuthorAvatarUrl, resolveReviewAuthorLabel } from '@/lib/reviewAuthorDisplay'
@@ -26,6 +27,8 @@ export interface HomeReviewCardProps {
   readOnly?: boolean
   /** Muted timestamp below author row (e.g. Google `relative_time_description`). */
   timeLabel?: string
+  /** Hashtag chips under the excerpt (off on Home, per design H1). */
+  showTags?: boolean
 }
 
 /**
@@ -38,6 +41,7 @@ export function HomeReviewCard({
   onPressAuthor,
   readOnly = false,
   timeLabel,
+  showTags = false,
 }: HomeReviewCardProps) {
   const avatarUrl = resolveReviewAuthorAvatarUrl(review.AuthorProfile)
   const cover = firstReviewImageUri(review.images, DEFAULT_COVER)
@@ -45,6 +49,7 @@ export function HomeReviewCard({
   const bodyRaw = capitalizeWords(stripHtml(review.content ?? '').trim())
   const tags = reviewHashtagLabels(review.hashtags, 3)
   const name = resolveReviewAuthorLabel(review.AuthorProfile)
+  const restaurantName = review.restaurant?.title?.trim() ?? ''
   const { openContentActions, canModerate } = useModeration()
   const openActions = canModerate(review.author_id)
     ? () =>
@@ -58,8 +63,8 @@ export function HomeReviewCard({
 
   const imageBlock = (
     <View
-      className="mb-2 overflow-hidden rounded-2xl bg-gray-100"
-      style={{ aspectRatio: 4.5 / 6, width }}
+      className="overflow-hidden"
+      style={{ aspectRatio: 0.71, width, borderRadius: 16, backgroundColor: SURFACE_FOG, marginBottom: 6 }}
     >
       <Image
         accessibilityIgnoresInvertColors
@@ -71,21 +76,21 @@ export function HomeReviewCard({
   )
 
   const authorRow = (
-    <View className="mb-1 flex-row items-center gap-2">
+    <View className="flex-row items-center" style={{ gap: 6, marginBottom: 6 }}>
       {readOnly ? (
-        <ProfileAvatarImage size={28} avatarUrl={avatarUrl} className="bg-gray-200" />
+        <ProfileAvatarImage size={20} avatarUrl={avatarUrl} className="bg-gray-200" />
       ) : (
         <Pressable onPress={onPressAuthor} hitSlop={8} accessibilityRole="button">
-          <ProfileAvatarImage size={28} avatarUrl={avatarUrl} className="bg-gray-200" />
+          <ProfileAvatarImage size={20} avatarUrl={avatarUrl} className="bg-gray-200" />
         </Pressable>
       )}
       {readOnly ? (
-        <Text className="min-w-0 flex-1 text-[12px] font-medium" style={{ color: TEXT_HEADING }} numberOfLines={1}>
+        <Text className="min-w-0 flex-1" style={{ fontFamily: FONT.body, fontSize: 12, color: TEXT_HEADING }} numberOfLines={1}>
           {name}
         </Text>
       ) : (
         <Pressable onPress={onPressAuthor} className="min-w-0 flex-1" hitSlop={4}>
-          <Text className="text-[12px] font-medium" style={{ color: TEXT_HEADING }} numberOfLines={1}>
+          <Text style={{ fontFamily: FONT.body, fontSize: 12, color: TEXT_HEADING }} numberOfLines={1}>
             {name}
           </Text>
         </Pressable>
@@ -115,30 +120,31 @@ export function HomeReviewCard({
         {authorRow}
 
         {timeLabel ? (
-          <Text className="mb-1 text-[11px] font-normal" style={{ color: TEXT_MUTED }} numberOfLines={1}>
+          <Text className="mb-1 text-[11px] font-body" style={{ color: TEXT_MUTED }} numberOfLines={1}>
             {timeLabel}
           </Text>
         ) : null}
 
-        {title ? (
-          <Text className="mb-0.5 text-[12px] font-normal" style={{ color: TEXT_HEADING }} numberOfLines={1}>
-            {title}
+        {/* Restaurant name, then the review excerpt (design H1). Older payloads fall back to the title. */}
+        {restaurantName || title ? (
+          <Text style={{ fontFamily: FONT.headingMedium, fontSize: 13, lineHeight: 16, color: TEXT_HEADING, marginBottom: 4 }} numberOfLines={1}>
+            {restaurantName || title}
           </Text>
         ) : null}
 
-        <Text className="text-[12px] font-normal leading-[1.4]" style={{ color: TEXT_BODY }} numberOfLines={2}>
-          {bodyRaw || ' '}
+        <Text style={{ fontFamily: FONT.body, fontSize: 12, lineHeight: 17, color: TEXT_MUTED }} numberOfLines={2}>
+          {(restaurantName && title ? title : bodyRaw) || ' '}
         </Text>
 
-        {tags.length > 0 ? (
+        {showTags && tags.length > 0 ? (
           <View className="mt-1.5 flex-row flex-wrap gap-1">
             {tags.map((t) => (
               <View
                 key={t}
                 className="rounded-full border px-2 py-0.5"
-                style={{ borderColor: BORDER_SUBTLE, backgroundColor: '#fafafa' }}
+                style={{ borderColor: BORDER_SUBTLE, backgroundColor: SURFACE_FOG }}
               >
-                <Text className="text-[11px]" style={{ color: TEXT_MUTED }}>
+                <Text className="text-[11px] font-body" style={{ color: TEXT_MUTED }}>
                   #{t}
                 </Text>
               </View>

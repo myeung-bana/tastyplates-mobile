@@ -24,6 +24,7 @@ import { UploadProvider } from '@/contexts/UploadContext'
 import { UploadProgressBar } from '@/components/ui/UploadProgressBar'
 import { ToastHost } from '@/components/ui/ToastHost'
 import { BRAND_PRIMARY, TEXT_HEADING, TEXT_MUTED } from '@/constants/brand'
+import { FONT_ASSETS } from '@/constants/typography'
 import { nhost } from '@/lib/nhost'
 import { initSentry, Sentry, sentryEnabled } from '@/lib/sentry'
 import '../global.css'
@@ -35,8 +36,7 @@ WebBrowser.maybeCompleteAuthSession()
 SplashScreen.preventAutoHideAsync()
 
 function RootLayout() {
-  // Neusans: loaded via @font-face in global.css on web; native uses system fallback until .ttf assets are added.
-  const [fontsLoaded, fontError] = useFonts({})
+  const [fontsLoaded, fontError] = useFonts(FONT_ASSETS)
 
   const apolloClient = useMemo(() => createNhostApolloClient({ nhost }), [])
 
@@ -88,10 +88,10 @@ export function ErrorBoundary({ error, retry }: ErrorBoundaryProps): JSX.Element
 
   return (
     <View className="flex-1 items-center justify-center bg-white px-8">
-      <Text className="mb-2 text-center text-lg font-neusans" style={{ color: TEXT_HEADING }}>
+      <Text className="mb-2 text-center text-lg font-body" style={{ color: TEXT_HEADING }}>
         Something went wrong
       </Text>
-      <Text className="mb-6 text-center text-sm font-neusans" style={{ color: TEXT_MUTED }}>
+      <Text className="mb-6 text-center text-sm font-body" style={{ color: TEXT_MUTED }}>
         We have been notified and are looking into it.
       </Text>
       <Pressable
@@ -100,7 +100,7 @@ export function ErrorBoundary({ error, retry }: ErrorBoundaryProps): JSX.Element
         className="rounded-full px-6 py-3 active:opacity-90"
         style={{ backgroundColor: BRAND_PRIMARY }}
       >
-        <Text className="text-base font-semibold text-white">Try again</Text>
+        <Text className="text-base text-white font-body-semibold">Try again</Text>
       </Pressable>
     </View>
   )

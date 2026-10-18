@@ -24,7 +24,7 @@ export function ManageListCreateRow(): JSX.Element {
       </View>
 
       <View className="min-w-0 flex-1" style={{ gap: 2 }}>
-        <Text className="font-neusans text-[15px] font-medium text-[#31343F]" numberOfLines={1}>
+        <Text className="text-[15px] text-[#31343F] font-body-medium" numberOfLines={1}>
           Create Restaurant List
         </Text>
       </View>

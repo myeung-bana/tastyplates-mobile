@@ -10,15 +10,23 @@ import {
 
 export type ToastType = 'success' | 'error' | 'info' | 'warning'
 
+export interface ToastAction {
+  label: string
+  onPress: () => void
+}
+
 export interface ToastOptions {
   type?: ToastType
   duration?: number
+  /** Trailing link, e.g. "View" → My Lists (design M2). */
+  action?: ToastAction
 }
 
 export interface ToastPayload {
   message: string
   type: ToastType
   duration: number
+  action?: ToastAction
 }
 
 type ToastSubscriber = (payload: ToastPayload | null) => void
@@ -39,19 +47,28 @@ function emit(payload: ToastPayload | null): void {
 
 /** Show a toast message. Only one toast is visible at a time. */
 export function showToast(message: string, options: ToastOptions = {}): void {
-  const { type = 'info', duration = TOAST_DEFAULT_DURATION } = options
+  const { type = 'info', duration = TOAST_DEFAULT_DURATION, action } = options
 
   if (hideTimer) {
     clearTimeout(hideTimer)
     hideTimer = null
   }
 
-  emit({ message, type, duration })
+  emit({ message, type, duration, action })
 
   hideTimer = setTimeout(() => {
     emit(null)
     hideTimer = null
   }, duration)
+}
+
+/** Dismiss the current toast now (e.g. after its action was tapped). */
+export function hideToast(): void {
+  if (hideTimer) {
+    clearTimeout(hideTimer)
+    hideTimer = null
+  }
+  emit(null)
 }
 
 export const toast = {
@@ -66,4 +83,8 @@ export const toast = {
 
   warning: (message: string, duration = TOAST_DEFAULT_DURATION) =>
     showToast(message, { type: 'warning', duration }),
+
+  /** Info toast with a trailing action link. */
+  action: (message: string, action: ToastAction, duration = 4000) =>
+    showToast(message, { type: 'info', duration, action }),
 }

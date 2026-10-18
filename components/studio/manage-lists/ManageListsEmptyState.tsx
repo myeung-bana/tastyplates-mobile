@@ -44,12 +44,12 @@ export function ManageListsEmptyState({ tab, noListsAtAll = false }: Props): JSX
   return (
     <View className="flex-1 items-center justify-center px-8 py-16">
       <View className="mb-4 h-16 w-16 items-center justify-center rounded-full bg-orange-50">
-        <AppIcon name="image" size={28} color="#ff7c0a" />
+        <AppIcon name="image" size={28} color="#FF7C09" />
       </View>
-      <Text className="mb-2 text-center font-neusans text-lg font-medium text-gray-900">
+      <Text className="mb-2 text-center text-lg text-gray-900 font-body-medium">
         {title}
       </Text>
-      <Text className="mb-6 text-center font-neusans text-sm text-gray-500">
+      <Text className="mb-6 text-center text-sm text-gray-500 font-body">
         {subtitle}
       </Text>
       <Button

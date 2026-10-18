@@ -29,6 +29,7 @@ import {
   mapArticleAssociationsToFeatured,
   type ArticleDetail,
 } from '@/services/articleDetailService'
+import { bodyFont } from '@/constants/typography'
 
 const DEFAULT_HERO =
   'https://images.unsplash.com/photo-1493770348161-369fae157b4b?w=1200&q=80'
@@ -107,21 +108,21 @@ export default function ArticleDetailScreen() {
       h1: {
         color: TEXT_HEADING,
         fontSize: 22,
-        fontWeight: '600' as const,
+        fontFamily: bodyFont('600'),
         marginBottom: 12,
         marginTop: 8,
       },
       h2: {
         color: TEXT_HEADING,
         fontSize: 20,
-        fontWeight: '600' as const,
+        fontFamily: bodyFont('600'),
         marginBottom: 10,
         marginTop: 16,
       },
       h3: {
         color: TEXT_HEADING,
         fontSize: 18,
-        fontWeight: '600' as const,
+        fontFamily: bodyFont('600'),
         marginBottom: 8,
         marginTop: 12,
       },
@@ -195,12 +196,12 @@ export default function ArticleDetailScreen() {
         </View>
       ) : error ? (
         <View className="flex-1 items-center justify-center px-8">
-          <Text className="text-center text-base leading-relaxed" style={{ color: TEXT_MUTED }}>
+          <Text className="text-center text-base leading-relaxed font-body" style={{ color: TEXT_MUTED }}>
             {error}
           </Text>
           {marketingOrigin ? (
             <Text
-              className="mt-4 text-center text-sm underline"
+              className="mt-4 text-center text-sm underline font-body"
               style={{ color: BRAND_PRIMARY }}
               onPress={openWebFromSegment}
             >
@@ -228,12 +229,12 @@ export default function ArticleDetailScreen() {
           <View className="border-b px-5 py-5" style={{ borderBottomColor: BORDER_SUBTLE }}>
             <ArticleCategoryTag category={article.category} className="mb-2 self-start" />
             <Text
-              className="text-2xl font-semibold leading-tight"
+              className="text-2xl leading-tight font-heading"
               style={{ color: TEXT_HEADING }}
             >
               {article.title}
             </Text>
-            <Text className="mt-2 text-sm" style={{ color: TEXT_MUTED }}>
+            <Text className="mt-2 text-sm font-body" style={{ color: TEXT_MUTED }}>
               {article.reading_time_minutes != null
                 ? `${article.reading_time_minutes} min read`
                 : ''}
@@ -267,7 +268,7 @@ export default function ArticleDetailScreen() {
           {marketingOrigin ? (
             <View className="mt-2 items-center px-5 pb-6">
               <Text
-                className="text-sm underline"
+                className="text-sm underline font-body"
                 style={{ color: TEXT_MUTED }}
                 onPress={openOnWeb}
               >

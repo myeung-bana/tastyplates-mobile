@@ -23,6 +23,7 @@ import { ReplySkeleton } from '@/components/ui/Skeleton/ReplySkeleton'
 import { AppIcon } from '@/components/ui/AppIcon'
 import { BRAND_PRIMARY, TEXT_HEADING, TEXT_MUTED } from '@/constants/brand'
 import type { UseReviewCommentsResult } from '@/hooks/useReviewComments'
+import { FONT, bodyFont } from '@/constants/typography'
 
 export type ReviewCommentsSheetHandle = {
   present: (options?: { focusComposer?: boolean }) => void
@@ -137,11 +138,11 @@ export const ReviewCommentsSheet = forwardRef<ReviewCommentsSheetHandle, ReviewC
         ) : error && replies.length === 0 ? (
           <View style={{ padding: 16, alignItems: 'center' }}>
             {listHeader}
-            <Text style={{ fontFamily: 'Neusans', color: TEXT_MUTED, textAlign: 'center', marginTop: 24 }}>
+            <Text style={{ fontFamily: FONT.body, color: TEXT_MUTED, textAlign: 'center', marginTop: 24 }}>
               {error}
             </Text>
             <Pressable onPress={() => void loadReplies()} style={{ marginTop: 12 }}>
-              <Text style={{ fontFamily: 'Neusans', color: BRAND_PRIMARY }}>Retry</Text>
+              <Text style={{ fontFamily: FONT.body, color: BRAND_PRIMARY }}>Retry</Text>
             </Pressable>
           </View>
         ) : (
@@ -156,10 +157,10 @@ export const ReviewCommentsSheet = forwardRef<ReviewCommentsSheetHandle, ReviewC
             ListEmptyComponent={
               !loading ? (
                 <View style={{ alignItems: 'center', paddingVertical: 48 }}>
-                  <Text style={{ fontFamily: 'Neusans', fontSize: 16, fontWeight: '500', color: '#374151' }}>
+                  <Text style={{  fontSize: 16, fontFamily: bodyFont('500'), color: '#374151' }}>
                     No Comments Yet
                   </Text>
-                  <Text style={{ fontFamily: 'Neusans', fontSize: 14, color: '#6b7280', marginTop: 4 }}>
+                  <Text style={{ fontFamily: FONT.body, fontSize: 14, color: '#6b7280', marginTop: 4 }}>
                     Be the first to comment!
                   </Text>
                 </View>
@@ -194,9 +195,9 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   sheetTitle: {
-    fontFamily: 'Neusans',
+    
     fontSize: 18,
-    fontWeight: '600',
+    fontFamily: bodyFont('600'),
     color: TEXT_HEADING,
   },
   closeButton: {

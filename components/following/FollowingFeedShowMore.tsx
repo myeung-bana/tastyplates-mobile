@@ -29,7 +29,7 @@ export function FollowingFeedShowMore({ label, loading = false, onPress }: Props
         {loading ? (
           <ActivityIndicator color={BRAND_PRIMARY} />
         ) : (
-          <Text className="font-neusans text-sm font-semibold" style={{ color: TEXT_HEADING }}>
+          <Text className="text-sm font-body-semibold" style={{ color: TEXT_HEADING }}>
             {label}
           </Text>
         )}

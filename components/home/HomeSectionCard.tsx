@@ -1,43 +1,47 @@
 import type { ReactNode } from 'react'
-import { View } from 'react-native'
+import { Pressable, Text, View } from 'react-native'
 
 import { SectionTitle } from '@/components/layout/SectionTitle'
+import { TEXT_MUTED } from '@/constants/brand'
+import { FONT } from '@/constants/typography'
 
 type Props = {
   title: string
   children: ReactNode
-  /** Optional trailing control (e.g. “See all”). */
+  /** Optional trailing control (e.g. “See all”). Prefer {@link onSeeAll}. */
   headerRight?: ReactNode
+  /** Renders a “See all” link on the right of the title. */
+  onSeeAll?: () => void
   className?: string
-  /** @default true */
+  /** @deprecated Kept for call-site compatibility; sections are flat in brand v1.0. */
   shadowed?: boolean
-  /** Inner card padding (`p-3`). @default true */
+  /** @deprecated Kept for call-site compatibility. */
   padded?: boolean
   /** Let children extend past the right screen edge (keeps left aligned with the title). */
   contentBleed?: boolean
 }
 
-/** Shared home section shell — matches Quick finds card + title style. */
+/** Home section (design H1): Jost title + optional "See all", 20px gutters, no card chrome. */
 export function HomeSectionCard({
   title,
   children,
   headerRight,
+  onSeeAll,
   className,
-  shadowed = true,
-  padded = true,
   contentBleed = false,
 }: Props): JSX.Element {
   return (
-    <View className={`mt-6 w-full px-4 ${className ?? ''}`}>
-      <View
-        className={`rounded-2xl bg-white ${padded ? 'p-3' : ''} ${shadowed ? 'shadow-sm shadow-black/5' : ''}`}
-      >
-        <View className="flex-row items-center justify-between gap-2">
-          <SectionTitle>{title}</SectionTitle>
-          {headerRight ?? null}
-        </View>
-        <View className={contentBleed ? 'mt-3 -mr-4' : 'mt-3'}>{children}</View>
+    <View className={`w-full ${className ?? ''}`} style={{ marginTop: 24 }}>
+      <View className="flex-row items-baseline justify-between" style={{ paddingHorizontal: 20, gap: 8 }}>
+        <SectionTitle>{title}</SectionTitle>
+        {headerRight ??
+          (onSeeAll ? (
+            <Pressable accessibilityRole="button" accessibilityLabel={`See all ${title}`} onPress={onSeeAll} hitSlop={8}>
+              <Text style={{ fontFamily: FONT.body, fontSize: 13, color: TEXT_MUTED }}>See all</Text>
+            </Pressable>
+          ) : null)}
       </View>
+      <View style={{ marginTop: 12, paddingLeft: 20, paddingRight: contentBleed ? 0 : 20 }}>{children}</View>
     </View>
   )
 }

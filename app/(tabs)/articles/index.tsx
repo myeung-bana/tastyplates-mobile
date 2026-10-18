@@ -99,7 +99,7 @@ export default function ArticlesListScreen(): JSX.Element {
         </View>
       ) : error && articles.length === 0 ? (
         <View className="flex-1 items-center justify-center px-8 py-16">
-          <Text className="text-center text-base" style={{ color: TEXT_MUTED }}>
+          <Text className="text-center text-base font-body" style={{ color: TEXT_MUTED }}>
             {error}
           </Text>
         </View>

@@ -2,57 +2,57 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   ActivityIndicator,
   Alert,
-  Image,
   KeyboardAvoidingView,
   Platform,
   Pressable,
   ScrollView,
   Text,
-  TextInput,
   View,
 } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Redirect, useRouter } from 'expo-router'
 import { useNhostClient } from '@nhost/react'
 import * as Haptics from 'expo-haptics'
-import { AppIcon } from '@/components/ui/AppIcon'
 
-import { EditProfileLocationField } from '@/components/profile/EditProfileLocationField'
+import { CityPickerField } from '@/components/onboarding/CityPickerField'
 import { EditProfilePalateSummary } from '@/components/profile/EditProfilePalateSummary'
 import { EditProfileTopNav } from '@/components/profile/EditProfileTopNav'
-import { ProfileAvatarImage } from '@/components/profile/ProfileAvatarImage'
 import { ProfileCityPickerOverlay } from '@/components/profile/ProfileCityPickerOverlay'
+import { AppIcon } from '@/components/ui/AppIcon'
+import { TextField } from '@/components/ui/TextField'
 import {
   BORDER_SUBTLE,
   BRAND_PRIMARY,
-  TEXT_BODY,
+  SURFACE_CARD,
+  SURFACE_FOG,
   TEXT_HEADING,
   TEXT_MUTED,
-  mergeTextInputBodyTypography,
+  TEXT_TERTIARY,
 } from '@/constants/brand'
 import {
   maximumBioLength,
   palateExactLimitMessage,
   profileUpdateFailed,
 } from '@/constants/messages'
-import { useEditProfileDraft } from '@/contexts/EditProfileDraftContext'
-import { SCREEN_EDIT_PROFILE_PALATES, SCREEN_LOGIN } from '@/constants/screens'
+import { useEditProfileDraft, type DisplayNameDraft } from '@/contexts/EditProfileDraftContext'
+import {
+  SCREEN_EDIT_PROFILE_DISPLAY_NAME,
+  SCREEN_EDIT_PROFILE_PALATES,
+  SCREEN_LOGIN,
+} from '@/constants/screens'
+import { FONT } from '@/constants/typography'
 import { aboutMeMaxLimit, palateLimit } from '@/constants/validation'
 import { useAuth } from '@/hooks/useAuth'
 import { invalidateOwnRestaurantUserCache } from '@/hooks/useOwnProfilePresentation'
+import { buildDisplayName, detectDisplayNameVariant, DISPLAY_NAME_VARIANTS } from '@/lib/displayNameOptions'
 import type { ProfileCitySelection } from '@/lib/googlePlaces'
-import { pickProfilePhoto } from '@/lib/pickProfilePhoto'
 import { palateKeysFromProfile } from '@/lib/profilePalateKeys'
 import {
   fetchRestaurantUserById,
-  normalizeLegacyProfileAvatar,
   updateRestaurantUserProfile,
   type UserProfileLocationSnapshot,
 } from '@/services/restaurantUserService'
-import { uploadPickedImage } from '@/lib/uploadPickedImage'
 import { toast } from '@/utils/toast'
-
-const AVATAR_SIZE = 112
 
 type LocationPickerTarget = 'current' | 'hometown'
 
@@ -67,10 +67,34 @@ type ProfileLocationFormValue = {
 type FormSnapshot = {
   aboutMe: string
   palateKeys: string[]
-  avatarPreview: string | null
-  pendingPhotoUri: string | null
+  name: DisplayNameDraft
   currentLocation: ProfileLocationFormValue | null
   hometownLocation: ProfileLocationFormValue | null
+}
+
+/** Field names for the discard prompt (design P7): "Your edits to bio and hometown…". */
+function changedFieldLabels(a: FormSnapshot, b: FormSnapshot): string[] {
+  const out: string[] = []
+  if (a.aboutMe.trim() !== b.aboutMe.trim()) out.push('bio')
+  if (JSON.stringify(a.name) !== JSON.stringify(b.name)) out.push('display name')
+  if (locationFormKey(a.currentLocation) !== locationFormKey(b.currentLocation)) out.push('current city')
+  if (locationFormKey(a.hometownLocation) !== locationFormKey(b.hometownLocation)) out.push('hometown')
+  if ([...a.palateKeys].sort().join() !== [...b.palateKeys].sort().join()) out.push('palates')
+  return out
+}
+
+function joinLabels(items: string[]): string {
+  if (items.length <= 1) return items[0] ?? 'your profile'
+  return `${items.slice(0, -1).join(', ')} and ${items[items.length - 1]}`
+}
+
+/** Older accounts have only a display name — split it to seed first / last. */
+function seedNames(first: string | null | undefined, last: string | null | undefined, display: string | null | undefined) {
+  const f = first?.trim() ?? ''
+  const l = last?.trim() ?? ''
+  if (f || l) return { firstName: f, lastName: l }
+  const parts = (display ?? '').trim().split(/\s+/).filter(Boolean)
+  return { firstName: parts[0] ?? '', lastName: parts.slice(1).join(' ') }
 }
 
 function locationFormKey(loc: ProfileLocationFormValue | null): string {
@@ -88,7 +112,7 @@ function snapshotKey(s: FormSnapshot): string {
   return JSON.stringify({
     aboutMe: s.aboutMe.trim(),
     palates: [...s.palateKeys].sort(),
-    avatar: s.pendingPhotoUri ?? s.avatarPreview ?? '',
+    name: s.name,
     current: locationFormKey(s.currentLocation),
     hometown: locationFormKey(s.hometownLocation),
   })
@@ -126,15 +150,8 @@ export default function EditProfileScreen(): JSX.Element {
 
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
-  const [uploadingPhoto, setUploadingPhoto] = useState(false)
-  const { selectedPalates, setSelectedPalates, openPalatePicker } = useEditProfileDraft()
+  const { selectedPalates, setSelectedPalates, openPalatePicker, nameDraft, setNameDraft } = useEditProfileDraft()
   const [aboutMe, setAboutMe] = useState('')
-  const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
-  const [pendingPhoto, setPendingPhoto] = useState<{
-    uri: string
-    fileName: string
-    mimeType: string
-  } | null>(null)
   const [username, setUsername] = useState('')
   const [currentLocation, setCurrentLocation] = useState<ProfileLocationFormValue | null>(null)
   const [hometownLocation, setHometownLocation] = useState<ProfileLocationFormValue | null>(null)
@@ -162,15 +179,18 @@ export default function EditProfileScreen(): JSX.Element {
 
         const bio = (row.about_me ?? '').trim()
         const keys = palateKeysFromProfile(row.palates)
-        const avatar = normalizeLegacyProfileAvatar(row.avatarUrl, row.profile_image)
         const handle = row.username?.trim().replace(/^@/, '') ?? ''
+        const seeded = seedNames(row.first_name, row.last_name, row.display_name)
+        const name: DisplayNameDraft = {
+          ...seeded,
+          variant: detectDisplayNameVariant(seeded.firstName, seeded.lastName, row.display_name),
+        }
         const current = locationFromApiRow(row.current_location)
         const hometown = locationFromApiRow(row.hometown)
 
         setAboutMe(bio)
         setSelectedPalates(new Set(keys))
-        setAvatarPreview(avatar)
-        setPendingPhoto(null)
+        setNameDraft(name)
         setUsername(handle)
         setCurrentLocation(current)
         setHometownLocation(hometown)
@@ -179,8 +199,7 @@ export default function EditProfileScreen(): JSX.Element {
         initialRef.current = {
           aboutMe: bio,
           palateKeys: keys,
-          avatarPreview: avatar,
-          pendingPhotoUri: null,
+          name,
           currentLocation: current,
           hometownLocation: hometown,
         }
@@ -202,12 +221,11 @@ export default function EditProfileScreen(): JSX.Element {
     (): FormSnapshot => ({
       aboutMe,
       palateKeys: Array.from(selectedPalates),
-      avatarPreview,
-      pendingPhotoUri: pendingPhoto?.uri ?? null,
+      name: nameDraft,
       currentLocation,
       hometownLocation,
     }),
-    [aboutMe, selectedPalates, avatarPreview, pendingPhoto, currentLocation, hometownLocation],
+    [aboutMe, selectedPalates, nameDraft, currentLocation, hometownLocation],
   )
 
   const handleOpenLocationPicker = useCallback((target: LocationPickerTarget) => {
@@ -244,25 +262,13 @@ export default function EditProfileScreen(): JSX.Element {
     router.push(SCREEN_EDIT_PROFILE_PALATES)
   }, [openPalatePicker, router])
 
-  const handleChangePhoto = useCallback(() => {
-    void Haptics.selectionAsync()
-    void pickProfilePhoto()
-      .then((picked) => {
-        if (!picked) return
-        setPendingPhoto(picked)
-        setAvatarPreview(picked.uri)
-      })
-      .catch((e) => {
-        toast.error(e instanceof Error ? e.message : 'Could not pick photo')
-      })
-  }, [])
-
   const handleCancel = useCallback(() => {
     if (!isDirty) {
       router.back()
       return
     }
-    Alert.alert('Discard changes?', 'Your edits will be lost.', [
+    const fields = initialRef.current ? changedFieldLabels(currentSnapshot, initialRef.current) : []
+    Alert.alert('Discard changes?', `Your edits to ${joinLabels(fields)} haven’t been saved.`, [
       { text: 'Keep editing', style: 'cancel' },
       {
         text: 'Discard',
@@ -270,7 +276,7 @@ export default function EditProfileScreen(): JSX.Element {
         onPress: () => router.back(),
       },
     ])
-  }, [isDirty, router])
+  }, [currentSnapshot, isDirty, router])
 
   const handleSave = useCallback(async () => {
     if (!user?.id || !doneEnabled) return
@@ -289,20 +295,18 @@ export default function EditProfileScreen(): JSX.Element {
 
     setSaving(true)
     try {
-      let profileImageUrl: string | undefined
-      if (pendingPhoto) {
-        setUploadingPhoto(true)
-        profileImageUrl = await uploadPickedImage(pendingPhoto)
-        setUploadingPhoto(false)
-      }
-
       const payload: Parameters<typeof updateRestaurantUserProfile>[0] = {
         about_me: aboutMe.trim(),
         palates: Array.from(selectedPalates),
       }
-      if (profileImageUrl) payload.profile_image = profileImageUrl
 
       const initial = initialRef.current
+      if (initial && JSON.stringify(initial.name) !== JSON.stringify(nameDraft)) {
+        payload.first_name = nameDraft.firstName.trim()
+        payload.last_name = nameDraft.lastName.trim()
+        const display = buildDisplayName(nameDraft.firstName, nameDraft.lastName, nameDraft.variant)
+        if (display) payload.display_name = display
+      }
       if (
         initial &&
         locationFormKey(currentLocation) !== locationFormKey(initial.currentLocation)
@@ -341,7 +345,6 @@ export default function EditProfileScreen(): JSX.Element {
     } catch (e) {
       toast.error(e instanceof Error ? e.message : profileUpdateFailed)
     } finally {
-      setUploadingPhoto(false)
       setSaving(false)
     }
   }, [
@@ -349,8 +352,8 @@ export default function EditProfileScreen(): JSX.Element {
     currentLocation,
     doneEnabled,
     hometownLocation,
+    nameDraft,
     nhost.auth,
-    pendingPhoto,
     router,
     selectedPalates,
     user?.id,
@@ -360,7 +363,8 @@ export default function EditProfileScreen(): JSX.Element {
     return <Redirect href={SCREEN_LOGIN} />
   }
 
-  const previewHandle = username ? `@${username}` : '@member'
+  const displayPreview = buildDisplayName(nameDraft.firstName, nameDraft.lastName, nameDraft.variant)
+  const variantHint = DISPLAY_NAME_VARIANTS.find((v) => v.id === nameDraft.variant)?.hint ?? ''
 
   return (
     <View className="flex-1 bg-white">
@@ -384,126 +388,62 @@ export default function EditProfileScreen(): JSX.Element {
           keyboardVerticalOffset={insets.top + 48}
         >
           <ScrollView
-            className="flex-1"
-            contentContainerStyle={{ paddingBottom: insets.bottom + 32 }}
+            style={{ flex: 1, backgroundColor: SURFACE_CARD }}
+            contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 20, paddingBottom: insets.bottom + 32, gap: 22 }}
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
           >
-            <View className="items-center px-5 pt-6">
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="Change profile photo"
-                onPress={handleChangePhoto}
-                disabled={saving}
-                className="active:opacity-90"
-              >
-                <View className="relative">
-                  {pendingPhoto?.uri ? (
-                    <Image
-                      accessibilityIgnoresInvertColors
-                      source={{ uri: pendingPhoto.uri }}
-                      style={{
-                        width: AVATAR_SIZE,
-                        height: AVATAR_SIZE,
-                        borderRadius: AVATAR_SIZE / 2,
-                        backgroundColor: '#e5e7eb',
-                      }}
-                    />
-                  ) : (
-                    <ProfileAvatarImage
-                      size={AVATAR_SIZE}
-                      avatarUrl={avatarPreview}
-                      style={{ backgroundColor: '#e5e7eb' }}
-                    />
-                  )}
-                  <View
-                    className="absolute -bottom-1 -right-1 items-center justify-center rounded-full p-2"
-                    style={{ backgroundColor: BRAND_PRIMARY }}
-                  >
-                    <AppIcon name="edit-3" size={18} color="#ffffff" />
-                  </View>
-                </View>
-              </Pressable>
+            <TextField
+              label="Bio"
+              value={aboutMe}
+              onChangeText={(t) => {
+                setBioError(null)
+                setAboutMe(t)
+              }}
+              editable={!saving}
+              multiline
+              height={110}
+              placeholder="What do you love to eat?"
+              maxLength={aboutMeMaxLimit}
+              error={bioError}
+              hint={`${aboutMe.length} / ${aboutMeMaxLimit}`}
+              style={{ minHeight: 84 }}
+            />
 
-              {uploadingPhoto ? (
-                <Text className="mt-3 text-xs" style={{ color: TEXT_MUTED }}>
-                  Uploading photo…
-                </Text>
-              ) : null}
+            <ReadOnlyRow label="Username" value={username ? `@${username}` : '@member'} icon="lock" />
 
-              <Text className="mt-4 text-base font-semibold" style={{ color: TEXT_HEADING }}>
-                {previewHandle}
+            <NavRow
+              label="Display name"
+              value={displayPreview || 'Add your name'}
+              hint={variantHint}
+              onPress={() => router.push(SCREEN_EDIT_PROFILE_DISPLAY_NAME)}
+              disabled={saving}
+            />
+
+            <CityPickerField
+              label="Current city"
+              value={currentLocation?.label ?? null}
+              onPress={() => handleOpenLocationPicker('current')}
+            />
+            <CityPickerField
+              label="Hometown · optional"
+              value={hometownLocation?.label ?? null}
+              onPress={() => handleOpenLocationPicker('hometown')}
+              onClear={() => setHometownLocation(null)}
+            />
+
+            <EditProfilePalateSummary
+              selected={selectedPalates}
+              onPressEdit={handleOpenPalatePicker}
+              disabled={saving}
+              error={palateError}
+            />
+
+            <View style={{ borderRadius: 12, backgroundColor: SURFACE_FOG, padding: 14 }}>
+              <Text style={{ fontFamily: FONT.body, fontSize: 12, lineHeight: 18, color: TEXT_MUTED }}>
+                Current city here is your profile city — separate from the browse city in the top bar. Email, birthdate
+                and gender live in Settings → Account Security.
               </Text>
-            </View>
-
-            <View className="mt-8 px-5">
-              <EditProfileLocationField
-                label="Where do you currently live"
-                helper="Search any city worldwide — not limited to TastyPlates markets."
-                valueLabel={currentLocation?.label ?? null}
-                onPress={() => handleOpenLocationPicker('current')}
-                disabled={saving}
-              />
-              <EditProfileLocationField
-                label="Where is your hometown"
-                helper="Optional — share where your food journey started."
-                valueLabel={hometownLocation?.label ?? null}
-                onPress={() => handleOpenLocationPicker('hometown')}
-                disabled={saving}
-              />
-            </View>
-
-            <View className="mt-3 px-5">
-              <Text className="mb-2 text-sm font-medium" style={{ color: TEXT_HEADING }}>
-                Bio
-              </Text>
-              <Text className="mb-3 text-xs leading-relaxed" style={{ color: TEXT_MUTED }}>
-                Share your food story — what cuisines you love, memorable meals, or what you look for
-                in a restaurant.
-              </Text>
-              <TextInput
-                value={aboutMe}
-                onChangeText={(t) => {
-                  setBioError(null)
-                  setAboutMe(t)
-                }}
-                editable={!saving}
-                multiline
-                placeholder="Write something about your taste…"
-                placeholderTextColor={TEXT_MUTED}
-                maxLength={aboutMeMaxLimit}
-                textAlignVertical="top"
-                style={mergeTextInputBodyTypography({
-                  minHeight: 120,
-                  paddingHorizontal: 16,
-                  paddingVertical: 12,
-                  borderWidth: 1,
-                  borderColor: bioError ? BRAND_PRIMARY : BORDER_SUBTLE,
-                  borderRadius: 12,
-                  color: TEXT_BODY,
-                })}
-              />
-              <View className="mt-2 flex-row justify-between">
-                {bioError ? (
-                  <Text className="text-xs" style={{ color: BRAND_PRIMARY }}>
-                    {bioError}
-                  </Text>
-                ) : (
-                  <View />
-                )}
-                <Text className="text-xs" style={{ color: TEXT_MUTED }}>
-                  {aboutMe.length}/{aboutMeMaxLimit}
-                </Text>
-              </View>
-            </View>
-
-            <View className="mt-8 px-5">
-              <EditProfilePalateSummary
-                selected={selectedPalates}
-                onPressEdit={handleOpenPalatePicker}
-                disabled={saving}
-                error={palateError}
-              />
             </View>
           </ScrollView>
         </KeyboardAvoidingView>
@@ -529,6 +469,60 @@ export default function EditProfileScreen(): JSX.Element {
         onSelectCity={handleSelectProfileCity}
         onClose={handleCloseLocationPicker}
       />
+    </View>
+  )
+}
+
+function ReadOnlyRow({ label, value, icon }: { label: string; value: string; icon: 'lock' }): JSX.Element {
+  return (
+    <View style={{ gap: 8 }}>
+      <Text style={{ fontFamily: FONT.bodySemibold, fontSize: 13, color: TEXT_HEADING }}>{label}</Text>
+      <View
+        className="flex-row items-center"
+        accessible
+        accessibilityLabel={`${label} ${value}, can’t be changed`}
+        style={{ minHeight: 52, borderRadius: 12, borderWidth: 1.5, borderColor: BORDER_SUBTLE, backgroundColor: SURFACE_FOG, paddingHorizontal: 16, gap: 10 }}
+      >
+        <Text style={{ flex: 1, fontFamily: FONT.body, fontSize: 16, color: TEXT_MUTED }}>{value}</Text>
+        <AppIcon name={icon} size={16} color={TEXT_TERTIARY} />
+      </View>
+    </View>
+  )
+}
+
+function NavRow({
+  label,
+  value,
+  hint,
+  onPress,
+  disabled,
+}: {
+  label: string
+  value: string
+  hint?: string
+  onPress: () => void
+  disabled?: boolean
+}): JSX.Element {
+  return (
+    <View style={{ gap: 8 }}>
+      <Text style={{ fontFamily: FONT.bodySemibold, fontSize: 13, color: TEXT_HEADING }}>{label}</Text>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={`${label}: ${value}`}
+        onPress={() => {
+          void Haptics.selectionAsync()
+          onPress()
+        }}
+        disabled={disabled}
+        className="flex-row items-center active:opacity-80"
+        style={{ minHeight: 56, borderRadius: 12, borderWidth: 1.5, borderColor: BORDER_SUBTLE, backgroundColor: SURFACE_CARD, paddingHorizontal: 16, gap: 10 }}
+      >
+        <View style={{ flex: 1, gap: 2, paddingVertical: 8 }}>
+          <Text numberOfLines={1} style={{ fontFamily: FONT.headingMedium, fontSize: 16, color: TEXT_HEADING }}>{value}</Text>
+          {hint ? <Text style={{ fontFamily: FONT.body, fontSize: 12, color: TEXT_MUTED }}>{hint}</Text> : null}
+        </View>
+        <AppIcon name="chevron-right" size={18} color={TEXT_TERTIARY} />
+      </Pressable>
     </View>
   )
 }

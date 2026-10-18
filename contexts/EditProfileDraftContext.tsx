@@ -8,7 +8,18 @@ import {
   type ReactNode,
 } from 'react'
 
+import type { DisplayNameVariant } from '@/lib/displayNameOptions'
+
+/** First / last name + chosen variant, edited on /profile/edit-display-name (design P5d). */
+export type DisplayNameDraft = {
+  firstName: string
+  lastName: string
+  variant: DisplayNameVariant
+}
+
 type EditProfileDraftContextValue = {
+  nameDraft: DisplayNameDraft
+  setNameDraft: (next: DisplayNameDraft) => void
   selectedPalates: Set<string>
   setSelectedPalates: (next: Set<string>) => void
   togglePalate: (key: string, max: number) => void
@@ -22,6 +33,8 @@ const EditProfileDraftContext = createContext<EditProfileDraftContextValue | nul
 export function EditProfileDraftProvider({ children }: { children: ReactNode }): JSX.Element {
   const [selectedPalates, setSelectedPalatesState] = useState<Set<string>>(() => new Set())
   const pickerSnapshotRef = useRef<string[]>([])
+  const [nameDraft, setNameDraftState] = useState<DisplayNameDraft>({ firstName: '', lastName: '', variant: 'full' })
+  const setNameDraft = useCallback((next: DisplayNameDraft) => setNameDraftState({ ...next }), [])
 
   const setSelectedPalates = useCallback((next: Set<string>) => {
     setSelectedPalatesState(new Set(next))
@@ -50,13 +63,15 @@ export function EditProfileDraftProvider({ children }: { children: ReactNode }):
 
   const value = useMemo(
     () => ({
+      nameDraft,
+      setNameDraft,
       selectedPalates,
       setSelectedPalates,
       togglePalate,
       openPalatePicker,
       cancelPalatePicker,
     }),
-    [selectedPalates, setSelectedPalates, togglePalate, openPalatePicker, cancelPalatePicker],
+    [nameDraft, setNameDraft, selectedPalates, setSelectedPalates, togglePalate, openPalatePicker, cancelPalatePicker],
   )
 
   return (

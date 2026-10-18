@@ -1,17 +1,21 @@
 import { useEffect, useMemo, useState } from 'react'
-import { ActivityIndicator, View } from 'react-native'
+import { ActivityIndicator, Alert, View } from 'react-native'
 import { useLocalSearchParams, router, useSegments } from 'expo-router'
 
 import { ListForm } from '@/components/studio/manage-lists/ListForm'
 import type { ListFormInitialValues, ListFormValues } from '@/components/studio/manage-lists/ListForm'
+import type { ListCoverOption } from '@/components/studio/manage-lists/ListCoverSheet'
+import { SCREEN_STUDIO_MANAGE_LISTS } from '@/constants/screens'
 import {
+  listDeletedSuccess,
+  listDeleteError,
   listDetailLoadError,
   listUpdatedSuccess,
   listUpdateError,
 } from '@/constants/messages'
-import { firstSegmentParam } from '@/lib/routeParams'
+import { castHref, firstSegmentParam } from '@/lib/routeParams'
 import { uploadListCoverPhoto } from '@/lib/listCoverUpload'
-import { getListByUuid, updateList } from '@/services/restaurantListService'
+import { deleteList, getListByUuid, updateList } from '@/services/restaurantListService'
 import { toast } from '@/utils/toast'
 
 function resolveListUuid(
@@ -34,6 +38,8 @@ export default function EditListScreen(): JSX.Element {
   const uuid = useMemo(() => resolveListUuid(params, segments), [params.uuid, segments])
 
   const [formValues, setFormValues] = useState<ListFormInitialValues | null>(null)
+  const [coverOptions, setCoverOptions] = useState<ListCoverOption[]>([])
+  const [itemCount, setItemCount] = useState(0)
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [submitPhase, setSubmitPhase] = useState<'idle' | 'upload' | 'save'>('idle')
@@ -62,8 +68,15 @@ export default function EditListScreen(): JSX.Element {
           title: list.title,
           description: list.description ?? '',
           is_public: list.is_public,
-          display_pic: list.display_pic?.trim() || list.cover_image_url?.trim() || null,
+          // Only a custom photo counts as the cover; otherwise the generated one shows.
+          display_pic: list.display_pic?.trim() || null,
         })
+        setItemCount(list.items.length)
+        setCoverOptions(
+          list.items
+            .filter((i) => Boolean(i.image_url?.trim()))
+            .map((i) => ({ key: String(i.id), name: i.name ?? 'Restaurant', imageUrl: i.image_url!.trim() })),
+        )
       })
       .catch(() => {
         if (cancelled) return
@@ -87,6 +100,8 @@ export default function EditListScreen(): JSX.Element {
       if (values.pendingCover) {
         setSubmitPhase('upload')
         display_pic = await uploadListCoverPhoto(values.pendingCover)
+      } else if (values.coverUrl) {
+        display_pic = values.coverUrl
       } else if (values.clearDisplayPic) {
         display_pic = null
       }
@@ -109,6 +124,30 @@ export default function EditListScreen(): JSX.Element {
     }
   }
 
+  const confirmDelete = (): void => {
+    if (!uuid) return
+    const title = formValues?.title ?? 'this list'
+    Alert.alert(
+      `Delete “${title}”?`,
+      `The list and its ${itemCount} ${itemCount === 1 ? 'restaurant' : 'restaurants'} will be removed. The restaurants themselves stay saved anywhere else you added them.`,
+      [
+        { text: 'Keep it', style: 'cancel' },
+        {
+          text: 'Delete list',
+          style: 'destructive',
+          onPress: () => {
+            void deleteList(uuid)
+              .then(() => {
+                toast.success(listDeletedSuccess)
+                router.replace(castHref(SCREEN_STUDIO_MANAGE_LISTS))
+              })
+              .catch(() => toast.error(listDeleteError))
+          },
+        },
+      ],
+    )
+  }
+
   const submittingLabel =
     submitPhase === 'upload' ? 'Uploading cover…' : submitPhase === 'save' ? 'Saving…' : 'Saving…'
 
@@ -125,10 +164,14 @@ export default function EditListScreen(): JSX.Element {
       key={uuid || 'edit-list'}
       mode="edit"
       initialValues={formValues}
-      submitLabel="Save Changes"
+      submitLabel="Save"
       submittingLabel={submitting ? submittingLabel : undefined}
       submitting={submitting}
       onSubmit={(values) => void handleSubmit(values)}
+      coverOptions={coverOptions}
+      itemCount={itemCount}
+      coverSeed={uuid || 'edit-list'}
+      onDelete={uuid ? confirmDelete : undefined}
     />
   )
 }

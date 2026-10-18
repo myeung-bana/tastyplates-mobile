@@ -1,14 +1,21 @@
 import type { ReactNode } from 'react'
 import { Text, type TextProps } from 'react-native'
 
+import { TEXT_HEADING } from '@/constants/brand'
+import { FONT } from '@/constants/typography'
+
 type Props = TextProps & {
   children: ReactNode
 }
 
-/** Section / screen heading — matches home Quick finds card title ({@link HomeSectionCard}). */
-export function SectionTitle({ children, className, ...rest }: Props): JSX.Element {
+/** Section heading (brand v1.0): Jost 500 18. */
+export function SectionTitle({ children, style, ...rest }: Props): JSX.Element {
   return (
-    <Text className={`text-base font-semibold text-gray-900${className ? ` ${className}` : ''}`} {...rest}>
+    <Text
+      accessibilityRole="header"
+      style={[{ fontFamily: FONT.headingMedium, fontSize: 18, lineHeight: 22, color: TEXT_HEADING }, style]}
+      {...rest}
+    >
       {children}
     </Text>
   )

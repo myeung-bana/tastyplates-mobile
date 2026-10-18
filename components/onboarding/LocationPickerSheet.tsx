@@ -64,7 +64,7 @@ export const LocationPickerSheet = forwardRef<LocationPickerSheetHandle, Props>(
         handleIndicatorStyle={{ backgroundColor: '#d1d5db', width: 40 }}
       >
         <BottomSheetView style={{ flex: 1, paddingBottom: 24 }}>
-          <Text className="mb-3 px-4 pt-2 text-lg font-semibold" style={{ color: TEXT_HEADING }}>
+          <Text className="mb-3 px-4 pt-2 text-lg font-heading" style={{ color: TEXT_HEADING }}>
             {title}
           </Text>
           <ScrollView
@@ -73,7 +73,7 @@ export const LocationPickerSheet = forwardRef<LocationPickerSheetHandle, Props>(
           >
             {countries.map((country) => (
               <View key={country.key} className="mb-5">
-                <Text className="mb-2 text-base font-semibold text-gray-800">{country.label}</Text>
+                <Text className="mb-2 text-base text-gray-800 font-body-semibold">{country.label}</Text>
                 <View className="flex-row flex-wrap gap-2">
                   {country.cities.map((city) => (
                     <Pressable
@@ -83,7 +83,7 @@ export const LocationPickerSheet = forwardRef<LocationPickerSheetHandle, Props>(
                       }}
                       className="rounded-full border border-gray-200 bg-gray-50 px-3 py-2 active:bg-gray-100"
                     >
-                      <Text style={mergeTextInputBodyTypography()} className="text-sm text-gray-800">
+                      <Text style={mergeTextInputBodyTypography()} className="text-sm text-gray-800 font-body">
                         {city.label}
                       </Text>
                     </Pressable>

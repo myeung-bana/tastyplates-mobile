@@ -65,7 +65,7 @@ export function ReportContentModal({
     setSubmitting(true)
     try {
       await submitContentReport({ ...target, reason, details })
-      toast.success('Thanks — our team will review this report within 24 hours.')
+      toast.success('Thanks for reporting. Our team will review it within 24 hours.')
       onClose()
     } catch {
       toast.error('Could not send your report. Please try again.')
@@ -93,14 +93,14 @@ export function ReportContentModal({
           style={{ paddingBottom: Math.max(insets.bottom, 16) + 8, maxHeight: '85%' }}
         >
           <View className="mb-3 flex-row items-center justify-between">
-            <Text className="text-lg font-semibold font-neusans" style={{ color: TEXT_HEADING }}>
+            <Text className="text-lg font-heading" style={{ color: TEXT_HEADING }}>
               Report {noun}
             </Text>
             <Pressable onPress={onClose} hitSlop={10} accessibilityLabel="Close">
               <AppIcon name="x" size={22} color={TEXT_MUTED} />
             </Pressable>
           </View>
-          <Text className="mb-3 text-sm font-neusans" style={{ color: TEXT_BODY }}>
+          <Text className="mb-3 text-sm font-body" style={{ color: TEXT_BODY }}>
             Why are you reporting this {noun}? Reports are anonymous.
           </Text>
 
@@ -116,7 +116,7 @@ export function ReportContentModal({
                   className="flex-row items-center justify-between border-b py-3"
                   style={{ borderBottomColor: BORDER_SUBTLE }}
                 >
-                  <Text className="text-base font-neusans" style={{ color: TEXT_HEADING }}>
+                  <Text className="text-base font-body" style={{ color: TEXT_HEADING }}>
                     {option.label}
                   </Text>
                   <AppIcon
@@ -134,7 +134,7 @@ export function ReportContentModal({
               placeholder="Add details (optional)"
               multiline
               maxLength={1000}
-              className="mb-4 mt-4 min-h-[72px] rounded-xl border px-4 py-3 font-neusans text-base"
+              className="mb-4 mt-4 min-h-[72px] rounded-xl border px-4 py-3 text-base font-body"
               style={mergeTextInputBodyTypography({
                 color: TEXT_HEADING,
                 borderColor: BORDER_SUBTLE,

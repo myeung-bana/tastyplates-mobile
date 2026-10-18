@@ -43,11 +43,11 @@ export function NearbyRestaurantRow({ row, onPress }: NearbyProps): JSX.Element 
         </View>
       )}
       <View className="min-w-0 flex-1">
-        <Text className="font-neusans text-[15px] font-medium text-[#31343F]" numberOfLines={1}>
+        <Text className="text-[15px] text-[#31343F] font-body-medium" numberOfLines={1}>
           {row.name}
         </Text>
         {address ? (
-          <Text className="mt-0.5 font-neusans text-[13px] text-gray-500" numberOfLines={1}>
+          <Text className="mt-0.5 text-[13px] text-gray-500 font-body" numberOfLines={1}>
             {address}
           </Text>
         ) : null}
@@ -77,11 +77,11 @@ export function SearchPredictionRow({ prediction, onPress }: PredictionProps): J
         <AppIcon name="map-pin" size={18} color="#9ca3af" />
       </View>
       <View className="min-w-0 flex-1">
-        <Text className="font-neusans text-[15px] font-medium text-[#31343F]" numberOfLines={1}>
+        <Text className="text-[15px] text-[#31343F] font-body-medium" numberOfLines={1}>
           {main}
         </Text>
         {secondary ? (
-          <Text className="mt-0.5 font-neusans text-[13px] text-gray-500" numberOfLines={1}>
+          <Text className="mt-0.5 text-[13px] text-gray-500 font-body" numberOfLines={1}>
             {secondary}
           </Text>
         ) : null}
@@ -111,10 +111,10 @@ export function NearbyEmptyState(): JSX.Element {
   return (
     <View className="items-center px-6 py-10">
       <View className="mb-3 h-12 w-12 items-center justify-center rounded-full bg-orange-50">
-        <AppIcon name="map-pin" size={20} color="#ff7c0a" />
+        <AppIcon name="map-pin" size={20} color="#FF7C09" />
       </View>
-      <Text className="font-neusans text-sm font-medium text-gray-700">No nearby restaurants found</Text>
-      <Text className="mt-1 text-center font-neusans text-xs text-gray-500">
+      <Text className="text-sm text-gray-700 font-body-medium">No nearby restaurants found</Text>
+      <Text className="mt-1 text-center text-xs text-gray-500 font-body">
         Try searching by name above
       </Text>
     </View>
@@ -127,8 +127,8 @@ export function SearchEmptyState(): JSX.Element {
       <View className="mb-3 h-12 w-12 items-center justify-center rounded-full bg-gray-100">
         <AppIcon name="search" size={20} color="#9ca3af" />
       </View>
-      <Text className="font-neusans text-sm font-medium text-gray-700">No results found</Text>
-      <Text className="mt-1 text-center font-neusans text-xs text-gray-500">
+      <Text className="text-sm text-gray-700 font-body-medium">No results found</Text>
+      <Text className="mt-1 text-center text-xs text-gray-500 font-body">
         Try a different name or check the spelling
       </Text>
     </View>
@@ -137,7 +137,7 @@ export function SearchEmptyState(): JSX.Element {
 
 export function SectionHeader({ title }: { title: string }): JSX.Element {
   return (
-    <Text className="px-4 pb-2 pt-2 font-neusans text-xs font-semibold uppercase tracking-wider text-[#9ca3af]">
+    <Text className="px-4 pb-2 pt-2 text-xs uppercase tracking-wider text-[#9ca3af] font-body-semibold">
       {title}
     </Text>
   )

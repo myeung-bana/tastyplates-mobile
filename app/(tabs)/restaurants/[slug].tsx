@@ -1,7 +1,7 @@
 import { useCallback, useLayoutEffect, useMemo, useState } from 'react'
 import { Pressable, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { useLocalSearchParams, useNavigation } from 'expo-router'
+import { router, useLocalSearchParams, useNavigation } from 'expo-router'
 import { AppIcon } from '@/components/ui/AppIcon'
 
 import { RestaurantDetailSkeleton } from '@/components/restaurant/RestaurantDetailSkeleton'
@@ -9,6 +9,7 @@ import { RestaurantDetailShareHeaderButton } from '@/components/restaurant/Resta
 import { RestaurantDetailView } from '@/components/restaurant/RestaurantDetailView'
 import { BRAND_PRIMARY, TEXT_HEADING, TEXT_MUTED } from '@/constants/brand'
 import { cuisineParamFromRouteParams, useRestaurantScores } from '@/hooks/useRestaurantScores'
+import { labelForPalateKey } from '@/lib/palateLabels'
 import {
   getRestaurantBySlug,
   getRestaurantReviewsPreview,
@@ -172,10 +173,10 @@ export default function RestaurantDetailScreen() {
   if (state.status === 'notfound') {
     return (
       <SafeAreaView className="flex-1 items-center justify-center bg-white px-6" edges={['bottom']}>
-        <Text className="text-center text-lg font-normal" style={{ color: TEXT_HEADING }}>
+        <Text className="text-center text-lg font-body" style={{ color: TEXT_HEADING }}>
           Restaurant not found
         </Text>
-        <Text className="mt-2 text-center text-sm" style={{ color: TEXT_MUTED }}>
+        <Text className="mt-2 text-center text-sm font-body" style={{ color: TEXT_MUTED }}>
           This listing may have been removed or the link is incorrect.
         </Text>
       </SafeAreaView>
@@ -185,7 +186,7 @@ export default function RestaurantDetailScreen() {
   if (state.status === 'error') {
     return (
       <SafeAreaView className="flex-1 items-center justify-center bg-white px-6" edges={['bottom']}>
-        <Text className="text-center text-sm" style={{ color: TEXT_MUTED }}>
+        <Text className="text-center text-sm font-body" style={{ color: TEXT_MUTED }}>
           {state.message}
         </Text>
         <Pressable
@@ -193,7 +194,7 @@ export default function RestaurantDetailScreen() {
           className="mt-4 rounded-full px-6 py-3 active:opacity-90"
           style={{ backgroundColor: BRAND_PRIMARY }}
         >
-          <Text className="font-normal text-white">Retry</Text>
+          <Text className="text-white font-body">Retry</Text>
         </Pressable>
       </SafeAreaView>
     )
@@ -218,6 +219,8 @@ export default function RestaurantDetailScreen() {
         isPersonalised={isPersonalised}
         trustSet={trustSet}
         cuisineFilterActive={cuisineFilterActive}
+        cuisineFilterLabel={cuisineParam ? labelForPalateKey(cuisineParam) : null}
+        onClearCuisineFilter={() => router.setParams({ cuisine: undefined, palate: undefined })}
         scoresLoading={scoresLoading}
         scoresError={scoresError}
         refreshing={refreshing}

@@ -39,6 +39,7 @@ export function AuthSheetProvider({ children }: PropsWithChildren): JSX.Element 
   const [initialMode, setInitialMode] = useState<AuthScreenMode>('chooser')
   const [resume, setResume] = useState<string | undefined>(undefined)
   const [showSkipLogin, setShowSkipLogin] = useState(false)
+  const [wall, setWall] = useState<OpenAuthSheetOptions['wall']>(undefined)
 
   const dismissOverlay = useCallback(() => {
     Keyboard.dismiss()
@@ -49,6 +50,7 @@ export function AuthSheetProvider({ children }: PropsWithChildren): JSX.Element 
     setInitialMode(options?.mode ?? 'chooser')
     setResume(serializeAuthResume(options?.resume))
     setShowSkipLogin(options?.showSkipLogin ?? false)
+    setWall(options?.wall)
     setOverlayKey((k) => k + 1)
     setIsOpen(true)
   }, [])
@@ -74,7 +76,10 @@ export function AuthSheetProvider({ children }: PropsWithChildren): JSX.Element 
       <FullScreenOverlay
         visible={isOpen}
         onRequestClose={dismissOverlay}
-        animationType="slide"
+        // The chooser draws its own backdrop + sheet; forms draw a full page.
+        animationType="none"
+        transparent
+        backgroundColor="transparent"
         keyboardAvoiding={false}
         style={{ paddingTop: 0, paddingBottom: 0, paddingLeft: 0, paddingRight: 0 }}
       >
@@ -84,7 +89,8 @@ export function AuthSheetProvider({ children }: PropsWithChildren): JSX.Element 
             layout="overlay"
             initialMode={initialMode}
             resume={resume}
-            showSkipLogin={showSkipLogin}
+            showSkipLogin={showSkipLogin && !wall}
+            wall={wall}
             onBeforeNavigate={dismissOverlay}
             onClose={dismissOverlay}
           />

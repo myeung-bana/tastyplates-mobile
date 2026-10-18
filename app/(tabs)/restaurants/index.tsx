@@ -4,6 +4,7 @@ import {
   FlatList,
   Pressable,
   RefreshControl,
+  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -19,7 +20,7 @@ import { NativeViewGestureHandler } from 'react-native-gesture-handler'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { AppTopNav } from '@/components/layout/AppTopNav'
-import { RestaurantBrowseCard } from '@/components/restaurant/RestaurantBrowseCard'
+import { ExploreResultRow } from '@/components/restaurant/ExploreResultRow'
 import { getRestaurantBrowseCardWidth } from '@/components/restaurant/RestaurantBrowseCardItem'
 import { RestaurantMapMarker } from '@/components/restaurant/RestaurantMapMarker'
 import { PalateFilterChips } from '@/components/search/PalateFilterChips'
@@ -27,7 +28,16 @@ import {
   RestaurantBrowseCardSkeleton,
   RestaurantBrowseSkeletonList,
 } from '@/components/ui/Skeleton/RestaurantBrowseCardSkeleton'
-import { BRAND_PRIMARY } from '@/constants/brand'
+import {
+  BORDER_SUBTLE,
+  BRAND_PRIMARY,
+  SURFACE_CARD,
+  TEXT_HEADING,
+  TEXT_MUTED,
+} from '@/constants/brand'
+import { AppIcon } from '@/components/ui/AppIcon'
+import { FONT } from '@/constants/typography'
+import { useUserPalate } from '@/hooks/useUserPalate'
 import { getTabSceneStylePaddingBottom } from '@/constants/tabBar'
 import {
   SCREEN_PLACES_GOOGLE_DETAIL,
@@ -62,7 +72,18 @@ import {
 import type { RestaurantSearchResult } from '@/types/restaurantSearchResult'
 import { isTPResult } from '@/types/restaurantSearchResult'
 
-const ROW_GAP = 12
+const ROW_GAP = 0
+
+/** Cuisine chips on the sheet (design S2); an active filter outside this set is inserted after All. */
+const EXPLORE_CHIPS: { slug: string | null; label: string }[] = [
+  { slug: null, label: 'All' },
+  { slug: 'korean', label: 'Korean' },
+  { slug: 'chinese', label: 'Chinese' },
+  { slug: 'japanese', label: 'Japanese' },
+  { slug: 'italian', label: 'Italian' },
+  { slug: 'vietnamese', label: 'Vietnamese' },
+]
+const SNAP_LINK_LABELS = ['Show list', 'Show more', 'Show map'] as const
 /** Collapsed — maximizes map for pinch/zoom; shows handle + list header peek. */
 const SHEET_MIN_RATIO = 0.18
 /** Mid — browse a few cards without covering most of the map. */
@@ -184,6 +205,7 @@ export default function RestaurantsScreen() {
   const loadMoreLockRef = useRef(false)
   /** Skip clearing pin selection while reopening sheet for map pin preview. */
   const pinPreviewSnapRef = useRef(false)
+  const setSheetIndexRef = useRef<((index: number) => void) | null>(null)
   /** Skip redundant animateToRegion when MapView `initialRegion` already matches. */
   const lastMapRegionKeyRef = useRef<string | null>(null)
   /** Ignore region callbacks while animating programmatically (city change, pin focus). */
@@ -369,6 +391,7 @@ export default function RestaurantsScreen() {
   )
 
   const handleSheetIndexChange = useCallback((index: number) => {
+    setSheetIndexRef.current?.(index)
     if (pinPreviewSnapRef.current) return
     if (index === 0) setSelectedId(null)
   }, [])
@@ -446,6 +469,16 @@ export default function RestaurantsScreen() {
     return `No restaurants found within ${Math.round(searchRadiusKm)} km. Try moving the map or another city.`
   }, [searchQuery, cuisineFilterActive, categoryFilterActive, searchRadiusKm])
 
+  /** Orange % pills only for a palate cuisine filter while signed in (design S2). */
+  const matchPercentFor = useCallback(
+    (item: RestaurantSearchResult): number | null => {
+      if (!isPersonalised || !isTPResult(item)) return null
+      const avg = preferenceStatForSearchResult(item, getForRestaurantUuid)?.avg
+      return avg != null ? Math.round((avg / 5) * 100) : null
+    },
+    [getForRestaurantUuid, isPersonalised],
+  )
+
   const renderResultCard = useCallback(
     (item: RestaurantSearchResult) => {
       const palateStat = isPersonalised
@@ -457,27 +490,21 @@ export default function RestaurantsScreen() {
         cityLabel: location.label,
         palateStat,
       })
+      const matchAvg = cardProps.ratingMode === 'palate-match' ? cardProps.searchPalateRating : null
 
       return (
-        <RestaurantBrowseCard
-          title={item.title}
-          slug={isTPResult(item) ? item.slug : undefined}
-          imageUrl={item.featured_image_url}
+        <ExploreResultRow
+          result={item}
           subtitle={cardProps.subtitle}
-          listingCategories={item.cuisines}
-          categories={item.categories}
           rating={cardProps.rating}
-          showReviewCount={false}
-          ratingMode={cardProps.ratingMode}
-          searchPalateRating={cardProps.searchPalateRating}
-          searchPalateReviewCount={cardProps.searchPalateReviewCount}
-          containerStyle={cardWidth != null ? { width: cardWidth } : undefined}
+          activeCuisine={cuisineFilterActive ? cuisine : null}
+          palateMatchPercent={matchAvg != null ? Math.round((matchAvg / 5) * 100) : null}
+          selected={selectedId === restaurantSearchResultId(item)}
           onPress={() => handleCardPress(item)}
-          onCommentPress={() => handleCardPress(item)}
         />
       )
     },
-    [cardWidth, getForRestaurantUuid, handleCardPress, isPersonalised, location.label],
+    [cuisine, cuisineFilterActive, getForRestaurantUuid, handleCardPress, isPersonalised, location.label, selectedId],
   )
 
   const renderBrowseCard = useCallback(
@@ -485,80 +512,156 @@ export default function RestaurantsScreen() {
     [renderResultCard],
   )
 
+  const [sheetIndex, setSheetIndex] = useState(0)
+  setSheetIndexRef.current = setSheetIndex
+  const { palate: userPalate } = useUserPalate()
+  const cuisineInPalate = Boolean(cuisineFilterActive && cuisine && userPalate?.includes(cuisine))
+  const cuisineLabel = cuisineFilterActive ? labelForPalateKey(cuisine ?? null) : ''
+
+  const chipItems = useMemo(() => {
+    const items = [...EXPLORE_CHIPS]
+    if (cuisineFilterActive && cuisine && !items.some((c) => c.slug === cuisine)) {
+      items.splice(1, 0, { slug: cuisine, label: cuisineLabel })
+    }
+    return items
+  }, [cuisine, cuisineFilterActive, cuisineLabel])
+
+  const pickChip = useCallback(
+    (slug: string | null) => {
+      void Haptics.selectionAsync()
+      if (slug === null || (cuisineFilterActive && slug === cuisine)) {
+        router.setParams({ cuisine: undefined, palate: undefined })
+      } else {
+        router.setParams({ cuisine: slug })
+      }
+    },
+    [cuisine, cuisineFilterActive],
+  )
+
+  const cycleSnap = useCallback(() => {
+    void Haptics.selectionAsync()
+    bottomSheetRef.current?.snapToIndex((sheetIndex + 1) % 3)
+  }, [sheetIndex])
+
+  const countLabel = `${displayRows.length} ${displayRows.length === 1 ? 'place' : 'places'} ${
+    isMapAreaSearch ? 'in this area' : `in ${location.label?.trim() || 'your city'}`
+  }`
+
+  const bannerText = cuisineFilterActive
+    ? cuisineInPalate
+      ? `${cuisineLabel} is in your palate, so best matches come first.`
+      : `Showing ${cuisineLabel} places. Palate match appears for cuisines in your palate.`
+    : null
+
   const sheetListHeader = useMemo(
     () => (
-      <View className="border-b border-gray-100 pb-3 pt-2">
-        <View className="px-4">
-          <Text className="font-neusans text-base font-semibold text-[#31343F]">
-            {listHeaderText.title}
+      <View style={{ paddingBottom: 4 }}>
+        <View className="flex-row items-center justify-between">
+          <Text accessibilityRole="header" style={{ fontFamily: FONT.headingMedium, fontSize: 17, color: TEXT_HEADING }}>
+            {countLabel}
           </Text>
-          {listHeaderText.subtitle ? (
-            <Text className="mt-0.5 font-neusans text-xs" style={{ color: BRAND_PRIMARY }}>
-              {listHeaderText.subtitle}
-            </Text>
-          ) : null}
-          {error && displayRows.length > 0 ? (
-            <Text className="mt-2 text-center text-xs text-red-600">{error}</Text>
-          ) : null}
-          {prefStatsError && isPersonalised ? (
-            <Text className="mt-2 text-center text-xs text-amber-700">{prefStatsError}</Text>
-          ) : null}
-          {prefStatsLoading && isPersonalised ? (
-            <Text className="mt-0.5 font-neusans text-xs text-gray-500">Updating match order…</Text>
-          ) : null}
-          {refreshing && isMapAreaSearch ? (
-            <Text className="mt-0.5 font-neusans text-xs text-gray-500">Updating listings for this map area…</Text>
-          ) : null}
+          <Pressable accessibilityRole="button" onPress={cycleSnap} hitSlop={8}>
+            <Text style={{ fontFamily: FONT.body, fontSize: 13, color: BRAND_PRIMARY }}>{SNAP_LINK_LABELS[sheetIndex]}</Text>
+          </Pressable>
         </View>
 
-        {selectedPinResult ? (
-          <View className="mt-3 border-t border-gray-100 pt-3">
-            <View className="mb-2 flex-row items-center justify-between">
-              <Text className="font-neusans text-xs font-medium text-gray-500">
-                Selected on map
-              </Text>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={{ marginHorizontal: -16 }}
+          contentContainerStyle={{ gap: 8, paddingHorizontal: 16, paddingTop: 12, paddingBottom: 4 }}
+        >
+          {chipItems.map((chip) => {
+            const on = chip.slug === null ? !cuisineFilterActive : cuisineFilterActive && chip.slug === cuisine
+            return (
               <Pressable
+                key={chip.slug ?? 'all'}
                 accessibilityRole="button"
-                accessibilityLabel="Show all results"
-                onPress={clearPinSelection}
-                hitSlop={8}
+                accessibilityState={{ selected: on }}
+                onPress={() => pickChip(chip.slug)}
+                className="flex-row items-center active:opacity-80"
+                style={{
+                  gap: 6,
+                  paddingVertical: 9,
+                  paddingHorizontal: 14,
+                  borderRadius: 50,
+                  borderWidth: 1.5,
+                  borderColor: on ? BRAND_PRIMARY : BORDER_SUBTLE,
+                  backgroundColor: SURFACE_CARD,
+                }}
               >
-                <Text className="font-neusans text-xs font-medium" style={{ color: BRAND_PRIMARY }}>
-                  Show all
-                </Text>
+                <Text style={{ fontFamily: FONT.headingMedium, fontSize: 14, color: TEXT_HEADING }}>{chip.label}</Text>
+                {on && chip.slug !== null ? <AppIcon name="x" size={13} color={TEXT_HEADING} /> : null}
+              </Pressable>
+            )
+          })}
+        </ScrollView>
+
+        {bannerText ? (
+          <View
+            style={{
+              marginTop: 8,
+              borderRadius: 12,
+              borderWidth: 1,
+              borderColor: '#FFE2C7',
+              backgroundColor: '#FFF3E8',
+              paddingVertical: 10,
+              paddingHorizontal: 12,
+            }}
+          >
+            <Text style={{ fontFamily: FONT.body, fontSize: 12, lineHeight: 17, color: TEXT_HEADING }}>{bannerText}</Text>
+          </View>
+        ) : null}
+
+        {searchQuery ? (
+          <Text style={{ marginTop: 8, fontFamily: FONT.body, fontSize: 12, color: TEXT_MUTED }}>
+            Results for “{searchQuery}” · Tastyplates first, then nearby Google places
+          </Text>
+        ) : null}
+        {error && displayRows.length > 0 ? (
+          <Text className="mt-2 text-center text-xs text-red-600 font-body">{error}</Text>
+        ) : null}
+        {prefStatsError && isPersonalised ? (
+          <Text className="mt-2 text-center text-xs text-amber-700 font-body">{prefStatsError}</Text>
+        ) : null}
+
+        {selectedPinResult ? (
+          <View style={{ marginTop: 8 }}>
+            <View className="flex-row items-center justify-between">
+              <Text style={{ fontFamily: FONT.bodyMedium, fontSize: 12, color: TEXT_MUTED }}>Selected on map</Text>
+              <Pressable accessibilityRole="button" accessibilityLabel="Show all results" onPress={clearPinSelection} hitSlop={8}>
+                <Text style={{ fontFamily: FONT.bodyMedium, fontSize: 12, color: BRAND_PRIMARY }}>Show all</Text>
               </Pressable>
             </View>
             {renderResultCard(selectedPinResult)}
-            {sheetListData.length > 0 ? (
-              <Text className="mt-4 font-neusans text-xs font-semibold uppercase tracking-wide text-gray-400">
-                All results
-              </Text>
-            ) : null}
           </View>
         ) : null}
       </View>
     ),
     [
+      bannerText,
+      chipItems,
       clearPinSelection,
+      countLabel,
+      cuisine,
+      cuisineFilterActive,
+      cycleSnap,
       displayRows.length,
       error,
-      listHeaderText.subtitle,
-      listHeaderText.title,
-      prefStatsError,
-      prefStatsLoading,
-      refreshing,
-      isMapAreaSearch,
       isPersonalised,
+      pickChip,
+      prefStatsError,
       renderResultCard,
+      searchQuery,
       selectedPinResult,
-      sheetListData.length,
+      sheetIndex,
     ],
   )
 
   const showMapLayout = initialMapRegion != null
   const showMapExperience = showMapLayout && !loading && !(error && displayRows.length === 0)
   const { onScroll, scrollEventThrottle } = useTabBarScrollHandler({ enabled: !showMapExperience })
-  const hasActiveFilters = cuisineFilterActive || categoryFilterActive || Boolean(searchQuery?.trim())
+  const hasActiveFilters = categoryFilterActive || Boolean(searchQuery?.trim())
 
   const filterChips = hasActiveFilters ? (
     <View
@@ -566,7 +669,8 @@ export default function RestaurantsScreen() {
       style={showMapExperience ? { backgroundColor: 'transparent' } : undefined}
     >
       <PalateFilterChips
-        cuisine={cuisine}
+        // Cuisine lives in the sheet's chip row; keyword and category stay up here.
+        cuisine={null}
         category={category}
         searchQuery={searchQuery}
         onClearCuisine={clearCuisine}
@@ -624,6 +728,7 @@ export default function RestaurantsScreen() {
                     result={result}
                     isSelected={selectedId === id}
                     onPress={handlePinPress}
+                    matchPercent={matchPercentFor(result)}
                   />
                 )
               })}
@@ -638,6 +743,26 @@ export default function RestaurantsScreen() {
           >
             <AppTopNav variant="mapOverlay" />
             {filterChips}
+            {refreshing && isMapAreaSearch ? (
+              <View pointerEvents="none" className="items-center" style={{ marginTop: 6 }}>
+                <View
+                  accessibilityLiveRegion="polite"
+                  className="flex-row items-center"
+                  style={{
+                    gap: 8,
+                    paddingVertical: 8,
+                    paddingHorizontal: 14,
+                    borderRadius: 50,
+                    backgroundColor: 'rgba(26,26,29,0.92)',
+                  }}
+                >
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                  <Text style={{ fontFamily: FONT.bodyMedium, fontSize: 13, color: '#FFFFFF' }}>
+                    Updating results for this area
+                  </Text>
+                </View>
+              </View>
+            ) : null}
           </View>
 
           <BottomSheet
@@ -649,7 +774,8 @@ export default function RestaurantsScreen() {
             enablePanDownToClose={false}
             enableDynamicSizing={false}
             waitFor={mapGestureRef}
-            handleIndicatorStyle={{ backgroundColor: '#d1d5db', width: 40 }}
+            handleIndicatorStyle={{ backgroundColor: BORDER_SUBTLE, width: 40, height: 5 }}
+            backgroundStyle={{ backgroundColor: SURFACE_CARD, borderTopLeftRadius: 24, borderTopRightRadius: 24 }}
             onChange={handleSheetIndexChange}
           >
             <BottomSheetFlatList
@@ -661,7 +787,7 @@ export default function RestaurantsScreen() {
               ListHeaderComponent={sheetListHeader}
               ListEmptyComponent={
                 selectedPinResult ? null : (
-                  <Text className="py-8 text-center text-sm text-gray-500">{emptyMessage}</Text>
+                  <Text className="py-8 text-center text-sm text-gray-500 font-body">{emptyMessage}</Text>
                 )
               }
               ListFooterComponent={
@@ -692,7 +818,7 @@ export default function RestaurantsScreen() {
             </View>
           ) : error && displayRows.length === 0 ? (
             <View className="mt-8 flex-1 items-center px-4">
-              <Text className="text-center text-sm text-red-600">{error}</Text>
+              <Text className="text-center text-sm text-red-600 font-body">{error}</Text>
             </View>
           ) : (
             <View className="flex-1 px-4">
@@ -705,29 +831,9 @@ export default function RestaurantsScreen() {
                 scrollEventThrottle={scrollEventThrottle}
                 ItemSeparatorComponent={() => <View style={{ height: ROW_GAP }} />}
                 contentContainerStyle={{ paddingBottom: 24 }}
-                ListHeaderComponent={
-                  listHeaderText.subtitle || prefStatsLoading || prefStatsError ? (
-                    <View className="pb-2">
-                      {listHeaderText.subtitle ? (
-                        <Text className="font-neusans text-xs" style={{ color: BRAND_PRIMARY }}>
-                          {listHeaderText.subtitle}
-                        </Text>
-                      ) : null}
-                      {prefStatsLoading && isPersonalised ? (
-                        <Text className="mt-0.5 font-neusans text-xs text-gray-500">
-                          Updating match order…
-                        </Text>
-                      ) : null}
-                      {prefStatsError && isPersonalised ? (
-                        <Text className="mt-0.5 font-neusans text-xs text-amber-700">
-                          {prefStatsError}
-                        </Text>
-                      ) : null}
-                    </View>
-                  ) : null
-                }
+                ListHeaderComponent={sheetListHeader}
                 ListEmptyComponent={
-                  <Text className="mt-8 text-center text-sm text-gray-500">{emptyMessage}</Text>
+                  <Text className="mt-8 text-center text-sm text-gray-500 font-body">{emptyMessage}</Text>
                 }
                 ListFooterComponent={
                   loadingMore ? (

@@ -18,7 +18,8 @@ import {
   RestaurantDiscoveryResults,
 } from '@/components/restaurant-search/RestaurantDiscoveryResults'
 import { ReviewSearchHelpFooter } from '@/components/reviews/RestaurantMatchInlineMobile'
-import { BRAND_PRIMARY, mergeTextInputBodyTypography } from '@/constants/brand'
+import { BRAND_PRIMARY, TEXT_MUTED, mergeTextInputBodyTypography } from '@/constants/brand'
+import { FONT } from '@/constants/typography'
 import {
   SCREEN_STUDIO_ADD_REVIEW_CREATE,
   studioAddReviewWritePath,
@@ -171,12 +172,12 @@ export default function AddReviewSearchScreen(): JSX.Element {
           <TextInput
             value={query}
             onChangeText={setQuery}
-            placeholder="Search restaurants..."
+            placeholder="Search restaurants"
             placeholderTextColor="#9ca3af"
             autoCapitalize="none"
             autoCorrect={false}
             autoFocus
-            className="flex-1 font-neusans text-[15px] text-[#31343F]"
+            className="flex-1 text-[15px] text-[#31343F] font-body"
             style={mergeTextInputBodyTypography({ fontSize: 16 })}
             editable={!matching}
           />
@@ -199,8 +200,12 @@ export default function AddReviewSearchScreen(): JSX.Element {
       {matching ? (
         <View className="items-center py-8">
           <ActivityIndicator color={BRAND_PRIMARY} />
-          <Text className="mt-3 font-neusans text-sm text-[#6b7280]">Checking restaurant…</Text>
+          <Text className="mt-3 text-sm text-[#6b7280] font-body">Checking restaurant…</Text>
         </View>
+      ) : query.trim().length === 1 ? (
+        <Text style={{ paddingHorizontal: 20, paddingVertical: 24, fontFamily: FONT.body, fontSize: 14, color: TEXT_MUTED }}>
+          Keep typing — search starts at 2 characters.
+        </Text>
       ) : hasQuery ? (
         <RestaurantDiscoveryResults
           keyword={query.trim()}

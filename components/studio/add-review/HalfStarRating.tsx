@@ -67,7 +67,7 @@ export function HalfStarRating({ value, onChange, error }: Props): JSX.Element {
 
   return (
     <View className="px-4 pt-6 pb-4">
-      <Text className="mb-3 font-neusans text-sm text-[#374151]">
+      <Text className="mb-3 text-sm text-[#374151] font-body">
         How would you rate your experience?
       </Text>
       <View className="flex-row items-center gap-2">
@@ -81,12 +81,12 @@ export function HalfStarRating({ value, onChange, error }: Props): JSX.Element {
             />
           ))}
         </View>
-        <Text className="ml-2 font-neusans text-xl text-[#31343F]">{value || ''}</Text>
+        <Text className="ml-2 text-xl text-[#31343F] font-body">{value || ''}</Text>
       </View>
-      <Text className="mt-2 font-neusans text-[10px] text-gray-400">
+      <Text className="mt-2 text-[10px] text-gray-400 font-body">
         Rating should be solely based on taste of the food
       </Text>
-      {error ? <Text className="mt-1 font-neusans text-xs text-red-600">{error}</Text> : null}
+      {error ? <Text className="mt-1 text-xs text-red-600 font-body">{error}</Text> : null}
     </View>
   )
 }

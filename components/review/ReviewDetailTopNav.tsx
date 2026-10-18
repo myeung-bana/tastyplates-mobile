@@ -32,7 +32,7 @@ export function ReviewDetailTopNav({
       <View className="flex-row items-center px-4 py-2">
         {showBack ? <CircleBackButton /> : <View className="h-10 w-10" />}
         <Text
-          className="min-w-0 flex-1 text-center text-base font-semibold"
+          className="min-w-0 flex-1 text-center text-base font-body-semibold"
           style={{ color: TEXT_HEADING }}
           numberOfLines={1}
         >

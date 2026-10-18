@@ -54,7 +54,7 @@ export function PalateFilterChips({
         ) : null}
       </View>
       {isPersonalised ? (
-        <Text className="mt-1.5 font-neusans text-[11px]" style={{ color: BRAND_PRIMARY }}>
+        <Text className="mt-1.5 text-[11px] font-body" style={{ color: BRAND_PRIMARY }}>
           ✦ Ranked for your palate
         </Text>
       ) : null}
@@ -66,7 +66,7 @@ function FilterChip({ label, onDismiss }: { label: string; onDismiss: () => void
   return (
     <View className="flex-row items-center gap-2 rounded-[50px] border border-gray-300 bg-white pl-4 pr-2 py-2">
       <Text
-        className="max-w-[200px] font-neusans text-sm font-normal text-gray-900"
+        className="max-w-[200px] text-sm text-gray-900 font-body"
         numberOfLines={1}
       >
         {label}

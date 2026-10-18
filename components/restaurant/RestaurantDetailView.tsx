@@ -20,12 +20,26 @@ import {
   type GoogleReviewDetailSheetHandle,
 } from '@/components/review/GoogleReviewDetailSheet'
 import { GoogleReviewCard } from '@/components/review/GoogleReviewCard'
-import { BRAND_PRIMARY, TEXT_HEADING, TEXT_MUTED } from '@/constants/brand'
+import { Button } from '@/components/ui/Button'
+import {
+  BORDER_SUBTLE,
+  BRAND_PRIMARY,
+  BRAND_PRIMARY_DARK,
+  BRAND_PRIMARY_TINT,
+  SURFACE_CARD,
+  SURFACE_FOG,
+  TEXT_HEADING,
+  TEXT_MUTED,
+} from '@/constants/brand'
+import { FONT } from '@/constants/typography'
+import { TpMark } from '@/components/brand/TpMark'
+import { toast } from '@/utils/toast'
 import {
   SCREEN_RESTAURANT_REVIEWS,
   SCREEN_REVIEW_VIEWER,
   SCREEN_STUDIO_ADD_REVIEW,
   SCREEN_STUDIO_ADD_REVIEW_WRITE,
+  SCREEN_STUDIO_MY_LISTS,
 } from '@/constants/screens'
 import {
   buildDirectionsUrl,
@@ -40,6 +54,7 @@ import {
 } from '@/lib/restaurantDetailUtils'
 import { useAuth } from '@/hooks/useAuth'
 import { coerceResumeHref, pushLoginScreen } from '@/lib/authRoutes'
+import { AUTH_WALL } from '@/constants/authWalls'
 import { pushPublicProfile } from '@/lib/publicProfileNavigation'
 import { restaurantPreviewToTrendingRow } from '@/lib/restaurantReviewFeed'
 import {
@@ -65,10 +80,7 @@ const REVIEW_SECTION_EDGE_INSET = 32
 import { RestaurantDetailSummary } from '@/components/restaurant/RestaurantDetailSummary'
 import { RestaurantRatingMetricsRow } from '@/components/restaurant/RestaurantRatingMetricsRow'
 
-const SAVE_FILLED = '#f97316'
-const CHECKIN_FILLED = '#ff7c0a'
-const ACTION_INK = '#31343F'
-
+/** Website / Call / Directions — outlined pills (design S5). */
 function ActionPill({
   label,
   icon,
@@ -83,17 +95,64 @@ function ActionPill({
   return (
     <Pressable
       accessibilityRole="button"
+      accessibilityState={{ disabled }}
       disabled={disabled}
       onPress={onPress}
-      className={`flex-row items-center gap-2 rounded-[50px] border px-4 py-2 active:opacity-90 ${
-        disabled ? 'border-gray-200 bg-gray-50 opacity-50' : 'border-gray-300 bg-white'
-      }`}
+      className="flex-row items-center active:opacity-80"
+      style={{
+        gap: 8,
+        paddingVertical: 9,
+        paddingHorizontal: 14,
+        borderRadius: 50,
+        borderWidth: 1.5,
+        borderColor: BORDER_SUBTLE,
+        backgroundColor: SURFACE_CARD,
+        opacity: disabled ? 0.45 : 1,
+      }}
     >
-      <AppIcon name={icon} size="sm" color={disabled ? '#9ca3af' : '#6b7280'} />
-      <Text
-        className={`font-neusans text-sm font-normal ${disabled ? 'text-gray-400' : 'text-gray-900'}`}
-      >
-        {label}
+      <AppIcon name={icon} size={16} color={TEXT_HEADING} />
+      <Text style={{ fontFamily: FONT.headingMedium, fontSize: 14, color: TEXT_HEADING }}>{label}</Text>
+    </Pressable>
+  )
+}
+
+/** Save (To-Dine) / Check-in toggle (design M2): tap to add, tap again to remove. */
+function EngageToggle({
+  icon,
+  on,
+  onLabel,
+  offLabel,
+  onPress,
+  disabled,
+}: {
+  icon: AppIconName
+  on: boolean
+  onLabel: string
+  offLabel: string
+  onPress: () => void
+  disabled?: boolean
+}): JSX.Element {
+  return (
+    <Pressable
+      accessibilityRole="switch"
+      accessibilityState={{ checked: on, disabled }}
+      accessibilityLabel={offLabel}
+      disabled={disabled}
+      onPress={onPress}
+      className="flex-row items-center active:opacity-80"
+      style={{
+        gap: 8,
+        paddingVertical: 9,
+        paddingHorizontal: 14,
+        borderRadius: 50,
+        borderWidth: 1.5,
+        borderColor: on ? BRAND_PRIMARY : BORDER_SUBTLE,
+        backgroundColor: on ? BRAND_PRIMARY_TINT : SURFACE_CARD,
+      }}
+    >
+      <AppIcon name={icon} active={on} size={16} color={on ? BRAND_PRIMARY : TEXT_HEADING} />
+      <Text style={{ fontFamily: FONT.headingMedium, fontSize: 14, color: on ? BRAND_PRIMARY_DARK : TEXT_HEADING }}>
+        {on ? onLabel : offLabel}
       </Text>
     </Pressable>
   )
@@ -127,8 +186,8 @@ function OpeningHoursRow({ openingHours }: { openingHours: string | object | nul
       <View className="flex-row items-start gap-3">
         <AppIcon name="clock" size={20} color="#6b7280" />
         <View>
-          <Text className="font-neusans text-sm text-gray-500">Opening Hours</Text>
-          <Text className="font-neusans text-sm text-gray-700">Not available</Text>
+          <Text className="text-sm text-gray-500 font-body">Opening Hours</Text>
+          <Text className="text-sm text-gray-700 font-body">Not available</Text>
         </View>
       </View>
     )
@@ -145,9 +204,9 @@ function OpeningHoursRow({ openingHours }: { openingHours: string | object | nul
           className="flex-row items-center justify-between gap-2"
         >
           <View>
-            <Text className="font-neusans text-sm text-gray-500">Opening Hours</Text>
+            <Text className="text-sm text-gray-500 font-body">Opening Hours</Text>
             <Text
-              className={`font-neusans text-sm font-medium ${
+              className={`text-sm font-body-medium ${
                 isClosed ? 'text-gray-500' : 'text-green-600'
               }`}
             >
@@ -164,19 +223,19 @@ function OpeningHoursRow({ openingHours }: { openingHours: string | object | nul
             {grouped.map((group, index) => (
               <View key={index} className="flex-row items-center justify-between gap-3 px-2 py-1">
                 <Text
-                  className={`font-neusans text-sm ${
-                    group.isToday ? 'font-semibold text-gray-900' : 'font-normal text-gray-700'
+                  className={`text-sm font-body ${
+                    group.isToday ? 'text-gray-900 font-body-semibold' : 'text-gray-700 font-body'
                   }`}
                 >
                   {formatDayRange(group.days)}
                 </Text>
                 <Text
-                  className={`font-neusans text-sm ${
+                  className={`text-sm font-body ${
                     group.isClosed
                       ? 'text-gray-400'
                       : group.isToday
-                        ? 'font-semibold text-gray-900'
-                        : 'font-normal text-gray-700'
+                        ? 'text-gray-900 font-body-semibold'
+                        : 'text-gray-700 font-body'
                   }`}
                 >
                   {group.isClosed ? 'Closed' : group.hours}
@@ -207,6 +266,9 @@ export interface RestaurantDetailViewProps {
   isPersonalised?: boolean
   trustSet?: string[]
   cuisineFilterActive?: boolean
+  /** Display label of the cuisine filter the user arrived with (banner + "Your Score · X"). */
+  cuisineFilterLabel?: string | null
+  onClearCuisineFilter?: () => void
   scoresLoading?: boolean
   scoresError?: string | null
   refreshing?: boolean
@@ -232,6 +294,8 @@ export function RestaurantDetailView({
   isPersonalised = false,
   trustSet = [],
   cuisineFilterActive = false,
+  cuisineFilterLabel = null,
+  onClearCuisineFilter,
   scoresLoading = false,
   scoresError = null,
   refreshing = false,
@@ -321,6 +385,7 @@ export function RestaurantDetailView({
     void Haptics.selectionAsync()
     pushLoginScreen(router, {
       resume: coerceResumeHref(pathname),
+      wall: AUTH_WALL.saveCheckin,
     })
   }
 
@@ -334,6 +399,10 @@ export function RestaurantDetailView({
     try {
       const status = await toggleFavoriteBySlug(slug)
       setSaved(status === 'saved')
+      toast.action(status === 'saved' ? 'Saved to To-Dine' : 'Removed from To-Dine', {
+        label: 'View',
+        onPress: () => router.push({ pathname: SCREEN_STUDIO_MY_LISTS, params: { tab: 'todine' } }),
+      })
     } catch {
       await syncEngagement()
     } finally {
@@ -354,6 +423,10 @@ export function RestaurantDetailView({
       if (status === 'checkedin') {
         await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
       }
+      toast.action(status === 'checkedin' ? `Checked in at ${restaurant.title}` : 'Check-in removed', {
+        label: 'View',
+        onPress: () => router.push({ pathname: SCREEN_STUDIO_MY_LISTS, params: { tab: 'checkins' } }),
+      })
     } catch {
       await syncEngagement()
     } finally {
@@ -432,10 +505,10 @@ export function RestaurantDetailView({
         ) : undefined
       }
     >
-      <RestaurantDetailSummary restaurant={restaurant} />
+      <RestaurantDetailSummary restaurant={restaurant} googleOnly={Boolean(googlePlaceListing)} />
 
       {googlePlaceListing ? (
-        <Text className="mx-4 mt-2 font-neusans text-[11px]" style={{ color: TEXT_MUTED }}>
+        <Text className="mx-4 mt-2 text-[11px] font-body" style={{ color: TEXT_MUTED }}>
           Place details from Google
           {googlePlaceListing.photoAttribution
             ? ` · Photo: ${googlePlaceListing.photoAttribution}`
@@ -455,34 +528,22 @@ export function RestaurantDetailView({
         <ActionPill label="Directions" icon="navigation" onPress={openDirections} />
         {googlePlaceListing ? null : (
           <>
-            <Pressable
-              accessibilityRole="button"
+            <EngageToggle
+              icon="bookmark"
+              on={Boolean(saved)}
+              onLabel="Saved"
+              offLabel="Save"
               disabled={engageBusy}
               onPress={() => void onToggleSave()}
-              className="flex-row items-center gap-2 rounded-[50px] border border-gray-300 bg-white px-4 py-2 active:opacity-90"
-            >
-              <AppIcon
-                name="bookmark"
-                active={Boolean(saved)}
-                size="sm"
-                color={saved ? SAVE_FILLED : ACTION_INK}
-              />
-              <Text className="font-neusans text-sm font-normal text-gray-900">Save</Text>
-            </Pressable>
-            <Pressable
-              accessibilityRole="button"
+            />
+            <EngageToggle
+              icon="map-pin"
+              on={Boolean(checkedIn)}
+              onLabel="Checked in"
+              offLabel="Check in"
               disabled={engageBusy}
               onPress={() => void onToggleCheckin()}
-              className="flex-row items-center gap-2 rounded-[50px] border border-gray-300 bg-white px-4 py-2 active:opacity-90"
-            >
-              <AppIcon
-                name="map-pin"
-                active={Boolean(checkedIn)}
-                size="sm"
-                color={checkedIn ? CHECKIN_FILLED : ACTION_INK}
-              />
-              <Text className="font-neusans text-sm font-normal text-gray-900">Check-in</Text>
-            </Pressable>
+            />
           </>
         )}
       </View>
@@ -506,30 +567,39 @@ export function RestaurantDetailView({
           sharedCount={sharedCount}
           sharedUnlocked={sharedUnlocked}
           embedded
+          filterLabel={cuisineFilterActive ? cuisineFilterLabel : null}
+          onClearFilter={onClearCuisineFilter}
         />
         {scoresError ? (
-          <Text className="px-6 pb-2 text-center font-neusans text-xs text-amber-700">{scoresError}</Text>
+          <Text className="px-6 pb-2 text-center text-xs text-amber-700 font-body">{scoresError}</Text>
         ) : null}
         {scoresLoading ? (
-          <Text className="px-6 pb-2 text-center font-neusans text-xs text-gray-500">Updating scores…</Text>
+          <Text className="px-6 pb-2 text-center text-xs text-gray-500 font-body">Updating scores…</Text>
         ) : null}
       </View>
 
       <View className="mx-4 mt-3">
-        <Pressable
-          accessibilityRole="button"
-          onPress={openWriteReview}
-          className="w-full items-center justify-center rounded-xl border border-gray-300 bg-white py-3 active:opacity-90"
-        >
-          <Text className="font-neusans text-sm font-medium" style={{ color: BRAND_PRIMARY }}>
-            Write a Review
-          </Text>
-        </Pressable>
+        {googlePlaceListing ? (
+          <View style={{ borderRadius: 16, backgroundColor: SURFACE_FOG, padding: 18, gap: 10 }}>
+            <TpMark size={26} />
+            <Text style={{ fontFamily: FONT.heading, fontSize: 18, lineHeight: 23, color: TEXT_HEADING }}>
+              Be the first to review {restaurant.title}
+            </Text>
+            <Text style={{ fontFamily: FONT.body, fontSize: 13, lineHeight: 19, color: TEXT_MUTED }}>
+              Your review adds it to Tastyplates and starts its palate scores.
+            </Text>
+            <Button onPress={openWriteReview} style={{ marginTop: 4 }}>
+              Write a review
+            </Button>
+          </View>
+        ) : (
+          <Button onPress={openWriteReview}>Write a Review</Button>
+        )}
       </View>
 
       {/* Section 5 — Location */}
       <View className="mx-4 mt-4 rounded-2xl bg-white p-6">
-        <Text className="mb-4 font-neusans text-lg font-normal text-gray-900">Location</Text>
+        <Text className="mb-4 text-lg text-gray-900 font-body">Location</Text>
         {coordsValid && restaurant.latitude != null && restaurant.longitude != null ? (
           <View className="mb-2 overflow-hidden rounded-xl" style={{ height: 256 }}>
             <MapView
@@ -551,14 +621,14 @@ export function RestaurantDetailView({
         ) : (
           <View className="mb-2 h-40 flex-row items-center justify-center rounded-xl bg-gray-100">
             <AppIcon name="map-pin" size={20} color="#9ca3af" />
-            <Text className="ml-2 font-neusans text-gray-500">Map location not available</Text>
+            <Text className="ml-2 text-gray-500 font-body">Map location not available</Text>
           </View>
         )}
 
         {address ? (
           <View className="flex-row items-center gap-3 pt-2">
             <AppIcon name="map-pin" size={18} color="#6b7280" />
-            <Text className="min-w-0 flex-1 font-neusans text-sm font-normal text-gray-700">{address}</Text>
+            <Text className="min-w-0 flex-1 text-sm text-gray-700 font-body">{address}</Text>
             {googleMapsUrl ? (
               <Pressable accessibilityRole="button" onPress={openMaps} hitSlop={8}>
                 <AppIcon name="external-link" size={16} color={BRAND_PRIMARY} />
@@ -570,12 +640,12 @@ export function RestaurantDetailView({
 
       {/* Section 6 — Restaurant Details */}
       <View className="mx-4 mt-4 rounded-2xl border border-gray-200 bg-white p-6">
-        <Text className="mb-4 font-neusans text-lg font-normal text-gray-900">Restaurant Details</Text>
+        <Text className="mb-4 text-lg text-gray-900 font-body">Restaurant Details</Text>
         <View className="gap-4">
           {about ? (
             <View className="border-b border-gray-200 pb-4">
               <Text
-                className="font-neusans text-sm leading-relaxed text-gray-700"
+                className="text-sm leading-relaxed text-gray-700 font-body"
                 numberOfLines={aboutExpanded ? undefined : 4}
                 onTextLayout={(event) => {
                   if (aboutExpanded) return
@@ -594,7 +664,7 @@ export function RestaurantDetailView({
                   }}
                   className="mt-2 active:opacity-80"
                 >
-                  <Text className="font-neusans text-sm font-medium text-gray-700">See More</Text>
+                  <Text className="text-sm text-gray-700 font-body-medium">See More</Text>
                 </Pressable>
               ) : null}
               {aboutExpanded && aboutTruncated ? (
@@ -607,7 +677,7 @@ export function RestaurantDetailView({
                   }}
                   className="mt-2 active:opacity-80"
                 >
-                  <Text className="font-neusans text-sm font-medium text-gray-700">See Less</Text>
+                  <Text className="text-sm text-gray-700 font-body-medium">See Less</Text>
                 </Pressable>
               ) : null}
             </View>
@@ -618,13 +688,13 @@ export function RestaurantDetailView({
           <View className="flex-row items-center gap-3">
             <AppIcon name="phone" size={20} color="#6b7280" />
             <View className="min-w-0 flex-1">
-              <Text className="font-neusans text-sm text-gray-500">Phone</Text>
+              <Text className="text-sm text-gray-500 font-body">Phone</Text>
               {phone ? (
                 <Pressable accessibilityRole="button" onPress={openCall}>
-                  <Text className="font-neusans text-sm font-normal text-gray-700">{phone}</Text>
+                  <Text className="text-sm text-gray-700 font-body">{phone}</Text>
                 </Pressable>
               ) : (
-                <Text className="font-neusans text-sm font-normal text-gray-700">Not available</Text>
+                <Text className="text-sm text-gray-700 font-body">Not available</Text>
               )}
             </View>
           </View>
@@ -632,8 +702,8 @@ export function RestaurantDetailView({
           <View className="flex-row items-center gap-3">
             <AppIcon name="dollar-sign" size={20} color="#6b7280" />
             <View>
-              <Text className="font-neusans text-sm text-gray-500">Price Range</Text>
-              <Text className="font-neusans text-sm font-normal text-gray-700">{priceDisplay}</Text>
+              <Text className="text-sm text-gray-500 font-body">Price Range</Text>
+              <Text className="text-sm text-gray-700 font-body">{priceDisplay}</Text>
             </View>
           </View>
         </View>
@@ -641,12 +711,23 @@ export function RestaurantDetailView({
 
       {/* Reviews */}
       <View className="mx-4 mt-4 rounded-2xl bg-white p-4">
-        <Text className="mb-3 text-base font-normal" style={{ color: TEXT_HEADING }}>
+        <Text
+          accessibilityRole="header"
+          style={{
+            marginBottom: 12,
+            fontFamily: FONT.heading,
+            fontSize: 11,
+            lineHeight: 14,
+            letterSpacing: 2.2,
+            textTransform: 'uppercase',
+            color: TEXT_MUTED,
+          }}
+        >
           Reviews
         </Text>
         {visibleReviews.length === 0 ? (
           <View>
-            <Text className="text-sm" style={{ color: TEXT_MUTED }}>
+            <Text className="text-sm font-body" style={{ color: TEXT_MUTED }}>
               {googlePlaceListing
                 ? 'No Google reviews available for this place yet.'
                 : 'No reviews yet. Be the first to write one.'}
@@ -690,7 +771,7 @@ export function RestaurantDetailView({
             </ScrollView>
             {googlePlaceListing ? (
               <>
-                <Text className="mt-3 text-center text-[11px]" style={{ color: TEXT_MUTED }}>
+                <Text className="mt-3 text-center text-[11px] font-body" style={{ color: TEXT_MUTED }}>
                   Reviews from Google
                 </Text>
                 {googleMapsUrl ? (
@@ -698,7 +779,7 @@ export function RestaurantDetailView({
                     onPress={openMaps}
                     className="mt-2 w-full items-center justify-center rounded-xl border border-gray-300 bg-white py-3 active:opacity-90"
                   >
-                    <Text className="font-neusans text-sm font-medium" style={{ color: BRAND_PRIMARY }}>
+                    <Text className="text-sm font-body-medium" style={{ color: BRAND_PRIMARY }}>
                       View on Google Maps ({reviewTotal})
                     </Text>
                   </Pressable>
@@ -719,7 +800,7 @@ export function RestaurantDetailView({
                 }}
                 className="mt-3 w-full items-center justify-center rounded-xl border border-gray-300 bg-white py-3 active:opacity-90"
               >
-                <Text className="font-neusans text-sm font-medium" style={{ color: BRAND_PRIMARY }}>
+                <Text className="text-sm font-body-medium" style={{ color: BRAND_PRIMARY }}>
                   View All Reviews ({reviewTotal})
                 </Text>
               </Pressable>

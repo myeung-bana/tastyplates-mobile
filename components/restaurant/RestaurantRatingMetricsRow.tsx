@@ -1,7 +1,14 @@
-import { ScrollView, Text, View } from 'react-native'
+import { Pressable, ScrollView, Text, View } from 'react-native'
 import { AppIcon } from '@/components/ui/AppIcon'
 
-import { BRAND_PRIMARY, TEXT_HEADING } from '@/constants/brand'
+import {
+  BRAND_PRIMARY,
+  BRAND_PRIMARY_TINT,
+  TEXT_HEADING,
+  TEXT_MUTED,
+  TEXT_TERTIARY,
+} from '@/constants/brand'
+import { FONT } from '@/constants/typography'
 import { labelForPalateKey } from '@/lib/palateLabels'
 import type { SearchScoreMode } from '@/hooks/useRestaurantScores'
 
@@ -23,6 +30,9 @@ export type RestaurantRatingMetricsRowProps = {
   sharedUnlocked: boolean
   /** When true, omit outer border — parent provides the white card shell. */
   embedded?: boolean
+  /** Arrived with a cuisine filter: banner "Showing scores for X" + Clear (design S5). */
+  filterLabel?: string | null
+  onClearFilter?: () => void
 }
 
 function formatRating(n: number | null | undefined): string {
@@ -55,6 +65,8 @@ export function RestaurantRatingMetricsRow({
   sharedCount,
   sharedUnlocked,
   embedded = false,
+  filterLabel = null,
+  onClearFilter,
 }: RestaurantRatingMetricsRowProps): JSX.Element {
   const searchUnlocked =
     searchUnlockedProp ?? (searchMode === 'cuisine_filter' || searchMode === 'personalised')
@@ -63,8 +75,12 @@ export function RestaurantRatingMetricsRow({
     searchMode === 'group' && searchGroupName
       ? `${searchGroupName} Score`
       : isPersonalised
-        ? 'Your Score'
-        : 'Search Score'
+        ? filterLabel
+          ? `Your Score · ${filterLabel}`
+          : 'Your Score'
+        : filterLabel
+          ? `${filterLabel} Score`
+          : 'Search Score'
 
   const trustReviewerLabel =
     trustSet.length > 0 ? trustSet.map((slug) => labelForPalateKey(slug)).join(' & ') : null
@@ -72,43 +88,77 @@ export function RestaurantRatingMetricsRow({
   const searchSubtitle =
     searchMode === 'group'
       ? searchUnlocked
-        ? `Avg. from ${searchGroupName ?? 'your group'}\nreviewers`
+        ? `From ${searchGroupName ?? 'your group'} palates`
         : isAuthenticated
-          ? 'Not enough reviews\nfor your group'
-          : 'Sign in to see\nyour score'
+          ? 'Needs 3 reviews from your group'
+          : 'Sign in to see your score'
       : searchMode === 'none'
         ? isAuthenticated
-          ? 'Set your palate\nto unlock'
-          : 'Sign in to see\nyour score'
+          ? 'Set your palate to unlock'
+          : 'Sign in to see your score'
         : isPersonalised && trustReviewerLabel
-          ? `Rated by ${trustReviewerLabel}\nreviewers`
+          ? `From ${trustReviewerLabel} palates`
           : !isAuthenticated
-            ? 'Avg. from reviewers\nwith this cuisine'
-            : "How much we'd\nthink you'd like"
+            ? 'Reviewers with this cuisine'
+            : 'How much we think you’d like it'
 
   const sharedSubtitle = sharedUnlocked
-    ? 'What shared\npreference users think'
+    ? 'People who share your palate'
     : isAuthenticated
-      ? 'Not enough reviews\nfrom your palate'
-      : 'Sign in to see\nshared score'
+      ? 'Needs 3 reviews from your palate'
+      : 'Sign in to see shared score'
 
   return (
-    <View className={embedded ? 'py-6' : 'border-t px-0 py-4'} style={embedded ? undefined : { borderTopColor: '#e5e7eb' }}>
-      <Text className={`mb-4 font-neusans text-lg ${embedded ? 'px-6' : 'mb-3 px-4 text-base font-normal'}`} style={{ color: TEXT_HEADING }}>
+    <View style={{ paddingVertical: embedded ? 22 : 16, gap: 12 }}>
+      <Text
+        accessibilityRole="header"
+        style={{
+          paddingHorizontal: embedded ? 4 : 20,
+          fontFamily: FONT.heading,
+          fontSize: 11,
+          lineHeight: 14,
+          letterSpacing: 2.2,
+          textTransform: 'uppercase',
+          color: TEXT_MUTED,
+        }}
+      >
         Ratings
       </Text>
+      {filterLabel ? (
+        <View
+          className="flex-row items-center justify-between"
+          style={{
+            marginHorizontal: embedded ? 0 : 20,
+            borderRadius: 12,
+            borderWidth: 1,
+            borderColor: '#FFE2C7',
+            backgroundColor: BRAND_PRIMARY_TINT,
+            paddingVertical: 9,
+            paddingHorizontal: 12,
+          }}
+        >
+          <Text style={{ fontFamily: FONT.body, fontSize: 12, color: TEXT_HEADING }}>
+            Showing scores for <Text style={{ fontFamily: FONT.bodySemibold }}>{filterLabel}</Text>
+          </Text>
+          {onClearFilter ? (
+            <Pressable accessibilityRole="button" accessibilityLabel="Clear cuisine filter" onPress={onClearFilter} hitSlop={8}>
+              <Text style={{ fontFamily: FONT.body, fontSize: 12, color: BRAND_PRIMARY }}>Clear</Text>
+            </Pressable>
+          ) : null}
+        </View>
+      ) : null}
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ paddingHorizontal: embedded ? 24 : 16, gap: 0 }}
+        style={{ marginHorizontal: embedded ? -16 : 0 }}
+        contentContainerStyle={{ paddingHorizontal: 6 }}
       >
         <MetricColumn
           title="Overall Score"
           value={formatRating(overallAvg)}
           count={formatCount(overallCount)}
-          subtitle={'What platform\nusers think'}
+          subtitle="All reviews + Google"
         />
-        <Divider />
         <MetricColumn
           title={searchTitle}
           value={searchUnlocked ? formatRating(searchAvg) : null}
@@ -116,97 +166,91 @@ export function RestaurantRatingMetricsRow({
           subtitle={searchSubtitle}
           locked={!searchUnlocked}
         />
-        <Divider />
         <MetricColumn
           title="Authentic Score"
           value={formatRating(authenticAvg)}
           count={formatCount(authenticCount)}
-          subtitle={'How authentic\nthis restaurant is'}
+          subtitle="Reviewers who grew up with it"
         />
-        <Divider />
         <MetricColumn
           title="Shared Score"
           value={sharedUnlocked ? formatRating(sharedAvg) : null}
           count={sharedUnlocked ? formatCount(sharedCount) : undefined}
           subtitle={sharedSubtitle}
           locked={!sharedUnlocked}
+          last
         />
       </ScrollView>
     </View>
   )
 }
 
-function Divider(): JSX.Element {
-  return <View className="mx-2 w-px self-stretch bg-[#CACACA]" style={{ minHeight: 72 }} />
-}
-
 const COUNT_BADGE_HEIGHT = 20
 
-/** Orange review-count chip — circle for 1 digit, pill for longer counts. */
+/** Review count chip beside a score — peach circle, pill for longer counts. */
 function CountBadge({ count }: { count: string }): JSX.Element {
-  const len = count.length
-  const paddingHorizontal = len <= 1 ? 0 : Math.min(12, 4 + len * 0.75)
-  const minWidth = len <= 1 ? COUNT_BADGE_HEIGHT : undefined
-
   return (
     <View
       style={{
-        backgroundColor: BRAND_PRIMARY,
+        backgroundColor: '#FFE2C7',
         height: COUNT_BADGE_HEIGHT,
-        minWidth,
-        paddingHorizontal,
+        minWidth: COUNT_BADGE_HEIGHT,
+        paddingHorizontal: count.length > 2 ? 6 : 0,
         borderRadius: COUNT_BADGE_HEIGHT / 2,
         alignItems: 'center',
         justifyContent: 'center',
       }}
     >
-      <Text className="font-neusans text-[10px] font-bold leading-none text-white">{count}</Text>
+      <Text style={{ fontFamily: FONT.bodySemibold, fontSize: 10, color: '#5A2700' }}>{count}</Text>
     </View>
   )
 }
 
-function countBadgeTrailingSpace(count: string): number {
-  const len = count.length
-  if (len <= 1) return 18
-  return 14 + len * 8
-}
-
+/** One score column (design S5): label, big orange score + count, one-line explainer. */
 function MetricColumn({
   title,
   value,
   count,
   subtitle,
   locked = false,
+  last = false,
 }: {
   title: string
   value: string | null
   count?: string
   subtitle: string
   locked?: boolean
+  last?: boolean
 }): JSX.Element {
   return (
-    <View className="min-w-[132px] items-center px-1 py-1">
-      <Text className="mb-0.5 text-center font-neusans text-sm font-semibold text-gray-800">
+    <View
+      accessible
+      accessibilityLabel={`${title}: ${locked ? 'locked' : (value ?? 'no score')}. ${subtitle}`}
+      style={{
+        minWidth: 132,
+        maxWidth: 170,
+        paddingHorizontal: 14,
+        gap: 6,
+        borderRightWidth: last ? 0 : 1,
+        borderRightColor: '#CACACA',
+      }}
+    >
+      <Text numberOfLines={1} style={{ fontFamily: FONT.body, fontSize: 12, color: TEXT_MUTED }}>
         {title}
       </Text>
-      <View className="mb-1 items-center">
-        {locked ? (
-          <AppIcon name="lock" size={24} color="#9ca3af" />
-        ) : (
-          <View
-            className="relative mb-1"
-            style={{ paddingRight: count != null ? countBadgeTrailingSpace(count) : 0 }}
-          >
-            <Text className="font-neusans text-2xl font-bold text-gray-800">{value ?? '—'}</Text>
-            {count != null ? (
-              <View className="absolute -bottom-0.5 right-0">
-                <CountBadge count={count} />
-              </View>
-            ) : null}
-          </View>
-        )}
-      </View>
-      <Text className="text-center font-neusans text-[11px] leading-tight text-gray-500">{subtitle}</Text>
+      {locked ? (
+        <View style={{ height: 32, justifyContent: 'center' }}>
+          <AppIcon name="lock" size={20} color={TEXT_TERTIARY} />
+        </View>
+      ) : (
+        <View className="flex-row items-center" style={{ gap: 6 }}>
+          <Text style={{ fontFamily: FONT.heading, fontSize: 28, lineHeight: 32, color: BRAND_PRIMARY }}>
+            {value ?? '—'}
+          </Text>
+          {count != null && count !== '0' ? <CountBadge count={count} /> : null}
+        </View>
+      )}
+      <Text style={{ fontFamily: FONT.body, fontSize: 11, lineHeight: 15, color: TEXT_MUTED }}>{subtitle}</Text>
     </View>
   )
 }

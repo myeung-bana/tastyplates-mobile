@@ -1,12 +1,16 @@
-import { useCallback, useEffect, useRef } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { ScrollView, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Redirect, useRouter } from 'expo-router'
 import * as Haptics from 'expo-haptics'
 
 import { ChoosePalatesTopNav } from '@/components/profile/ChoosePalatesTopNav'
-import { PalateChipPicker } from '@/components/profile/PalateChipPicker'
-import { TEXT_MUTED } from '@/constants/brand'
+import { PalateIconGrid } from '@/components/onboarding/PalateIconGrid'
+import { AppIcon } from '@/components/ui/AppIcon'
+import { TextField } from '@/components/ui/TextField'
+import { BRAND_PRIMARY_TINT, SURFACE_CARD, TEXT_HEADING, TEXT_MUTED, TEXT_TERTIARY } from '@/constants/brand'
+import { FONT } from '@/constants/typography'
+import { labelForPalateKey } from '@/lib/palateLabels'
 import { SCREEN_LOGIN } from '@/constants/screens'
 import { palateLimit } from '@/constants/validation'
 import { useEditProfileDraft } from '@/contexts/EditProfileDraftContext'
@@ -19,6 +23,8 @@ export default function EditProfilePalatesScreen(): JSX.Element {
   const { selectedPalates, togglePalate, cancelPalatePicker } = useEditProfileDraft()
 
   const userToggledRef = useRef(false)
+  const [query, setQuery] = useState('')
+  const [savedPair, setSavedPair] = useState<string | null>(null)
 
   const handleCancel = useCallback(() => {
     cancelPalatePicker()
@@ -38,7 +44,9 @@ export default function EditProfilePalatesScreen(): JSX.Element {
     if (selectedPalates.size !== palateLimit) return
 
     void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
-    const t = setTimeout(() => router.back(), 120)
+    // Banner, then back to Edit profile (design P6).
+    setSavedPair(Array.from(selectedPalates).map((k) => labelForPalateKey(k)).join(' + '))
+    const t = setTimeout(() => router.back(), 700)
     return () => clearTimeout(t)
   }, [selectedPalates, router])
 
@@ -47,7 +55,7 @@ export default function EditProfilePalatesScreen(): JSX.Element {
   }
 
   return (
-    <View className="flex-1 bg-white">
+    <View className="flex-1" style={{ backgroundColor: SURFACE_CARD }}>
       <ChoosePalatesTopNav selectedCount={selectedPalates.size} onCancel={handleCancel} />
 
       <ScrollView
@@ -60,11 +68,29 @@ export default function EditProfilePalatesScreen(): JSX.Element {
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        <Text className="mb-4 text-sm leading-relaxed" style={{ color: TEXT_MUTED }}>
-          Select exactly {palateLimit} cuisines. You&apos;ll return to edit profile when both are
-          chosen.
+        <Text style={{ marginBottom: 14, fontFamily: FONT.body, fontSize: 14, lineHeight: 20, color: TEXT_MUTED }}>
+          Pick the two cuisines you grew up with. Choosing the second takes you back to Edit profile.
         </Text>
-        <PalateChipPicker selected={selectedPalates} onToggle={handleToggle} />
+        <View style={{ marginBottom: 18 }}>
+          <TextField
+            value={query}
+            onChangeText={setQuery}
+            placeholder="Search cuisines"
+            height={46}
+            autoCapitalize="none"
+            autoCorrect={false}
+            accessibilityLabel="Search cuisines"
+            prefix={<AppIcon name="search" size={18} color={TEXT_TERTIARY} style={{ marginRight: 8 }} />}
+          />
+        </View>
+        {savedPair ? (
+          <View accessibilityLiveRegion="polite" style={{ marginBottom: 16, borderRadius: 12, borderWidth: 1, borderColor: '#FFE2C7', backgroundColor: BRAND_PRIMARY_TINT, padding: 12 }}>
+            <Text style={{ fontFamily: FONT.bodySemibold, fontSize: 13, color: TEXT_HEADING }}>
+              Saved {savedPair}. Returning to Edit profile…
+            </Text>
+          </View>
+        ) : null}
+        <PalateIconGrid selected={selectedPalates} onToggle={handleToggle} query={query} />
       </ScrollView>
     </View>
   )

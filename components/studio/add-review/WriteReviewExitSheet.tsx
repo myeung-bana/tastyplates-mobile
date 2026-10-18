@@ -14,7 +14,8 @@ import {
 import type { BottomSheetBackdropProps } from '@gorhom/bottom-sheet'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
-import { BRAND_PRIMARY, TEXT_HEADING } from '@/constants/brand'
+import { BRAND_PRIMARY, TEXT_HEADING, TEXT_MUTED } from '@/constants/brand'
+import { FONT } from '@/constants/typography'
 
 export type WriteReviewExitSheetHandle = {
   present: () => void
@@ -61,7 +62,7 @@ function ActionRow({
       {loading ? (
         <ActivityIndicator size="small" color={color} />
       ) : (
-        <Text className="font-neusans text-base font-semibold" style={{ color }}>
+        <Text className="text-base font-body-semibold" style={{ color }}>
           {label}
         </Text>
       )}
@@ -109,12 +110,14 @@ export const WriteReviewExitSheet = forwardRef<WriteReviewExitSheetHandle, Write
         handleIndicatorStyle={{ backgroundColor: '#d1d5db', width: 40 }}
       >
         <BottomSheetView style={{ paddingBottom: Math.max(insets.bottom, 16) }}>
-          <Text
-            className="px-6 pb-5 pt-2 text-center font-neusans text-base leading-6"
-            style={{ color: TEXT_HEADING }}
-          >
-            If you back now, your review will be discarded.
-          </Text>
+          <View className="px-6 pb-5 pt-2" style={{ gap: 6 }}>
+            <Text accessibilityRole="header" className="text-center" style={{ fontFamily: FONT.heading, fontSize: 20, color: TEXT_HEADING }}>
+              Discard this review?
+            </Text>
+            <Text className="text-center" style={{ fontFamily: FONT.body, fontSize: 14, lineHeight: 20, color: TEXT_MUTED }}>
+              Your rating, text and photos will be lost.
+            </Text>
+          </View>
 
           <View className="mx-4 overflow-hidden rounded-2xl border border-gray-100 bg-white">
             <ActionRow
@@ -134,7 +137,7 @@ export const WriteReviewExitSheet = forwardRef<WriteReviewExitSheetHandle, Write
           </View>
 
           <View className="mx-4 mt-3 overflow-hidden rounded-2xl border border-gray-100 bg-white">
-            <ActionRow label="Cancel" onPress={dismiss} disabled={busy && !savingDraft} />
+            <ActionRow label="Keep editing" onPress={dismiss} disabled={busy && !savingDraft} />
           </View>
         </BottomSheetView>
       </BottomSheetModal>

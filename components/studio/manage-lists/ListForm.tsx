@@ -1,31 +1,39 @@
 /**
- * Shared centered form for Create List and Edit List (Spotify-style layout).
+ * Shared form for Create List (design L2) and Edit List (design L5).
  */
 import { useState } from 'react'
-import { AppIcon } from '@/components/ui/AppIcon'
-import {
-  Alert,
-  Image,
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  ScrollView,
-  Text,
-  TextInput,
-  View,
-} from 'react-native'
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, View } from 'react-native'
 import * as Haptics from 'expo-haptics'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
+import { ListCover } from '@/components/studio/manage-lists/ListCover'
+import { ListCoverSheet, type ListCoverOption } from '@/components/studio/manage-lists/ListCoverSheet'
+import { AppIcon } from '@/components/ui/AppIcon'
 import { Button } from '@/components/ui/Button'
+import { TextField } from '@/components/ui/TextField'
+import {
+  BORDER_SUBTLE,
+  BRAND_PRIMARY,
+  BRAND_PRIMARY_DARK,
+  BRAND_PRIMARY_TINT,
+  DANGER,
+  SURFACE_CARD,
+  TEXT_HEADING,
+  TEXT_MUTED,
+} from '@/constants/brand'
+import { FONT } from '@/constants/typography'
 import type { PickedListCoverPhoto } from '@/lib/pickListCoverPhoto'
-import { pickListCoverPhoto } from '@/lib/pickListCoverPhoto'
+import { pickListCoverFromCamera, pickListCoverFromLibrary } from '@/lib/pickListCoverPhoto'
 import { toast } from '@/utils/toast'
 
 export interface ListFormValues {
   title: string
   description: string
   is_public: boolean
+  /** New local photo to upload. */
   pendingCover?: PickedListCoverPhoto
+  /** A restaurant photo from the list, used as-is (no upload). */
+  coverUrl?: string
   clearDisplayPic?: boolean
 }
 
@@ -43,59 +51,20 @@ interface Props {
   submittingLabel?: string
   submitting: boolean
   onSubmit: (values: ListFormValues) => void
+  /** Restaurant photos already in the list (edit only) — "From this list" in the cover sheet. */
+  coverOptions?: ListCoverOption[]
+  /** Places in the list, so the generated cover matches L3. */
+  itemCount?: number
+  /** Stable seed for the generated cover colourway. */
+  coverSeed?: string
+  /** Edit only: "Delete list" at the bottom (asks first). */
+  onDelete?: () => void
 }
 
-function VisibilityPills({
-  isPublic,
-  onChange,
-}: {
-  isPublic: boolean
-  onChange: (isPublic: boolean) => void
-}): JSX.Element {
-  return (
-    <View className="items-center">
-      <Text className="mb-3 text-center font-neusans text-sm text-[#374151]">
-        Who can see this list?
-      </Text>
-      <View className="flex-row justify-center gap-3">
-        {([
-          { label: 'Private', value: false, icon: 'lock' as const },
-          { label: 'Public', value: true, icon: 'globe' as const },
-        ]).map((opt) => {
-          const isActive = isPublic === opt.value
-          return (
-            <Pressable
-              key={opt.label}
-              accessibilityRole="button"
-              accessibilityState={{ selected: isActive }}
-              onPress={() => {
-                void Haptics.selectionAsync()
-                onChange(opt.value)
-              }}
-              className="flex-row items-center gap-2 rounded-[50px] border-2 px-4 py-2.5"
-              style={{
-                backgroundColor: isActive ? '#31343F' : '#ffffff',
-                borderColor: isActive ? '#31343F' : '#e5e7eb',
-              }}
-            >
-              <AppIcon
-                name={opt.icon}
-                size={14}
-                color={isActive ? '#ffffff' : '#31343F'}
-              />
-              <Text
-                className="font-neusans text-sm"
-                style={{ color: isActive ? '#ffffff' : '#31343F' }}
-              >
-                {opt.label}
-              </Text>
-            </Pressable>
-          )
-        })}
-      </View>
-    </View>
-  )
-}
+const VISIBILITY = [
+  { value: true, label: 'Public', icon: 'globe' as const, hint: 'Public lists show on your profile under Lists.' },
+  { value: false, label: 'Private', icon: 'lock' as const, hint: 'Private lists stay in Studio. Only you can see them.' },
+]
 
 export function ListForm({
   mode = 'create',
@@ -104,58 +73,50 @@ export function ListForm({
   submittingLabel,
   submitting,
   onSubmit,
+  coverOptions = [],
+  itemCount = 0,
+  coverSeed = 'new-list',
+  onDelete,
 }: Props): JSX.Element {
+  const insets = useSafeAreaInsets()
   const isEdit = mode === 'edit'
   const [title, setTitle] = useState(initialValues?.title ?? '')
   const [description, setDescription] = useState(initialValues?.description ?? '')
+  // Public by default (design L2).
   const [isPublic, setIsPublic] = useState(initialValues?.is_public ?? true)
-  const [titleError, setTitleError] = useState<string | null>(null)
   const [pendingCover, setPendingCover] = useState<PickedListCoverPhoto | null>(null)
+  const [pickedUrl, setPickedUrl] = useState<string | null>(null)
   const [clearDisplayPic, setClearDisplayPic] = useState(false)
+  const [sheetOpen, setSheetOpen] = useState(false)
 
   const savedCoverUrl = initialValues?.display_pic?.trim() || null
-  const coverPreviewUri = pendingCover?.uri ?? (clearDisplayPic ? null : savedCoverUrl)
-  const hasCover = Boolean(coverPreviewUri)
+  const coverPreviewUri = pendingCover?.uri ?? pickedUrl ?? (clearDisplayPic ? null : savedCoverUrl)
+  const hasCustomCover = Boolean(coverPreviewUri)
+  const canSubmit = title.trim().length > 0 && !submitting
+  const visibility = VISIBILITY.find((v) => v.value === isPublic) ?? VISIBILITY[0]!
 
-  function handlePickCover(): void {
-    void Haptics.selectionAsync()
-    void pickListCoverPhoto()
-      .then((picked) => {
-        if (!picked) return
-        setPendingCover(picked)
-        setClearDisplayPic(false)
-      })
-      .catch((e) => {
-        toast.error(e instanceof Error ? e.message : 'Could not pick photo')
-      })
-  }
-
-  function handleRemoveCover(): void {
-    Alert.alert('Remove cover photo?', undefined, [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Remove',
-        style: 'destructive',
-        onPress: () => {
-          setPendingCover(null)
-          setClearDisplayPic(true)
-        },
-      },
-    ])
+  const pick = async (from: 'library' | 'camera'): Promise<void> => {
+    setSheetOpen(false)
+    try {
+      const picked = from === 'library' ? await pickListCoverFromLibrary() : await pickListCoverFromCamera()
+      if (!picked) return
+      setPendingCover(picked)
+      setPickedUrl(null)
+      setClearDisplayPic(false)
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Could not pick photo')
+    }
   }
 
   function handleSubmit(): void {
-    if (!title.trim()) {
-      setTitleError(isEdit ? 'List name is required.' : 'Give your list a name to continue.')
-      return
-    }
-    setTitleError(null)
+    if (!title.trim()) return
     void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
     onSubmit({
       title: title.trim(),
       description: description.trim(),
       is_public: isPublic,
       ...(pendingCover ? { pendingCover } : {}),
+      ...(!pendingCover && pickedUrl ? { coverUrl: pickedUrl } : {}),
       ...(clearDisplayPic ? { clearDisplayPic: true } : {}),
     })
   }
@@ -164,102 +125,122 @@ export function ListForm({
 
   return (
     <KeyboardAvoidingView
-      className="flex-1"
+      style={{ flex: 1, backgroundColor: SURFACE_CARD }}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       keyboardVerticalOffset={100}
     >
       <ScrollView
-        className="flex-1"
-        contentContainerStyle={{
-          flexGrow: 1,
-          paddingHorizontal: 24,
-          paddingTop: 24,
-          paddingBottom: 120,
-          alignItems: 'center',
-        }}
+        style={{ flex: 1 }}
+        contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 20, paddingBottom: 40, gap: 20 }}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={hasCover ? 'Change list cover photo' : 'Add list cover photo'}
-          onPress={handlePickCover}
-          onLongPress={hasCover ? handleRemoveCover : undefined}
-          className="mb-2 overflow-hidden rounded-2xl bg-gray-100"
-          style={{ width: 200, height: 200 }}
-        >
-          {hasCover && coverPreviewUri ? (
-            <Image
-              source={{ uri: coverPreviewUri }}
-              style={{ width: 200, height: 200 }}
-              resizeMode="cover"
-            />
-          ) : (
-            <View className="h-full w-full items-center justify-center">
-              <AppIcon name="image" size={72} color="#9ca3af" />
-            </View>
-          )}
-          <View
-            className="absolute bottom-0 left-0 right-0 items-center bg-black/40 py-2"
-            pointerEvents="none"
-          >
-            <Text className="font-neusans text-xs font-medium text-white">
-              {hasCover ? 'Change photo' : 'Add photo'}
+        <View className="flex-row items-center" style={{ gap: 16 }}>
+          <ListCover title={title} count={itemCount} imageUrl={coverPreviewUri} seed={coverSeed} size={96} />
+          <View style={{ gap: 6 }}>
+            <Text style={{ fontFamily: FONT.heading, fontSize: 11, letterSpacing: 2.2, textTransform: 'uppercase', color: TEXT_MUTED }}>
+              {isEdit ? 'Cover' : 'New list'}
             </Text>
+            <Pressable accessibilityRole="button" onPress={() => setSheetOpen(true)} hitSlop={6}>
+              <Text style={{ fontFamily: FONT.bodySemibold, fontSize: 14, color: BRAND_PRIMARY_DARK }}>Change cover</Text>
+            </Pressable>
           </View>
-        </Pressable>
-        {hasCover ? (
-          <Pressable accessibilityRole="button" onPress={handleRemoveCover} className="mb-6">
-            <Text className="font-neusans text-xs text-[#6b7280]">Remove photo</Text>
-          </Pressable>
-        ) : (
-          <View className="mb-8" />
-        )}
+        </View>
 
-        <TextInput
+        <TextField
+          label="Name"
           value={title}
-          onChangeText={(v) => {
-            setTitle(v)
-            if (titleError) setTitleError(null)
-          }}
+          onChangeText={setTitle}
           placeholder="Give your list a name"
-          placeholderTextColor="#9ca3af"
           maxLength={100}
           autoFocus={!isEdit}
-          textAlign="center"
-          className="w-full font-neusans font-semibold text-[#31343F]"
-          style={{ fontSize: 28, lineHeight: 34, paddingVertical: 8 }}
           returnKeyType="next"
         />
-        {titleError ? (
-          <Text className="mt-2 text-center font-neusans text-xs text-red-600">{titleError}</Text>
-        ) : (
-          <Text className="mt-1 font-neusans text-xs text-[#9ca3af]">{title.length}/100</Text>
-        )}
 
-        <TextInput
+        <TextField
+          label="Description · optional"
           value={description}
           onChangeText={setDescription}
-          placeholder="Describe your list"
-          placeholderTextColor="#9ca3af"
+          placeholder="What’s this list for?"
           maxLength={500}
           multiline
-          textAlign="center"
-          className="mt-6 w-full font-neusans text-base text-[#31343F]"
-          style={{ fontSize: 16, minHeight: 72, textAlignVertical: 'top', paddingVertical: 8 }}
+          height={88}
+          style={{ minHeight: 64 }}
         />
-        <Text className="mt-1 font-neusans text-xs text-[#9ca3af]">{description.length}/500</Text>
 
-        <View className="mt-10 w-full max-w-sm">
-          <VisibilityPills isPublic={isPublic} onChange={setIsPublic} />
+        <View style={{ gap: 8 }}>
+          <Text style={{ fontFamily: FONT.bodySemibold, fontSize: 13, color: TEXT_HEADING }}>Visibility</Text>
+          <View className="flex-row" style={{ gap: 8 }} accessibilityRole="radiogroup">
+            {VISIBILITY.map((opt) => {
+              const on = opt.value === isPublic
+              return (
+                <Pressable
+                  key={opt.label}
+                  accessibilityRole="radio"
+                  accessibilityState={{ selected: on }}
+                  onPress={() => {
+                    void Haptics.selectionAsync()
+                    setIsPublic(opt.value)
+                  }}
+                  className="flex-row items-center justify-center active:opacity-80"
+                  style={{
+                    flex: 1,
+                    height: 44,
+                    gap: 8,
+                    borderRadius: 999,
+                    borderWidth: 1.5,
+                    borderColor: on ? BRAND_PRIMARY : BORDER_SUBTLE,
+                    backgroundColor: on ? BRAND_PRIMARY_TINT : SURFACE_CARD,
+                  }}
+                >
+                  <AppIcon name={opt.icon} size={15} color={on ? BRAND_PRIMARY_DARK : TEXT_HEADING} />
+                  <Text style={{ fontFamily: FONT.heading, fontSize: 15, color: on ? BRAND_PRIMARY_DARK : TEXT_HEADING }}>
+                    {opt.label}
+                  </Text>
+                </Pressable>
+              )
+            })}
+          </View>
+          <Text style={{ fontFamily: FONT.body, fontSize: 12, lineHeight: 17, color: TEXT_MUTED }}>{visibility.hint}</Text>
         </View>
+
+        {isEdit && onDelete ? (
+          <Pressable accessibilityRole="button" onPress={onDelete} className="items-center active:opacity-70" style={{ paddingVertical: 12, marginTop: 8 }}>
+            <Text style={{ fontFamily: FONT.bodySemibold, fontSize: 15, color: DANGER }}>Delete list</Text>
+          </Pressable>
+        ) : null}
       </ScrollView>
 
-      <View className="border-t border-gray-100 bg-white px-6 pb-8 pt-3">
-        <Button variant="primary" onPress={handleSubmit} loading={submitting}>
+      <View style={{ paddingHorizontal: 20, paddingTop: 12, paddingBottom: Math.max(insets.bottom, 16) + 8, borderTopWidth: 1, borderTopColor: BORDER_SUBTLE }}>
+        <Button onPress={handleSubmit} loading={submitting} disabled={!canSubmit && !submitting}>
           {submitting ? busyLabel : submitLabel}
         </Button>
       </View>
+
+      <ListCoverSheet
+        visible={sheetOpen}
+        onClose={() => setSheetOpen(false)}
+        options={coverOptions}
+        selectedUrl={pickedUrl ?? savedCoverUrl}
+        onPickOption={(o) => {
+          setPickedUrl(o.imageUrl)
+          setPendingCover(null)
+          setClearDisplayPic(false)
+          setSheetOpen(false)
+        }}
+        onChooseLibrary={() => void pick('library')}
+        onTakePhoto={() => void pick('camera')}
+        onUseDefault={
+          hasCustomCover
+            ? () => {
+                setPendingCover(null)
+                setPickedUrl(null)
+                setClearDisplayPic(true)
+                setSheetOpen(false)
+              }
+            : undefined
+        }
+      />
     </KeyboardAvoidingView>
   )
 }

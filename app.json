@@ -14,7 +14,7 @@
     "splash": {
       "image": "./assets/splash-logo.png",
       "resizeMode": "contain",
-      "backgroundColor": "#31343F"
+      "backgroundColor": "#FF7C09"
     },
     "assetBundlePatterns": [
       "**/*"
@@ -104,7 +104,7 @@
         {
           "image": "./assets/splash-logo.png",
           "resizeMode": "contain",
-          "backgroundColor": "#31343F",
+          "backgroundColor": "#FF7C09",
           "imageWidth": 200
         }
       ]

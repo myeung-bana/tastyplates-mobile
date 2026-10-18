@@ -5,8 +5,8 @@ import { ReplyItem } from '@/components/review/ReplyItem'
 import { ReplySkeleton } from '@/components/ui/Skeleton/ReplySkeleton'
 import { BRAND_PRIMARY, TEXT_MUTED } from '@/constants/brand'
 import type { UseReviewCommentsResult } from '@/hooks/useReviewComments'
+import { FONT, bodyFont } from '@/constants/typography'
 
-const NEUSANS = 'Neusans'
 
 export type ReviewCommentsListProps = {
   comments: Pick<
@@ -56,9 +56,9 @@ export function ReviewCommentsList({
   if (error && replies.length === 0) {
     return (
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 }}>
-        <Text style={{ fontFamily: NEUSANS, color: TEXT_MUTED, textAlign: 'center' }}>{error}</Text>
+        <Text style={{ fontFamily: FONT.body, color: TEXT_MUTED, textAlign: 'center' }}>{error}</Text>
         <Pressable onPress={() => void loadReplies()} style={{ marginTop: 12 }}>
-          <Text style={{ fontFamily: NEUSANS, color: BRAND_PRIMARY }}>Retry</Text>
+          <Text style={{ fontFamily: FONT.body, color: BRAND_PRIMARY }}>Retry</Text>
         </Pressable>
       </View>
     )
@@ -79,10 +79,10 @@ export function ReviewCommentsList({
       ListEmptyComponent={
         !loading ? (
           <View style={{ alignItems: 'center', paddingVertical: 48 }}>
-            <Text style={{ fontFamily: NEUSANS, fontSize: 16, fontWeight: '500', color: '#374151' }}>
+            <Text style={{  fontSize: 16, fontFamily: bodyFont('500'), color: '#374151' }}>
               No Comments Yet
             </Text>
-            <Text style={{ fontFamily: NEUSANS, fontSize: 14, color: '#6b7280', marginTop: 4 }}>
+            <Text style={{ fontFamily: FONT.body, fontSize: 14, color: '#6b7280', marginTop: 4 }}>
               Be the first to comment!
             </Text>
           </View>

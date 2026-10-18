@@ -42,9 +42,19 @@ export default function StudioSectionLayout(): JSX.Element {
       <Stack.Screen name="add-review/success" options={{ headerShown: false }} />
       <Stack.Screen name="review-listing" options={{ title: 'Manage Reviews' }} />
       <Stack.Screen name="edit-review/[id]" options={{ headerShown: false }} />
-      <Stack.Screen name="my-lists/index" options={{ title: 'To Dine / Check-Ins' }} />
+      <Stack.Screen name="my-lists/index" options={{ title: 'My Lists' }} />
       <Stack.Screen name="manage-lists/index" options={{ title: 'Manage Lists' }} />
-      <Stack.Screen name="manage-lists/create" options={{ title: 'New List' }} />
+      {/* Opens as a sheet over whatever you were on (design L2). */}
+      <Stack.Screen
+        name="manage-lists/create"
+        options={{
+          title: 'New list',
+          presentation: 'formSheet',
+          sheetAllowedDetents: [0.92],
+          sheetGrabberVisible: true,
+          sheetCornerRadius: 28,
+        }}
+      />
       <Stack.Screen name="manage-lists/[uuid]/index" options={{ title: 'List' }} />
       <Stack.Screen name="manage-lists/[uuid]/edit" options={{ title: 'Edit List' }} />
       <Stack.Screen name="manage-lists/[uuid]/add" options={{ title: 'Add Restaurant' }} />

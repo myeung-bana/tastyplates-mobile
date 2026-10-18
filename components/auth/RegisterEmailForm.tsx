@@ -1,47 +1,29 @@
-import { useState } from 'react'
-import {
-  ActivityIndicator,
-  Pressable,
-  Text,
-  TextInput,
-  View,
-} from 'react-native'
+import { useRef, useState } from 'react'
+import { Pressable, Text, View, type TextInput } from 'react-native'
 import { Link } from 'expo-router'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { Controller, useForm } from 'react-hook-form'
 import type { User } from '@nhost/nhost-js'
-import { z } from 'zod'
 
 import { LegalConsentText } from '@/components/legal/LegalConsentText'
-import { PasswordInput } from '@/components/ui/PasswordInput'
+import { AppIcon } from '@/components/ui/AppIcon'
+import { Button } from '@/components/ui/Button'
+import { PasswordField } from '@/components/ui/PasswordField'
+import { TextField } from '@/components/ui/TextField'
 import {
   BRAND_PRIMARY,
-  mergeTextInputBodyTypography,
+  SUCCESS,
   TEXT_HEADING,
   TEXT_MUTED,
+  TEXT_TERTIARY,
 } from '@/constants/brand'
 import { SCREEN_USER_VERIFICATION } from '@/constants/screens'
+import { FONT } from '@/constants/typography'
 import { minimumPassword } from '@/constants/validation'
 import { storePendingVerificationEmail } from '@/lib/authProfileSetup'
-import { signUpEmailPasswordDirect } from '@/lib/nhostAuthDirect'
 import { loginScreenHref } from '@/lib/authRoutes'
+import { signUpEmailPasswordDirect } from '@/lib/nhostAuthDirect'
 import { toast } from '@/utils/toast'
 
-const inputClass =
-  'mb-1 rounded-[10px] border border-[#797979] bg-white px-4 py-3 text-base text-gray-900'
-
-const registerSchema = z
-  .object({
-    email: z.string().trim().email('Enter a valid email'),
-    password: z.string().min(minimumPassword, `Use at least ${minimumPassword} characters`),
-    confirmPassword: z.string().min(1, 'Confirm your password'),
-  })
-  .refine((data) => data.password === data.confirmPassword, {
-    message: 'Passwords do not match',
-    path: ['confirmPassword'],
-  })
-
-type RegisterForm = z.infer<typeof registerSchema>
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 export type RegisterSuccessPayload = {
   needsEmailVerification: boolean
@@ -52,182 +34,142 @@ export type RegisterSuccessPayload = {
 export type RegisterEmailFormProps = {
   /** Pass through from `/login` so “Log in” returns to same resume path. */
   resume?: string
-  /** When false, parent shows intro copy in the hero sheet header. */
-  showIntro?: boolean
   /** When true, hide footer log-in link unless `onSwitchToSignIn` is provided. */
   embedded?: boolean
   onRegisterSuccess: (payload: RegisterSuccessPayload) => void | Promise<void>
   /** When embedded, switch to sign-in without router (optional). */
   onSwitchToSignIn?: () => void
+  /** Prefill (e.g. "Wrong email? Change it" from verification). */
+  initialEmail?: string
+}
+
+function Check({ ok, label }: { ok: boolean; label: string }): JSX.Element {
+  const color = ok ? SUCCESS : TEXT_TERTIARY
+  return (
+    <View className="flex-row items-center" style={{ gap: 6 }}>
+      <AppIcon name={ok ? 'check-circle' : 'circle'} size={15} color={color} />
+      <Text style={{ fontFamily: FONT.body, fontSize: 13, color }}>{label}</Text>
+    </View>
+  )
 }
 
 /**
- * Email + password registration (same flow as `/register`; used on unified login screen).
+ * Email sign-up (design G3). Password ≥ 9 and must match — the checks turn green as you type.
+ * Display name starts as the part of the email before @; the username comes next in onboarding.
  */
 export function RegisterEmailForm({
   resume,
-  showIntro = true,
   embedded = false,
   onRegisterSuccess,
   onSwitchToSignIn,
-}: RegisterEmailFormProps) {
+  initialEmail = '',
+}: RegisterEmailFormProps): JSX.Element {
+  const [email, setEmail] = useState(initialEmail)
+  const [password, setPassword] = useState('')
+  const [confirm, setConfirm] = useState('')
   const [busy, setBusy] = useState(false)
+  const passwordRef = useRef<TextInput>(null)
+  const confirmRef = useRef<TextInput>(null)
 
-  const {
-    control,
-    handleSubmit,
-    formState: { errors },
-  } = useForm<RegisterForm>({
-    resolver: zodResolver(registerSchema),
-    defaultValues: { email: '', password: '', confirmPassword: '' },
-  })
+  const trimmedEmail = email.trim()
+  const lengthOk = password.length >= minimumPassword
+  const matchOk = password.length > 0 && password === confirm
+  const emailOk = EMAIL_RE.test(trimmedEmail)
+  const canCreate = emailOk && lengthOk && matchOk
+  const displayNameSeed = trimmedEmail.split('@')[0] ?? ''
 
-  const onSubmit = handleSubmit(async ({ email, password }) => {
+  const onSubmit = async (): Promise<void> => {
+    if (!canCreate || busy) return
     setBusy(true)
     try {
-      const result = await signUpEmailPasswordDirect(email, password, {
-        displayName: email.split('@')[0] ?? 'Food lover',
+      const result = await signUpEmailPasswordDirect(trimmedEmail, password, {
+        displayName: trimmedEmail.split('@')[0] || 'Food lover',
         redirectPath: SCREEN_USER_VERIFICATION,
       })
       if (result.isError && result.error) {
         toast.error(result.error.message ?? 'Could not create account')
         return
       }
-      // Sign-up often has no session until verify — persist email for resend on /user-verification.
-      await storePendingVerificationEmail(email)
+      // Sign-up often has no session until verified — keep the email so /user-verification can resend.
+      await storePendingVerificationEmail(trimmedEmail)
       await onRegisterSuccess({
         needsEmailVerification: result.needsEmailVerification,
         user: result.user,
-        email,
+        email: trimmedEmail,
       })
     } finally {
       setBusy(false)
     }
-  })
+  }
 
   return (
-    <View>
-      {showIntro ? (
-        <Text className="mb-6 text-center text-base leading-relaxed" style={{ color: TEXT_MUTED }}>
-          Create a free account to save favourites, write reviews, and follow other food lovers.
-        </Text>
-      ) : null}
-
-      <Text className="mb-1 text-sm font-medium" style={{ color: TEXT_HEADING }}>
-        Email
-      </Text>
-      <Controller
-        control={control}
-        name="email"
-        render={({ field: { onChange, onBlur, value } }) => (
-          <TextInput
-            autoCapitalize="none"
-            autoComplete="email"
-            autoCorrect={false}
-            keyboardType="email-address"
-            onBlur={onBlur}
-            onChangeText={onChange}
-            placeholder="Email Address"
-            placeholderTextColor="#9ca3af"
-            value={value}
-            className="mb-1 rounded-[10px] border border-[#797979] bg-white px-4 py-3 text-base text-gray-900"
-            style={mergeTextInputBodyTypography()}
-          />
-        )}
+    <View style={{ gap: 16 }}>
+      <TextField
+        label="Email"
+        value={email}
+        onChangeText={setEmail}
+        autoCapitalize="none"
+        autoComplete="email"
+        autoCorrect={false}
+        keyboardType="email-address"
+        textContentType="emailAddress"
+        returnKeyType="next"
+        onSubmitEditing={() => passwordRef.current?.focus()}
       />
-      {errors.email ? (
-        <Text className="mb-4 text-sm text-red-600">{errors.email.message}</Text>
-      ) : (
-        <View className="mb-4" />
-      )}
-
-      <Text className="mb-1 text-sm font-medium" style={{ color: TEXT_HEADING }}>
-        Password
-      </Text>
-      <Controller
-        control={control}
-        name="password"
-        render={({ field: { onChange, onBlur, value } }) => (
-          <PasswordInput
-            autoComplete="new-password"
-            onBlur={onBlur}
-            onChangeText={onChange}
-            placeholder={`At least ${minimumPassword} characters`}
-            placeholderTextColor="#9ca3af"
-            value={value}
-            className={inputClass}
-          />
-        )}
+      <PasswordField
+        ref={passwordRef}
+        label="Password"
+        value={password}
+        onChangeText={setPassword}
+        placeholder={`At least ${minimumPassword} characters`}
+        autoComplete="new-password"
+        textContentType="newPassword"
+        returnKeyType="next"
+        onSubmitEditing={() => confirmRef.current?.focus()}
       />
-      {errors.password ? (
-        <Text className="mb-4 text-sm text-red-600">{errors.password.message}</Text>
-      ) : (
-        <View className="mb-4" />
-      )}
-
-      <Text className="mb-1 text-sm font-medium" style={{ color: TEXT_HEADING }}>
-        Confirm password
-      </Text>
-      <Controller
-        control={control}
-        name="confirmPassword"
-        render={({ field: { onChange, onBlur, value } }) => (
-          <PasswordInput
-            autoComplete="new-password"
-            onBlur={onBlur}
-            onChangeText={onChange}
-            placeholder="Repeat password"
-            placeholderTextColor="#9ca3af"
-            value={value}
-            className={inputClass}
-          />
-        )}
+      <PasswordField
+        ref={confirmRef}
+        label="Confirm password"
+        value={confirm}
+        onChangeText={setConfirm}
+        placeholder="Type it again"
+        autoComplete="new-password"
+        textContentType="newPassword"
+        returnKeyType="done"
+        onSubmitEditing={() => void onSubmit()}
       />
-      {errors.confirmPassword ? (
-        <Text className="mb-4 text-sm text-red-600">{errors.confirmPassword.message}</Text>
-      ) : (
-        <View className="mb-4" />
-      )}
-
-      <View className="mb-6 px-2">
-        <LegalConsentText prefix="By signing up you confirm you are 13 or older and agree to our" />
+      <View style={{ gap: 8 }} accessibilityLiveRegion="polite">
+        <Check ok={lengthOk} label={`At least ${minimumPassword} characters`} />
+        <Check ok={matchOk} label="Passwords match" />
       </View>
 
-      <Pressable
-        accessibilityRole="button"
-        disabled={busy}
-        onPress={onSubmit}
-        className="mb-6 items-center rounded-full py-4 active:opacity-90 disabled:opacity-50"
-        style={{ backgroundColor: BRAND_PRIMARY }}
-      >
-        {busy ? (
-          <ActivityIndicator color="#fff" />
-        ) : (
-          <Text className="text-base font-semibold text-white">Sign up</Text>
-        )}
-      </Pressable>
+      <View style={{ gap: 12, marginTop: 12 }}>
+        <Button disabled={!canCreate} loading={busy} onPress={() => void onSubmit()}>
+          Create account
+        </Button>
+        <LegalConsentText />
+        {displayNameSeed ? (
+          <Text className="text-center" style={{ fontFamily: FONT.body, fontSize: 12, lineHeight: 18, color: TEXT_MUTED }}>
+            Your display name starts as{' '}
+            <Text style={{ fontFamily: FONT.bodySemibold, color: TEXT_HEADING }}>{displayNameSeed}</Text> — you’ll
+            pick a username next.
+          </Text>
+        ) : null}
+      </View>
 
       {embedded && onSwitchToSignIn ? (
-        <View className="flex-row flex-wrap justify-center gap-1 pb-6">
-          <Text className="text-center text-sm" style={{ color: TEXT_MUTED }}>
-            Already have an account?
-          </Text>
-          <Pressable onPress={onSwitchToSignIn}>
-            <Text className="text-sm font-semibold" style={{ color: BRAND_PRIMARY }}>
-              Log in
-            </Text>
+        <View className="flex-row flex-wrap justify-center" style={{ gap: 4, paddingBottom: 12 }}>
+          <Text style={{ fontFamily: FONT.body, fontSize: 14, color: TEXT_MUTED }}>Already have an account?</Text>
+          <Pressable onPress={onSwitchToSignIn} hitSlop={6}>
+            <Text style={{ fontFamily: FONT.bodySemibold, fontSize: 14, color: BRAND_PRIMARY }}>Sign in</Text>
           </Pressable>
         </View>
       ) : !embedded ? (
-        <View className="flex-row flex-wrap justify-center gap-1 pb-6">
-          <Text className="text-center text-sm" style={{ color: TEXT_MUTED }}>
-            Already have an account?
-          </Text>
+        <View className="flex-row flex-wrap justify-center" style={{ gap: 4, paddingBottom: 12 }}>
+          <Text style={{ fontFamily: FONT.body, fontSize: 14, color: TEXT_MUTED }}>Already have an account?</Text>
           <Link href={loginScreenHref({ mode: 'signin', resume })} asChild>
-            <Pressable>
-              <Text className="text-sm font-semibold" style={{ color: BRAND_PRIMARY }}>
-                Log in
-              </Text>
+            <Pressable hitSlop={6}>
+              <Text style={{ fontFamily: FONT.bodySemibold, fontSize: 14, color: BRAND_PRIMARY }}>Sign in</Text>
             </Pressable>
           </Link>
         </View>

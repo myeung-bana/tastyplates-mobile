@@ -16,6 +16,7 @@ export default function ProfileTabStackLayout() {
         <Stack.Screen name="index" />
         <Stack.Screen name="edit" options={{ headerShown: false }} />
         <Stack.Screen name="edit-palates" options={{ headerShown: false }} />
+        <Stack.Screen name="edit-display-name" options={{ headerShown: false }} />
         <Stack.Screen name="[userId]" />
       </Stack>
     </EditProfileDraftProvider>

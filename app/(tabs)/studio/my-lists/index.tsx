@@ -3,6 +3,8 @@ import { RefreshControl, View } from 'react-native'
 import * as Haptics from 'expo-haptics'
 import { FlashList } from '@shopify/flash-list'
 import { SafeAreaView } from 'react-native-safe-area-context'
+import { useLocalSearchParams } from 'expo-router'
+import { firstSegmentParam } from '@/lib/routeParams'
 import type { Swipeable } from 'react-native-gesture-handler'
 
 import { MyListsEmptyState } from '@/components/studio/my-lists/MyListsEmptyState'
@@ -22,7 +24,13 @@ export default function MyListsScreen(): JSX.Element {
   const { authUser } = useAuth()
   const userId = authUser?.id ?? null
 
-  const [activeTab, setActiveTab] = useState<MyListsTab>('todine')
+  // `?tab=checkins` from the Check-in toast / library tile (design M1, M2).
+  const params = useLocalSearchParams<{ tab?: string | string[] }>()
+  const initialTab: MyListsTab = firstSegmentParam(params.tab) === 'checkins' ? 'checkins' : 'todine'
+  const [activeTab, setActiveTab] = useState<MyListsTab>(initialTab)
+  useEffect(() => {
+    setActiveTab(initialTab)
+  }, [initialTab])
 
   const [todineItems, setTodineItems] = useState<MyListRestaurant[]>([])
   const [todineLoading, setTodineLoading] = useState(false)
@@ -164,7 +172,7 @@ export default function MyListsScreen(): JSX.Element {
               <RefreshControl
                 refreshing={refreshing}
                 onRefresh={handleRefresh}
-                tintColor="#ff7c0a"
+                tintColor="#FF7C09"
               />
             }
             contentContainerStyle={{ paddingBottom: 32 }}

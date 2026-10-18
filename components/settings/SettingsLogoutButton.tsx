@@ -17,7 +17,7 @@ export function SettingsLogoutButton({
       className="mt-6 items-center justify-center rounded-xl border border-gray-200 bg-white py-3.5 active:bg-gray-50"
       style={signingOut ? { opacity: 0.6 } : undefined}
     >
-      <Text className="text-base font-medium text-red-600">
+      <Text className="text-base text-red-600 font-body-medium">
         {signingOut ? 'Logging out…' : 'Log out'}
       </Text>
     </Pressable>

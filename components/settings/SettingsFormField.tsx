@@ -13,14 +13,14 @@ type Props = {
 export function SettingsFormField({ label, helper, error, children }: Props): JSX.Element {
   return (
     <View className="mb-6">
-      <Text className="mb-2 text-sm font-medium font-neusans" style={{ color: TEXT_HEADING }}>
+      <Text className="mb-2 text-sm font-body-medium" style={{ color: TEXT_HEADING }}>
         {label}
       </Text>
       {children}
       {error ? (
-        <Text className="mt-1 text-sm text-red-600 font-neusans">{error}</Text>
+        <Text className="mt-1 text-sm text-red-600 font-body">{error}</Text>
       ) : helper ? (
-        <Text className="mt-1 text-xs font-neusans" style={{ color: TEXT_MUTED }}>
+        <Text className="mt-1 text-xs font-body" style={{ color: TEXT_MUTED }}>
           {helper}
         </Text>
       ) : null}

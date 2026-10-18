@@ -29,7 +29,7 @@ export function ImageGalleryCounterBadge({
   const label = `${currentIndex + 1}/${total}`
   const inner = (
     <View className="rounded-md px-2.5 py-1.5" style={{ backgroundColor: IMAGE_GALLERY_COUNTER_BG }}>
-      <Text className="font-neusans text-sm font-medium text-white">{label}</Text>
+      <Text className="text-sm text-white font-body-medium">{label}</Text>
     </View>
   )
 
@@ -162,7 +162,7 @@ export function ImageGalleryLightbox({
         </View>
 
         <Text
-          className="absolute right-4 z-10 text-lg font-medium text-white"
+          className="absolute right-4 z-10 text-lg text-white font-body-medium"
           style={{ top: insets.top + 16 }}
         >
           {currentIndex + 1} / {images.length}

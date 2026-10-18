@@ -22,7 +22,7 @@ export function AuthFormPanel({
       {headerSlot ? <View className="mb-5">{headerSlot}</View> : null}
 
       <Text
-        className="text-center text-2xl font-bold"
+        className="text-center text-2xl font-heading-bold"
         style={{ color: TEXT_HEADING }}
         maxFontSizeMultiplier={1.3}
       >
@@ -31,7 +31,7 @@ export function AuthFormPanel({
 
       {subtitle ? (
         <Text
-          className="mt-2 text-center text-base leading-relaxed"
+          className="mt-2 text-center text-base leading-relaxed font-body"
           style={{ color: TEXT_MUTED }}
           maxFontSizeMultiplier={1.25}
         >

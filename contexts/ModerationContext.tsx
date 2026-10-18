@@ -1,7 +1,8 @@
 import { createContext, useCallback, useContext, useMemo, useState, type PropsWithChildren } from 'react'
-import { Alert } from 'react-native'
+import { ActionSheetIOS, Alert, Platform } from 'react-native'
 import * as Haptics from 'expo-haptics'
 
+import { AUTH_WALL } from '@/constants/authWalls'
 import { ReportContentModal, type ReportTarget } from '@/components/moderation/ReportContentModal'
 import { useAuthSheet } from '@/contexts/AuthSheetContext'
 import { useAuth } from '@/hooks/useAuth'
@@ -56,13 +57,13 @@ export function ModerationProvider({ children }: PropsWithChildren): JSX.Element
   const confirmBlockUser = useCallback(
     (userId: string, label?: string | null, onBlocked?: () => void) => {
       if (!isAuthenticated) {
-        openAuthSheet()
+        openAuthSheet({ wall: AUTH_WALL.report })
         return
       }
       const name = label?.trim() || 'this user'
       Alert.alert(
         `Block ${name}?`,
-        'They will not be able to follow you or comment on your reviews, and you will no longer see their reviews, comments or activity. You can unblock them in Settings.',
+        'You won’t see each other’s reviews, comments or activity, and any follow between you is removed. They aren’t notified.',
         [
           { text: 'Cancel', style: 'cancel' },
           {
@@ -91,11 +92,28 @@ export function ModerationProvider({ children }: PropsWithChildren): JSX.Element
     (options: ContentActionsOptions) => {
       void Haptics.selectionAsync()
       if (!isAuthenticated) {
-        openAuthSheet()
+        openAuthSheet({ wall: AUTH_WALL.report })
         return
       }
       const { targetType, targetId, ownerId, ownerLabel, onBlocked } = options
       const canBlock = Boolean(ownerId) && canModerate(ownerId)
+      const blockLabel = `Block ${ownerLabel?.trim() || 'user'}`
+      // Native action sheet on iOS (design X1 / X4 / X8): Report · Block · Cancel.
+      if (Platform.OS === 'ios') {
+        const optionsList = [REPORT_LABEL[targetType], ...(canBlock && ownerId ? [blockLabel] : []), 'Cancel']
+        ActionSheetIOS.showActionSheetWithOptions(
+          {
+            options: optionsList,
+            cancelButtonIndex: optionsList.length - 1,
+            destructiveButtonIndex: canBlock && ownerId ? 1 : undefined,
+          },
+          (index) => {
+            if (index === 0) setReportTarget({ targetType, targetId })
+            else if (index === 1 && canBlock && ownerId) confirmBlockUser(ownerId, ownerLabel, onBlocked)
+          },
+        )
+        return
+      }
       Alert.alert(
         'Options',
         undefined,
@@ -107,7 +125,7 @@ export function ModerationProvider({ children }: PropsWithChildren): JSX.Element
           ...(canBlock && ownerId
             ? [
                 {
-                  text: `Block ${ownerLabel?.trim() || 'user'}`,
+                  text: blockLabel,
                   style: 'destructive' as const,
                   onPress: () => confirmBlockUser(ownerId, ownerLabel, onBlocked),
                 },

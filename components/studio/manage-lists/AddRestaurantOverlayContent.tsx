@@ -194,7 +194,7 @@ export function AddRestaurantOverlayContent({
             >
               <AppIcon name="arrow-left" size={22} color="#374151" />
             </Pressable>
-            <Text className="flex-1 font-neusans text-base font-semibold text-[#31343F]" numberOfLines={1}>
+            <Text className="flex-1 text-base text-[#31343F] font-body-semibold" numberOfLines={1}>
               {listTitle ? `Add to ${listTitle}` : 'Add restaurant'}
             </Text>
           </View>
@@ -223,7 +223,7 @@ export function AddRestaurantOverlayContent({
             ) : null}
           </View>
 
-          <Text className="mt-2 font-neusans text-xs text-gray-400">
+          <Text className="mt-2 text-xs text-gray-400 font-body">
             Searching in {localityLine}
           </Text>
         </View>

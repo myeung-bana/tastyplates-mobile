@@ -34,10 +34,10 @@ export function ReviewListingCreateRow(): JSX.Element {
         </View>
         <AppIcon name="chevron-right" size={16} color={TEXT_MUTED} />
       </View>
-      <Text className="text-base font-semibold" style={{ color: TEXT_HEADING }}>
+      <Text className="text-base font-body-semibold" style={{ color: TEXT_HEADING }}>
         Create Review
       </Text>
-      <Text className="mt-2 text-sm leading-relaxed" style={{ color: TEXT_BODY }} numberOfLines={2}>
+      <Text className="mt-2 text-sm leading-relaxed font-body" style={{ color: TEXT_BODY }} numberOfLines={2}>
         Search for a restaurant and share your experience
       </Text>
     </Pressable>

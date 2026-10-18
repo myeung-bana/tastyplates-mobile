@@ -11,6 +11,8 @@ export const userNameMaxLimit = 20
 export const palateLimit = 2
 export const aboutMeMaxLimit = 250
 export const reviewDescriptionDisplayLimit = 300
+/** Comment body limit (design R3). */
+export const commentMaxLength = 2000
 
 export const imageMBLimit = 5
 export const imageSizeLimit = imageMBLimit * 1024 * 1024

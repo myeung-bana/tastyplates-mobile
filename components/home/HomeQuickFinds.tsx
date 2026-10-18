@@ -1,70 +1,70 @@
-import { View, Text, Pressable, Image, useWindowDimensions } from 'react-native'
+import { Image, Pressable, Text, View, useWindowDimensions } from 'react-native'
+import * as Haptics from 'expo-haptics'
 import { router } from 'expo-router'
+
 import { HomeSectionCard } from '@/components/home/HomeSectionCard'
-import { QUICK_FINDS } from '@/constants/quickFinds'
-import { getCuisineIconSource } from '@/lib/cuisineIconAssets'
-import { SCREEN_RESTAURANTS } from '@/constants/screens'
-import { BRAND_PRIMARY } from '@/constants/brand'
 import { AppIcon } from '@/components/ui/AppIcon'
+import { BRAND_PRIMARY, TEXT_HEADING } from '@/constants/brand'
+import { QUICK_FINDS } from '@/constants/quickFinds'
+import { SCREEN_RESTAURANTS } from '@/constants/screens'
+import { FONT } from '@/constants/typography'
+import { getCuisineIconSource } from '@/lib/cuisineIconAssets'
 
-/** 10 cuisines → 5 per row × 2 rows */
+/** 10 cuisines → two rows of five. */
 const COLS = 5
-/** Outer `px-4` (32) + card horizontal `p-3` (24) */
-const HORIZONTAL_GUTTER = 16 * 2 + 12 * 2
+const GUTTER = 20
 const COLUMN_GAP = 8
-const ROW_GAP = 10
-const ICON_SIZE = 50
+const CIRCLE = 56
 
-/**
- * Cuisine shortcuts → Restaurants tab with `cuisine` param.
- * Icons load from bundled `assets/icons/cuisines/*.png`.
- */
+/** Quick finds (design H1): each opens Explore filtered to that cuisine. */
 export function HomeQuickFinds() {
-  const { width: screenW } = useWindowDimensions()
-  const innerWidth = Math.max(0, screenW - HORIZONTAL_GUTTER)
-  const cellWidth = Math.floor((innerWidth - COLUMN_GAP * (COLS - 1)) / COLS)
+  const { width } = useWindowDimensions()
+  const cell = Math.floor((width - GUTTER * 2 - COLUMN_GAP * (COLS - 1)) / COLS)
 
   return (
-    <HomeSectionCard title="Quick finds" shadowed={false} className="!mt-[9px]">
-      <View
-        className="flex-row flex-wrap"
-        style={{ columnGap: COLUMN_GAP, rowGap: ROW_GAP }}
-      >
-          {QUICK_FINDS.map((item) => {
-            const localSource = getCuisineIconSource(item.iconFile)
-            return (
-              <Pressable
-                key={item.slug}
-                accessibilityRole="button"
-                accessibilityLabel={item.label}
-                onPress={() =>
-                  router.push({
-                    pathname: SCREEN_RESTAURANTS,
-                    params: { cuisine: item.slug },
-                  })
-                }
-                style={{ width: cellWidth }}
-                className="items-center active:opacity-80"
+    <HomeSectionCard title="Quick finds">
+      <View className="flex-row flex-wrap" style={{ columnGap: COLUMN_GAP, rowGap: 14 }}>
+        {QUICK_FINDS.map((item) => {
+          const icon = getCuisineIconSource(item.iconFile)
+          return (
+            <Pressable
+              key={item.slug}
+              accessibilityRole="button"
+              accessibilityLabel={`${item.label} restaurants`}
+              onPress={() => {
+                void Haptics.selectionAsync()
+                router.push({ pathname: SCREEN_RESTAURANTS, params: { cuisine: item.slug } })
+              }}
+              style={{ width: cell, gap: 8 }}
+              className="items-center active:opacity-80"
+            >
+              <View
+                className="items-center justify-center"
+                style={{
+                  width: CIRCLE,
+                  height: CIRCLE,
+                  borderRadius: CIRCLE / 2,
+                  borderWidth: 1.5,
+                  borderColor: '#FFC999',
+                  backgroundColor: '#FFFFFF',
+                }}
               >
-                <View style={{ width: ICON_SIZE, height: ICON_SIZE }}>
-                  {localSource ? (
-                    <Image source={localSource} className="h-full w-full" resizeMode="contain" />
-                  ) : (
-                    <View className="h-full w-full items-center justify-center">
-                      <AppIcon name="coffee" size={14} color={BRAND_PRIMARY} />
-                    </View>
-                  )}
-                </View>
-                <Text
-                  className="mt-1 w-full text-center font-medium leading-tight text-gray-700"
-                  style={{ fontSize: 9, lineHeight: 11 }}
-                  numberOfLines={2}
-                >
-                  {item.label}
-                </Text>
-              </Pressable>
-            )
-          })}
+                {icon ? (
+                  <Image source={icon} style={{ width: 34, height: 34 }} resizeMode="contain" />
+                ) : (
+                  <AppIcon name="coffee" size={18} color={BRAND_PRIMARY} />
+                )}
+              </View>
+              <Text
+                numberOfLines={2}
+                className="text-center"
+                style={{ fontFamily: FONT.headingMedium, fontSize: 12, lineHeight: 14, color: TEXT_HEADING }}
+              >
+                {item.label}
+              </Text>
+            </Pressable>
+          )
+        })}
       </View>
     </HomeSectionCard>
   )

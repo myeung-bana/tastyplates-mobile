@@ -26,7 +26,7 @@ export function LocationPickerScrollPanel({
   if (loading) {
     return (
       <View className="py-8">
-        <Text className="text-center font-neusans text-sm text-gray-500">Loading cities…</Text>
+        <Text className="text-center text-sm text-gray-500 font-body">Loading cities…</Text>
       </View>
     )
   }
@@ -34,7 +34,7 @@ export function LocationPickerScrollPanel({
   if (error?.length) {
     return (
       <View className="py-8">
-        <Text className="text-center font-neusans text-sm text-red-600">{error}</Text>
+        <Text className="text-center text-sm text-red-600 font-body">{error}</Text>
       </View>
     )
   }
@@ -42,7 +42,7 @@ export function LocationPickerScrollPanel({
   if (countries.length === 0) {
     return (
       <View className="py-8">
-        <Text className="text-center font-neusans text-sm text-gray-500">No cities match your search.</Text>
+        <Text className="text-center text-sm text-gray-500 font-body">No cities match your search.</Text>
       </View>
     )
   }
@@ -61,7 +61,7 @@ export function LocationPickerScrollPanel({
     >
       {countries.map((country) => (
         <View key={country.key} className="mb-5 w-full">
-          <Text className="mb-2 font-neusans text-xs font-semibold uppercase tracking-wide text-gray-500">
+          <Text className="mb-2 text-xs uppercase tracking-wide text-gray-500 font-body-semibold">
             {country.label}
           </Text>
 
@@ -83,7 +83,7 @@ export function LocationPickerScrollPanel({
                   }`}
                 >
                   <Text
-                    className={`font-neusans text-sm font-medium ${
+                    className={`text-sm font-body-medium ${
                       isOn ? 'text-orange-600' : 'text-gray-800'
                     }`}
                   >

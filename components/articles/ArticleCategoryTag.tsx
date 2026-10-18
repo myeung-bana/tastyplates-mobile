@@ -35,7 +35,7 @@ export function ArticleCategoryTag({
       accessibilityLabel={`Category: ${label}`}
     >
       <Text
-        className="text-[10px] font-semibold uppercase tracking-wide"
+        className="text-[10px] uppercase tracking-wide font-body-semibold"
         style={{ color: BRAND_PRIMARY }}
       >
         {label}

@@ -1,7 +1,13 @@
-import { ActivityIndicator, FlatList, RefreshControl, Text, useWindowDimensions, View } from 'react-native'
+import { ActivityIndicator, FlatList, Image, Pressable, RefreshControl, Text, useWindowDimensions, View } from 'react-native'
 
-import { HomeReviewCard, HomeReviewCardSkeleton } from '@/components/review/HomeReviewCard'
-import { BRAND_PRIMARY, TEXT_MUTED } from '@/constants/brand'
+import { ImageFallback } from '@/components/brand/ImageFallback'
+import { StarRow } from '@/components/ui/StarRow'
+import { FONT } from '@/constants/typography'
+import { stripHtml } from '@/lib/restaurantDetailUtils'
+import { firstReviewImageUri } from '@/lib/reviewDisplayUtils'
+
+import { HomeReviewCardSkeleton } from '@/components/review/HomeReviewCard'
+import { BRAND_PRIMARY, SURFACE_FOG, TEXT_HEADING, TEXT_MUTED } from '@/constants/brand'
 import { usePublicProfileReviewsList } from '@/hooks/usePublicProfileReviewsList'
 import type { TrendingReviewRow } from '@/services/homeReviewsService'
 
@@ -23,6 +29,39 @@ function ProfileReviewsGridSkeleton({ columnWidth }: { columnWidth: number }): J
         </View>
       ))}
     </View>
+  )
+}
+
+/** Reviews grid tile (design P2): photo, restaurant name, stars. */
+function ProfileReviewTile({
+  width,
+  review,
+  onPress,
+}: {
+  width: number
+  review: TrendingReviewRow
+  onPress: () => void
+}): JSX.Element {
+  const img = firstReviewImageUri(review.images, '')
+  const name = review.restaurant?.title?.trim() || stripHtml(review.title ?? '').trim() || 'Review'
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`${name} review`}
+      onPress={onPress}
+      className="active:opacity-90"
+      style={{ width, gap: 6 }}
+    >
+      {img ? (
+        <Image source={{ uri: img }} style={{ width, height: 168, borderRadius: 12, backgroundColor: SURFACE_FOG }} />
+      ) : (
+        <ImageFallback style={{ width, height: 168, borderRadius: 12 }} />
+      )}
+      <Text numberOfLines={1} style={{ fontFamily: FONT.heading, fontSize: 14, color: TEXT_HEADING }}>
+        {name}
+      </Text>
+      <StarRow value={review.rating} />
+    </Pressable>
   )
 }
 
@@ -84,13 +123,13 @@ export function ProfileReviewsTabPanel({
       ListEmptyComponent={
         listError ? (
           <View className="mt-16 items-center px-4">
-            <Text className="text-center text-sm leading-relaxed" style={{ color: TEXT_MUTED }}>
+            <Text className="text-center text-sm leading-relaxed font-body" style={{ color: TEXT_MUTED }}>
               {listError}
             </Text>
           </View>
         ) : (
           <View className="mt-24 items-center px-6">
-            <Text className="text-center text-sm leading-relaxed" style={{ color: TEXT_MUTED }}>
+            <Text className="text-center text-sm leading-relaxed font-body" style={{ color: TEXT_MUTED }}>
               {emptyMessage}
             </Text>
           </View>
@@ -106,12 +145,7 @@ export function ProfileReviewsTabPanel({
       onEndReachedThreshold={0.35}
       onEndReached={() => void loadMore()}
       renderItem={({ item }: { item: TrendingReviewRow }) => (
-        <HomeReviewCard
-          width={columnWidth}
-          review={item}
-          onPressCard={() => onPressReview(item.id)}
-          onPressAuthor={() => {}}
-        />
+        <ProfileReviewTile width={columnWidth} review={item} onPress={() => onPressReview(item.id)} />
       )}
     />
   )

@@ -21,6 +21,8 @@ export default function CreateListScreen(): JSX.Element {
       if (values.pendingCover) {
         setSubmitPhase('upload')
         display_pic = await uploadListCoverPhoto(values.pendingCover)
+      } else if (values.coverUrl) {
+        display_pic = values.coverUrl
       }
       setSubmitPhase('save')
 
@@ -31,10 +33,18 @@ export default function CreateListScreen(): JSX.Element {
         display_pic,
       })
       toast.success(listCreatedSuccess)
-      router.replace({
-        pathname: castHref(studioManageListDetailPath(list.uuid)) as never,
-        params: { slug: list.slug, title: list.title },
-      })
+      // This screen is a sheet (design L2): dismiss it, then open the new list (L3).
+      const openNew = (): void =>
+        router.push({
+          pathname: castHref(studioManageListDetailPath(list.uuid)) as never,
+          params: { slug: list.slug, title: list.title },
+        })
+      if (router.canGoBack()) {
+        router.back()
+        setTimeout(openNew, 300)
+      } else {
+        openNew()
+      }
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'Failed to create list. Please try again.')
     } finally {
@@ -49,7 +59,7 @@ export default function CreateListScreen(): JSX.Element {
   return (
     <ListForm
       mode="create"
-      submitLabel="Create List"
+      submitLabel="Create list"
       submittingLabel={submitting ? submittingLabel : undefined}
       submitting={submitting}
       onSubmit={(values) => void handleSubmit(values)}

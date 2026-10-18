@@ -1,25 +1,23 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import {
-  ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  ScrollView,
-  Text,
-  View,
-} from 'react-native'
-import { SafeAreaView } from 'react-native-safe-area-context'
-import { Redirect, useRouter } from 'expo-router'
+import { Pressable, Text, View } from 'react-native'
+import { useRouter } from 'expo-router'
 
-import { OnboardingTopNav } from '@/components/onboarding/OnboardingTopNav'
-import { OnboardingUsernameField } from '@/components/onboarding/OnboardingUsernameField'
-import { BRAND_PRIMARY, TEXT_HEADING, TEXT_MUTED } from '@/constants/brand'
+import { OnboardingGuard } from '@/components/onboarding/OnboardingGuard'
+import { OnboardingScaffold } from '@/components/onboarding/OnboardingScaffold'
+import { TextField } from '@/components/ui/TextField'
 import {
-  getUsernameErrorMessage,
-  usernameCheckError,
-  usernameNotAvailable,
-} from '@/constants/messages'
-import { SCREEN_LOGIN } from '@/constants/screens'
+  BRAND_PRIMARY,
+  DANGER,
+  SUCCESS,
+  SURFACE_FOG,
+  TEXT_HEADING,
+  TEXT_MUTED,
+  TEXT_TERTIARY,
+} from '@/constants/brand'
+import { getUsernameErrorMessage, usernameCheckError } from '@/constants/messages'
+import { SCREEN_ONBOARDING_NAME } from '@/constants/screens'
+import { FONT } from '@/constants/typography'
+import { userNameMaxLimit } from '@/constants/validation'
 import { useAuth } from '@/hooks/useAuth'
 import { DEV_MODE } from '@/lib/devMode'
 import { validateUsername } from '@/lib/validation/username'
@@ -32,219 +30,206 @@ import {
 import { fetchRestaurantUserById } from '@/services/restaurantUserService'
 import { toast } from '@/utils/toast'
 
+type Availability = 'idle' | 'checking' | 'available' | 'taken' | 'error'
+
 function normalizeProfileUsername(raw: string | null | undefined): string {
   return raw?.trim().replace(/^@/, '').toLowerCase() ?? ''
 }
 
-export default function OnboardingStep1(): JSX.Element {
+const RULES = [
+  '3–20 characters · letters, numbers, _ and -',
+  'No spaces · can’t start or end with _ or -',
+  'Not all numbers · no __, -- or _- in a row',
+]
+
+/** Step 1 of 5 — Choose Username (design G5). No back button. */
+function UsernameStep(): JSX.Element {
   const router = useRouter()
-  const { isAuthenticated, loading: authLoading, user } = useAuth()
+  const { loading: authLoading, user } = useAuth()
   const [username, setUsername] = useState('')
   const [hydrated, setHydrated] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
   const profileUsernameRef = useRef('')
-  const [availability, setAvailability] = useState<'idle' | 'checking' | 'available' | 'taken' | 'error'>(
-    'idle',
-  )
+  const [availability, setAvailability] = useState<Availability>('idle')
 
+  // Draft → existing username → generated user_<random>.
   useEffect(() => {
     if (!user?.id) {
       setHydrated(true)
       return
     }
-
     let cancelled = false
     void (async () => {
+      const draft = await loadOnboardingDraft()
       try {
-        const draft = await loadOnboardingDraft()
         const row = await fetchRestaurantUserById(user.id)
         if (cancelled) return
-
         const profileUsername = row.username?.trim().replace(/^@/, '') ?? ''
         profileUsernameRef.current = normalizeProfileUsername(profileUsername)
-
-        const initial =
-          draft.username?.trim() ||
-          profileUsername ||
-          generateDefaultUsername()
-
-        setUsername(initial)
+        setUsername(draft.username?.trim() || profileUsername || generateDefaultUsername())
       } catch {
-        if (!cancelled) {
-          const draft = await loadOnboardingDraft()
-          setUsername(draft.username?.trim() || generateDefaultUsername())
-        }
+        if (!cancelled) setUsername(draft.username?.trim() || generateDefaultUsername())
       } finally {
         if (!cancelled) setHydrated(true)
       }
     })()
-
     return () => {
       cancelled = true
     }
   }, [user?.id])
 
   const validation = useMemo(() => validateUsername(username), [username])
+  const trimmed = username.trim()
 
+  // Availability check after a pause, only once the name passes the local rules.
   useEffect(() => {
     if (!validation.isValid) {
       setAvailability('idle')
       return
     }
-
-    const trimmed = username.trim()
-    const trimmedLower = trimmed.toLowerCase()
-
-    if (profileUsernameRef.current && trimmedLower === profileUsernameRef.current) {
+    if (profileUsernameRef.current && trimmed.toLowerCase() === profileUsernameRef.current) {
       setAvailability('available')
       return
     }
-
     let cancelled = false
     setAvailability('checking')
-    const handle = globalThis.setTimeout(() => {
-      void (async () => {
-        try {
-          const ok = await checkUsernameAvailable(trimmed)
-          if (!cancelled) {
-            setAvailability(ok ? 'available' : 'taken')
-          }
-        } catch {
+    const handle = setTimeout(() => {
+      checkUsernameAvailable(trimmed)
+        .then((ok) => {
+          if (!cancelled) setAvailability(ok ? 'available' : 'taken')
+        })
+        .catch(() => {
           if (!cancelled) setAvailability('error')
-        }
-      })()
+        })
     }, 420)
-
     return () => {
       cancelled = true
       clearTimeout(handle)
     }
-  }, [username, validation.isValid])
+  }, [trimmed, validation.isValid])
 
-  const continueEnabled = useMemo(() => {
-    if (!validation.isValid) return false
-    if (availability === 'checking' || availability === 'idle') return false
-    return availability === 'available'
-  }, [availability, validation.isValid])
-
-  const usernameErrorText = useMemo(() => {
+  const message = useMemo((): { text: string; color: string } | null => {
+    if (!hydrated || !trimmed) return null
     if (!validation.isValid && validation.error) {
-      return getUsernameErrorMessage(validation.error)
+      return { text: getUsernameErrorMessage(validation.error), color: DANGER }
     }
-    if (validation.isValid && availability === 'taken') return usernameNotAvailable
-    if (availability === 'error') return usernameCheckError
+    if (availability === 'taken') return { text: `@${trimmed} is taken`, color: DANGER }
+    if (availability === 'error') return { text: usernameCheckError, color: DANGER }
+    if (availability === 'checking') return { text: 'Checking availability…', color: TEXT_TERTIARY }
+    if (availability === 'available') return { text: `@${trimmed} is available`, color: SUCCESS }
     return null
-  }, [availability, validation])
+  }, [availability, hydrated, trimmed, validation])
 
-  const usernameStatusText = useMemo(() => {
-    if (usernameErrorText) return null
-    if (validation.isValid && availability === 'checking') return 'Checking availability…'
-    if (validation.isValid && availability === 'available') return 'Username is available'
-    return null
-  }, [availability, usernameErrorText, validation.isValid])
+  const canContinue = validation.isValid && availability === 'available'
 
   const onContinue = useCallback(async () => {
-    const v = validateUsername(username)
-    if (!v.isValid) return
-    const trimmed = username.trim()
+    if (!validateUsername(username).isValid) return
     const isOwn =
-      profileUsernameRef.current.length > 0 &&
-      trimmed.toLowerCase() === profileUsernameRef.current
-
+      profileUsernameRef.current.length > 0 && trimmed.toLowerCase() === profileUsernameRef.current
+    setSubmitting(true)
     try {
-      if (!isOwn) {
-        const ok = await checkUsernameAvailable(trimmed)
-        if (!ok) {
-          setAvailability('taken')
-          return
-        }
+      if (!isOwn && !(await checkUsernameAvailable(trimmed))) {
+        setAvailability('taken')
+        return
       }
       await mergeOnboardingDraft({ username: trimmed })
-      router.push('/onboarding/step2')
+      router.push(SCREEN_ONBOARDING_NAME)
     } catch {
       toast.error(usernameCheckError)
+    } finally {
+      setSubmitting(false)
     }
-  }, [router, username])
+  }, [router, trimmed, username])
 
   const onDevSkip = useCallback(async () => {
-    const u = generateDefaultUsername()
-    await mergeOnboardingDraft({ username: u })
-    setUsername(u)
-    router.push('/onboarding/step2')
+    const generated = generateDefaultUsername()
+    await mergeOnboardingDraft({ username: generated })
+    router.push(SCREEN_ONBOARDING_NAME)
   }, [router])
 
-  if (!authLoading && !isAuthenticated) {
-    return <Redirect href={SCREEN_LOGIN} />
-  }
-
-  if (!user?.emailVerified) {
-    return (
-      <SafeAreaView className="flex-1 bg-white" edges={['top', 'left', 'right']}>
-        <View className="flex-1 items-center justify-center px-6">
-          <Text className="text-center text-base" style={{ color: TEXT_MUTED }}>
-            Verify your email before continuing.
-          </Text>
-        </View>
-      </SafeAreaView>
-    )
-  }
-
-  const busy = authLoading || !hydrated
+  const borderColor =
+    message?.color === SUCCESS ? SUCCESS : message?.color === DANGER ? DANGER : undefined
 
   return (
-    <View className="flex-1 bg-white">
-      <OnboardingTopNav title="Choose Username" showBack={false} />
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        className="flex-1"
-      >
-        <ScrollView
-          contentContainerClassName="grow px-5 pb-8 pt-6"
-          keyboardShouldPersistTaps="handled"
-        >
-          <Text className="mb-2 text-[21px] font-semibold" style={{ color: TEXT_HEADING }}>
-            Choose a username
-          </Text>
-          <Text className="mb-6 text-base leading-relaxed" style={{ color: TEXT_MUTED }}>
-            This is how others find you on Tastyplates. You can change it later in settings.
-          </Text>
-
-          <OnboardingUsernameField
-            value={username}
-            onChangeText={setUsername}
-            editable={!busy}
-            errorText={usernameErrorText}
-            statusText={usernameStatusText}
-          />
-
-          <Pressable
-            accessibilityRole="button"
-            disabled={busy || !continueEnabled}
-            onPress={() => {
-              void onContinue()
-            }}
-            className="mt-6 items-center rounded-xl py-4 active:opacity-90 disabled:opacity-50"
-            style={{ backgroundColor: BRAND_PRIMARY }}
+    <OnboardingScaffold
+      step={1}
+      title="Choose Username"
+      subtitle="This is how people find you and your reviews."
+      ctaDisabled={!canContinue || authLoading || !hydrated}
+      ctaLoading={submitting}
+      onCta={() => void onContinue()}
+    >
+      <TextField
+        value={username}
+        onChangeText={setUsername}
+        editable={hydrated}
+        autoCapitalize="none"
+        autoCorrect={false}
+        autoComplete="username-new"
+        maxLength={userNameMaxLimit + 4}
+        accessibilityLabel="Username"
+        height={56}
+        borderColor={borderColor}
+        style={{ fontSize: 17 }}
+        prefix={
+          <Text style={{ fontFamily: FONT.body, fontSize: 17, color: TEXT_TERTIARY }}>@</Text>
+        }
+      />
+      <View style={{ minHeight: 28, justifyContent: 'center', marginTop: 4 }}>
+        {message ? (
+          <Text
+            accessibilityLiveRegion="polite"
+            style={{ fontFamily: FONT.bodyMedium, fontSize: 13, lineHeight: 18, color: message.color }}
           >
-            {busy ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text className="text-base font-semibold text-white">Continue</Text>
-            )}
-          </Pressable>
+            {message.text}
+          </Text>
+        ) : null}
+      </View>
 
-          {DEV_MODE ? (
-            <Pressable
-              accessibilityRole="button"
-              onPress={() => {
-                void onDevSkip()
-              }}
-              className="mt-4 items-center py-2"
-            >
-              <Text className="text-sm text-orange-600">DEV: Skip to step 2</Text>
-            </Pressable>
-          ) : null}
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </View>
+      <View
+        style={{
+          marginTop: 12,
+          paddingVertical: 14,
+          paddingHorizontal: 16,
+          borderRadius: 12,
+          backgroundColor: SURFACE_FOG,
+          gap: 6,
+        }}
+      >
+        <Text
+          style={{
+            fontFamily: FONT.heading,
+            fontSize: 11,
+            lineHeight: 14,
+            letterSpacing: 2.2,
+            textTransform: 'uppercase',
+            color: TEXT_HEADING,
+          }}
+        >
+          Rules
+        </Text>
+        {RULES.map((rule) => (
+          <Text key={rule} style={{ fontFamily: FONT.body, fontSize: 12, lineHeight: 18, color: TEXT_MUTED }}>
+            {rule}
+          </Text>
+        ))}
+      </View>
+
+      {DEV_MODE ? (
+        <Pressable accessibilityRole="button" onPress={() => void onDevSkip()} className="mt-6 items-center py-2">
+          <Text style={{ fontFamily: FONT.body, fontSize: 14, color: BRAND_PRIMARY }}>
+            DEV: Skip to step 2
+          </Text>
+        </Pressable>
+      ) : null}
+    </OnboardingScaffold>
+  )
+}
+
+export default function OnboardingStep1(): JSX.Element {
+  return (
+    <OnboardingGuard>
+      <UsernameStep />
+    </OnboardingGuard>
   )
 }

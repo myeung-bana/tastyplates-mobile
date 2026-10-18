@@ -25,10 +25,10 @@ export function CategorySearchShortcutRow({ label, onPress }: Props): JSX.Elemen
         <AppIcon name="tag" size={20} color={BRAND_PRIMARY} />
       </View>
       <View className="min-w-0 flex-1">
-        <Text className="font-neusans text-[15px] font-semibold text-[#31343F]" numberOfLines={1}>
+        <Text className="text-[15px] text-[#31343F] font-body-semibold" numberOfLines={1}>
           {label}
         </Text>
-        <Text className="mt-0.5 font-neusans text-xs text-gray-500">Search by category</Text>
+        <Text className="mt-0.5 text-xs text-gray-500 font-body">Search by category</Text>
       </View>
       <AppIcon name="chevron-right" size={18} color="#9ca3af" />
     </Pressable>

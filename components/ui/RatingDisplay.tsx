@@ -1,7 +1,8 @@
 import { Text, View, type StyleProp, type ViewStyle } from 'react-native'
 
 import { AppIcon } from '@/components/ui/AppIcon'
-import { RATING_STAR_INK, TEXT_HEADING, TEXT_MUTED } from '@/constants/brand'
+import { BRAND_PRIMARY, TEXT_HEADING, TEXT_MUTED } from '@/constants/brand'
+import { bodyFont } from '@/constants/typography'
 import { formatRatingValue } from '@/lib/ratingDisplayUtils'
 
 export type RatingDisplaySize = 'xs' | 'sm' | 'md'
@@ -10,8 +11,8 @@ const SIZE_STYLES: Record<
   RatingDisplaySize,
   { star: number; score: number; gap: number; scoreWeight: '500' | '600' }
 > = {
-  xs: { star: 11, score: 12, gap: 2, scoreWeight: '500' },
-  sm: { star: 12, score: 12, gap: 2, scoreWeight: '500' },
+  xs: { star: 11, score: 12, gap: 3, scoreWeight: '500' },
+  sm: { star: 12, score: 13, gap: 3, scoreWeight: '500' },
   md: { star: 14, score: 16, gap: 4, scoreWeight: '600' },
 }
 
@@ -27,7 +28,7 @@ export type RatingDisplayProps = {
 }
 
 /**
- * Canonical inline rating — Recent reviews pattern; black star + heading-colored score.
+ * Canonical inline rating (brand v1.0): orange star + heading-coloured score.
  * @see documentation/design_system.md §11.6
  */
 export function RatingDisplay({
@@ -57,7 +58,7 @@ export function RatingDisplay({
     >
       {label ? (
         <Text
-          style={{ fontSize: score, fontWeight: scoreWeight, color: TEXT_MUTED }}
+          style={{ fontSize: score, fontFamily: bodyFont(scoreWeight), color: TEXT_MUTED }}
           numberOfLines={1}
         >
           {label}{' '}
@@ -69,10 +70,10 @@ export function RatingDisplay({
             name="star"
             active
             size={star}
-            color={RATING_STAR_INK}
+            color={BRAND_PRIMARY}
             style={{ marginTop: 1 }}
           />
-          <Text style={{ fontSize: score, fontWeight: scoreWeight, color: TEXT_HEADING }}>
+          <Text style={{ fontSize: score, fontFamily: bodyFont(scoreWeight), color: TEXT_HEADING }}>
             {formatted}
           </Text>
           {showCount ? (

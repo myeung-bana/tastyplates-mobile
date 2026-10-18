@@ -26,7 +26,7 @@ export function OnboardingUsernameField({
 
   return (
     <View>
-      <Text className="mb-2 text-sm font-medium" style={{ color: TEXT_BODY }}>
+      <Text className="mb-2 text-sm font-body-medium" style={{ color: TEXT_BODY }}>
         Username
       </Text>
       <View
@@ -34,7 +34,7 @@ export function OnboardingUsernameField({
         style={{ borderColor: hasError ? '#ef4444' : BORDER_SUBTLE }}
       >
         <View className="justify-center px-4">
-          <Text className="text-base" style={{ color: TEXT_MUTED }}>
+          <Text className="text-base font-body" style={{ color: TEXT_MUTED }}>
             @
           </Text>
         </View>
@@ -56,11 +56,11 @@ export function OnboardingUsernameField({
       </View>
       <View className="mt-2 min-h-[22px]">
         {hasError ? (
-          <Text className="text-sm" style={{ color: '#ef4444' }}>
+          <Text className="text-sm font-body" style={{ color: '#ef4444' }}>
             {errorText}
           </Text>
         ) : statusText ? (
-          <Text className="text-sm" style={{ color: TEXT_MUTED }}>
+          <Text className="text-sm font-body" style={{ color: TEXT_MUTED }}>
             {statusText}
           </Text>
         ) : null}

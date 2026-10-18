@@ -66,13 +66,13 @@ export default function ForgotPasswordScreen() {
         }
       >
         {sent ? (
-          <Text className="text-base leading-6 text-gray-700">
+          <Text className="text-base leading-6 text-gray-700 font-body">
             If an account exists for that address, we sent a message with a link to reset your
             password. Open it on this device, then set a new password on the next screen.
           </Text>
         ) : (
           <>
-            <Text className="mb-1 text-sm font-medium text-gray-700">Email</Text>
+            <Text className="mb-1 text-sm text-gray-700 font-body-medium">Email</Text>
             <Controller
               control={control}
               name="email"
@@ -92,7 +92,7 @@ export default function ForgotPasswordScreen() {
               )}
             />
             {errors.email ? (
-              <Text className="mb-6 text-sm text-red-600">{errors.email.message}</Text>
+              <Text className="mb-6 text-sm text-red-600 font-body">{errors.email.message}</Text>
             ) : (
               <View className="mb-6" />
             )}
@@ -106,7 +106,7 @@ export default function ForgotPasswordScreen() {
               {busy ? (
                 <ActivityIndicator color="#fff" />
               ) : (
-                <Text className="text-base font-semibold text-white">Send reset link</Text>
+                <Text className="text-base text-white font-body-semibold">Send reset link</Text>
               )}
             </Pressable>
           </>
@@ -114,7 +114,7 @@ export default function ForgotPasswordScreen() {
 
         <Link href={SCREEN_LOGIN} asChild>
           <Pressable className="self-center py-2">
-            <Text className="text-sm font-semibold" style={{ color: BRAND_PRIMARY }}>
+            <Text className="text-sm font-body-semibold" style={{ color: BRAND_PRIMARY }}>
               Back to log in
             </Text>
           </Pressable>

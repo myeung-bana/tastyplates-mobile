@@ -46,6 +46,8 @@ function profileReviewsQuery(
     user_id: userId,
     limit: String(limit),
     offset: String(offset),
+    // Restaurant names for the profile Reviews grid (design P2).
+    include_restaurant: '1',
   })
 }
 

@@ -16,11 +16,11 @@ import {
   stripTags,
 } from '@/lib/utils'
 import type { ReplyRow } from '@/services/reviewService'
+import { FONT, bodyFont } from '@/constants/typography'
 
-const NEUSANS = 'Neusans'
 const TEXT_PRIMARY = '#31343F'
 const TEXT_BODY = '#494D5D'
-const LIKED_COLOR = '#ff7c0a'
+const LIKED_COLOR = '#FF7C09'
 
 function replyAuthorProfile(reply: ReplyRow) {
   return reply.AuthorProfile ?? reply.author ?? null
@@ -95,7 +95,7 @@ export function ReplyItem({
               <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 6 }}>
                 <Pressable onPress={openProfile} hitSlop={4}>
                   <Text
-                    style={{ fontFamily: NEUSANS, fontSize: 14, fontWeight: '500', color: TEXT_PRIMARY }}
+                    style={{  fontSize: 14, fontFamily: bodyFont('500'), color: TEXT_PRIMARY }}
                     numberOfLines={1}
                   >
                     {name}
@@ -111,11 +111,11 @@ export function ReplyItem({
                       paddingVertical: 3,
                     }}
                   >
-                    <Text style={{ fontFamily: NEUSANS, fontSize: 11, color: TEXT_BODY }}>{label}</Text>
+                    <Text style={{ fontFamily: FONT.body, fontSize: 11, color: TEXT_BODY }}>{label}</Text>
                   </View>
                 ))}
               </View>
-              <Text style={{ fontFamily: NEUSANS, fontSize: 11, color: TEXT_MUTED, marginTop: 2 }}>{when}</Text>
+              <Text style={{ fontFamily: FONT.body, fontSize: 11, color: TEXT_MUTED, marginTop: 2 }}>{when}</Text>
             </View>
 
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
@@ -143,7 +143,7 @@ export function ReplyItem({
                 color={liked ? LIKED_COLOR : TEXT_PRIMARY}
               />
               {count > 0 ? (
-                <Text style={{ fontFamily: NEUSANS, fontSize: 12, color: TEXT_PRIMARY }}>
+                <Text style={{ fontFamily: FONT.body, fontSize: 12, color: TEXT_PRIMARY }}>
                   {formatLikeCount(count)}
                 </Text>
               ) : null}
@@ -154,7 +154,7 @@ export function ReplyItem({
           {body ? (
             <Text
               style={{
-                fontFamily: NEUSANS,
+                fontFamily: FONT.body,
                 fontSize: 14,
                 color: TEXT_BODY,
                 marginTop: 6,

@@ -37,6 +37,7 @@ import {
   type PlacesAutocompletePrediction,
   type PlacesDetailsResult,
 } from '@/lib/googlePlaces'
+import { bodyFont } from '@/constants/typography'
 
 export interface AddToMyListSheetHandle {
   present: () => void
@@ -246,7 +247,7 @@ export const AddToMyListSheet = forwardRef<AddToMyListSheetHandle, Props>(functi
                 className="flex-1 items-center rounded-xl py-3"
                 style={{ backgroundColor: focused ? '#ffffff' : 'transparent', elevation: focused ? 1 : 0 }}
               >
-                <Text style={{ fontWeight: '600', color: focused ? TEXT_HEADING : TEXT_MUTED }}>
+                <Text style={{ fontFamily: bodyFont('600'), color: focused ? TEXT_HEADING : TEXT_MUTED }}>
                   {tab.label}
                 </Text>
               </Pressable>
@@ -263,7 +264,7 @@ export const AddToMyListSheet = forwardRef<AddToMyListSheetHandle, Props>(functi
           }}
           placeholder="Search Google Places..."
           placeholderTextColor={TEXT_MUTED}
-          className="rounded-2xl border px-4 py-3 text-base"
+          className="rounded-2xl border px-4 py-3 text-base font-body"
           style={mergeTextInputBodyTypography({
             borderColor: BORDER_SUBTLE,
             color: TEXT_HEADING,
@@ -280,10 +281,10 @@ export const AddToMyListSheet = forwardRef<AddToMyListSheetHandle, Props>(functi
                 style={{ borderColor: '#f3f4f6' }}
                 onPress={() => void onPickPrediction(prediction)}
               >
-                <Text style={{ fontSize: 15, color: TEXT_HEADING, fontWeight: '600' }}>
+                <Text style={{ fontSize: 15, color: TEXT_HEADING, fontFamily: bodyFont('600') }}>
                   {prediction.structured_formatting?.main_text ?? prediction.description.split(',')[0]}
                 </Text>
-                <Text className="mt-0.5 text-xs" style={{ color: TEXT_MUTED }}>
+                <Text className="mt-0.5 text-xs font-body" style={{ color: TEXT_MUTED }}>
                   {prediction.structured_formatting?.secondary_text ??
                     prediction.description.split(',').slice(1).join(',').trim()}
                 </Text>
@@ -295,7 +296,7 @@ export const AddToMyListSheet = forwardRef<AddToMyListSheetHandle, Props>(functi
         {(searching || saving) && (
           <View className="flex-row items-center gap-2 py-3">
             <ActivityIndicator color={BRAND_PRIMARY} />
-            <Text className="text-sm" style={{ color: TEXT_MUTED }}>
+            <Text className="text-sm font-body" style={{ color: TEXT_MUTED }}>
               {saving ? 'Saving…' : 'Working…'}
             </Text>
           </View>
@@ -305,9 +306,9 @@ export const AddToMyListSheet = forwardRef<AddToMyListSheetHandle, Props>(functi
           <View className="mt-6 gap-4">
             <View className="flex-row items-start justify-between rounded-3xl border p-4" style={{ borderColor: BORDER_SUBTLE }}>
               <View style={{ flex: 1 }}>
-                <Text style={{ fontSize: 18, fontWeight: '700', color: TEXT_HEADING }}>{detail?.name ?? query}</Text>
+                <Text style={{ fontSize: 18, fontFamily: bodyFont('700'), color: TEXT_HEADING }}>{detail?.name ?? query}</Text>
                 {detail?.formatted_address ? (
-                  <Text className="mt-2 text-xs" style={{ color: TEXT_MUTED }}>
+                  <Text className="mt-2 text-xs font-body" style={{ color: TEXT_MUTED }}>
                     {detail.formatted_address}
                   </Text>
                 ) : null}
@@ -321,7 +322,7 @@ export const AddToMyListSheet = forwardRef<AddToMyListSheetHandle, Props>(functi
               className="items-center rounded-full py-4 active:opacity-90"
               style={{ backgroundColor: BRAND_PRIMARY }}
             >
-              <Text className="text-base font-semibold text-white">Save to {kind === 'like' ? 'likes' : 'check-ins'}</Text>
+              <Text className="text-base text-white font-body-semibold">Save to {kind === 'like' ? 'likes' : 'check-ins'}</Text>
             </Pressable>
 
             <Pressable
@@ -331,7 +332,7 @@ export const AddToMyListSheet = forwardRef<AddToMyListSheetHandle, Props>(functi
                 setDetail(null)
               }}
             >
-              <Text className="text-center text-sm" style={{ color: BRAND_PRIMARY }}>
+              <Text className="text-center text-sm font-body" style={{ color: BRAND_PRIMARY }}>
                 Pick a different place
               </Text>
             </Pressable>

@@ -127,12 +127,12 @@ export default function PasswordSettingsScreen(): JSX.Element {
             <AppIcon name="lock" size={32} color={TEXT_MUTED} />
           </View>
           <Text
-            className="mb-2 text-center text-xl font-semibold font-neusans"
+            className="mb-2 text-center text-xl font-heading"
             style={{ color: TEXT_HEADING }}
           >
             Password Not Available
           </Text>
-          <Text className="mb-8 text-center text-base font-neusans" style={{ color: TEXT_BODY }}>
+          <Text className="mb-8 text-center text-base font-body" style={{ color: TEXT_BODY }}>
             You signed in with Google. Password management is handled by your Google account.
           </Text>
           <Button className="w-full" onPress={() => router.back()}>
@@ -164,21 +164,21 @@ export default function PasswordSettingsScreen(): JSX.Element {
             <AppIcon name="check-circle" size={32} color={BRAND_PRIMARY} />
           </View>
           <Text
-            className="mb-2 text-center text-xl font-semibold font-neusans"
+            className="mb-2 text-center text-xl font-heading"
             style={{ color: TEXT_HEADING }}
           >
             Reset Link Sent
           </Text>
-          <Text className="mb-1 text-center text-base font-neusans" style={{ color: TEXT_BODY }}>
+          <Text className="mb-1 text-center text-base font-body" style={{ color: TEXT_BODY }}>
             We&apos;ve sent a password reset link to
           </Text>
           <Text
-            className="mb-4 text-center text-base font-semibold font-neusans"
+            className="mb-4 text-center text-base font-body-semibold"
             style={{ color: TEXT_HEADING }}
           >
             {email}
           </Text>
-          <Text className="mb-8 text-center text-sm font-neusans" style={{ color: TEXT_MUTED }}>
+          <Text className="mb-8 text-center text-sm font-body" style={{ color: TEXT_MUTED }}>
             Click the link in the email to set your new password. Check your spam folder if you
             don&apos;t see it.
           </Text>
@@ -207,16 +207,16 @@ export default function PasswordSettingsScreen(): JSX.Element {
         >
           <AppIcon name="mail" size={20} color={TEXT_MUTED} />
           <View className="flex-1">
-            <Text className="text-xs font-neusans" style={{ color: TEXT_MUTED }}>
+            <Text className="text-xs font-body" style={{ color: TEXT_MUTED }}>
               Reset link will be sent to
             </Text>
-            <Text className="text-sm font-semibold font-neusans" style={{ color: TEXT_HEADING }}>
+            <Text className="text-sm font-body-semibold" style={{ color: TEXT_HEADING }}>
               {email}
             </Text>
           </View>
         </View>
 
-        <Text className="text-sm leading-5 font-neusans" style={{ color: TEXT_BODY }}>
+        <Text className="text-sm leading-5 font-body" style={{ color: TEXT_BODY }}>
           For your security, we&apos;ll send a reset link to your email address. Click it to
           securely set a new password.
         </Text>

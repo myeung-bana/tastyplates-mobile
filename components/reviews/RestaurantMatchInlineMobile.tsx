@@ -36,7 +36,7 @@ export function RestaurantMatchInlineMobile({
     return (
       <View className="items-center py-8">
         <ActivityIndicator color={BRAND_PRIMARY} />
-        <Text className="mt-3 font-neusans text-sm text-[#6b7280]">Checking restaurant…</Text>
+        <Text className="mt-3 text-sm text-[#6b7280] font-body">Checking restaurant…</Text>
       </View>
     )
   }
@@ -62,7 +62,7 @@ export function RestaurantMatchInlineMobile({
 
       {existingRestaurant ? (
         <>
-          <Text className="mb-3 font-neusans text-sm text-gray-600">
+          <Text className="mb-3 text-sm text-gray-600 font-body">
             We found this restaurant in our database.
           </Text>
           <View className="mb-3 flex-row gap-3 rounded-xl bg-gray-50 p-3">
@@ -77,16 +77,16 @@ export function RestaurantMatchInlineMobile({
               accessibilityIgnoresInvertColors
             />
             <View className="min-w-0 flex-1">
-              <Text className="font-neusans text-sm font-medium text-[#31343F]" numberOfLines={2}>
+              <Text className="text-sm text-[#31343F] font-body-medium" numberOfLines={2}>
                 {existingRestaurant.title}
               </Text>
               {existingRestaurant.listing_street ? (
-                <Text className="mt-0.5 font-neusans text-xs text-[#9ca3af]" numberOfLines={2}>
+                <Text className="mt-0.5 text-xs text-[#9ca3af] font-body" numberOfLines={2}>
                   {existingRestaurant.listing_street}
                 </Text>
               ) : null}
               {existingRestaurant.average_rating != null ? (
-                <Text className="mt-1 font-neusans text-[10px] text-[#9ca3af]">
+                <Text className="mt-1 text-[10px] text-[#9ca3af] font-body">
                   ★ {existingRestaurant.average_rating.toFixed(1)}
                   {existingRestaurant.ratings_count != null
                     ? ` (${existingRestaurant.ratings_count})`
@@ -118,7 +118,7 @@ export function RestaurantMatchInlineMobile({
         </>
       ) : (
         <>
-          <Text className="mb-3 font-neusans text-sm text-gray-600">
+          <Text className="mb-3 text-sm text-gray-600 font-body">
             This restaurant isn&apos;t on TastyPlates yet.
           </Text>
           <View className="mb-3 flex-row gap-3 rounded-xl bg-gray-50 p-3">
@@ -133,11 +133,11 @@ export function RestaurantMatchInlineMobile({
               <View className="h-[52px] w-[52px] rounded-xl bg-gray-200" />
             )}
             <View className="min-w-0 flex-1">
-              <Text className="font-neusans text-sm font-medium text-[#31343F]" numberOfLines={2}>
+              <Text className="text-sm text-[#31343F] font-body-medium" numberOfLines={2}>
                 {placeName}
               </Text>
               {placeAddress ? (
-                <Text className="mt-0.5 font-neusans text-xs text-[#9ca3af]" numberOfLines={2}>
+                <Text className="mt-0.5 text-xs text-[#9ca3af] font-body" numberOfLines={2}>
                   {placeAddress}
                 </Text>
               ) : null}
@@ -162,10 +162,10 @@ export function RestaurantMatchInlineMobile({
 export function ReviewSearchHelpFooter(): JSX.Element {
   return (
     <View className="items-center px-4 py-8">
-      <Text className="text-center font-neusans text-xs text-[#9ca3af]">
+      <Text className="text-center text-xs text-[#9ca3af] font-body">
         Can&apos;t find the restaurant?{' '}
         <Text
-          className="font-neusans text-xs text-[#ff7c0a]"
+          className="text-xs text-[#FF7C09] font-body"
           onPress={() => {
             void Linking.openURL('mailto:support@tastyplates.co')
           }}

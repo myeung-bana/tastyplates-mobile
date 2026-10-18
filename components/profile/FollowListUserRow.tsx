@@ -63,11 +63,11 @@ export function FollowListUserRow({
         className="min-w-0 flex-1"
         onPress={openProfile}
       >
-        <Text className="text-base font-medium" style={{ color: TEXT_HEADING }} numberOfLines={1}>
+        <Text className="text-base font-body-medium" style={{ color: TEXT_HEADING }} numberOfLines={1}>
           {handle ? `@${handle}` : label}
         </Text>
         {handle && label !== handle ? (
-          <Text className="mt-0.5 text-sm" style={{ color: TEXT_MUTED }} numberOfLines={1}>
+          <Text className="mt-0.5 text-sm font-body" style={{ color: TEXT_MUTED }} numberOfLines={1}>
             {label}
           </Text>
         ) : null}
@@ -75,7 +75,7 @@ export function FollowListUserRow({
           <View className="mt-2 flex-row flex-wrap gap-1.5">
             {palates.map((palate) => (
               <View key={`${user.id}-${palate}`} className="rounded-full bg-[#f1f1f1] px-2 py-0.5">
-                <Text className="text-xs font-medium text-[#31343f]">{palate}</Text>
+                <Text className="text-xs text-[#31343f] font-body-medium">{palate}</Text>
               </View>
             ))}
           </View>
@@ -103,7 +103,7 @@ export function FollowListUserRow({
             <ActivityIndicator color={isFollowing ? TEXT_HEADING : '#ffffff'} size="small" />
           ) : (
             <Text
-              className={`text-xs ${isFollowing ? 'font-medium' : 'font-semibold'}`}
+              className={`text-xs ${isFollowing ? 'font-body-medium' : 'font-body-semibold'}`}
               style={{ color: isFollowing ? TEXT_HEADING : '#ffffff' }}
             >
               {actionLabel}

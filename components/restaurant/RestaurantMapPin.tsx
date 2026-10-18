@@ -1,50 +1,57 @@
 import { Text, View } from 'react-native'
-import { AppIcon } from '@/components/ui/AppIcon'
+
+import {
+  BRAND_PRIMARY,
+  SURFACE_CARD,
+  TEXT_HEADING,
+  TEXT_MUTED,
+  TEXT_TERTIARY,
+} from '@/constants/brand'
+import { FONT } from '@/constants/typography'
 
 interface RestaurantMapPinProps {
   isSelected: boolean
   rating?: number | null
+  /** Google-only place — dashed "G" pill. */
+  isGoogle?: boolean
+  /** 0–100 under a palate cuisine filter — orange "94%" pill. */
+  matchPercent?: number | null
 }
 
+/** Map marker pill (design S2/S4): ★ rating, G rating for Google places, or palate match %. */
 export function RestaurantMapPin({
   isSelected,
   rating,
+  isGoogle = false,
+  matchPercent = null,
 }: RestaurantMapPinProps): JSX.Element {
-  const bg = isSelected ? '#31343F' : '#ff7c0a'
-  const size = isSelected ? 44 : 36
+  const match = matchPercent != null
+  const label = match
+    ? `${matchPercent}%`
+    : `${isGoogle ? 'G' : '★'} ${rating != null && rating > 0 ? rating.toFixed(1) : '–'}`
+
+  const background = match ? BRAND_PRIMARY : isSelected ? TEXT_HEADING : SURFACE_CARD
+  const color = match || isSelected ? (match ? TEXT_HEADING : '#FFFFFF') : isGoogle ? TEXT_MUTED : TEXT_HEADING
 
   return (
     <View
       style={{
-        width: size,
-        height: size,
-        borderRadius: size / 2,
-        backgroundColor: bg,
-        borderWidth: isSelected ? 2.5 : 0,
-        borderColor: 'white',
-        alignItems: 'center',
-        justifyContent: 'center',
+        paddingVertical: 7,
+        paddingHorizontal: 10,
+        borderRadius: 50,
+        backgroundColor: background,
+        borderWidth: isGoogle && !isSelected && !match ? 1 : 0,
+        borderStyle: 'dashed',
+        borderColor: TEXT_TERTIARY,
+        transform: [{ scale: isSelected ? 1.12 : 1 }],
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.25,
+        shadowOpacity: 0.18,
         shadowRadius: 4,
         elevation: 4,
       }}
     >
-      {rating != null && rating > 0 ? (
-        <Text
-          style={{
-            color: 'white',
-            fontSize: isSelected ? 11 : 9,
-            fontFamily: 'Neusans',
-            fontWeight: '600',
-          }}
-        >
-          {rating.toFixed(1)}
-        </Text>
-      ) : (
-        <AppIcon name="restaurant" size={isSelected ? 18 : 14} color="white" />
-      )}
+      <Text style={{ fontFamily: FONT.bodySemibold, fontSize: 12, color }}>{label}</Text>
     </View>
   )
 }

@@ -3,9 +3,36 @@ import AsyncStorage from '@react-native-async-storage/async-storage'
 const KEY = 'tp:recent_searches_v1'
 const MAX = 5
 
+/** What the search opened — decides the label on recents and where a tap goes. */
+export type RecentSearchKind = 'keyword' | 'cuisine' | 'category' | 'restaurant'
+
 export interface RecentSearch {
+  /** Display text (keyword, cuisine label, restaurant name). */
   query: string
   timestamp: number
+  /** Missing on entries written before kinds existed — treated as `keyword`. */
+  kind?: RecentSearchKind
+  /** Cuisine / category slug, restaurant slug or `google:<place_id>`. */
+  value?: string
+}
+
+export type RecentSearchInput = Omit<RecentSearch, 'timestamp'>
+
+export function recentKindLabel(kind: RecentSearchKind | undefined): string {
+  switch (kind) {
+    case 'cuisine':
+      return 'Cuisine'
+    case 'category':
+      return 'Category'
+    case 'restaurant':
+      return 'Restaurant'
+    default:
+      return 'Keyword'
+  }
+}
+
+function sameEntry(a: RecentSearch, b: RecentSearchInput): boolean {
+  return (a.kind ?? 'keyword') === (b.kind ?? 'keyword') && a.query.toLowerCase() === b.query.toLowerCase()
 }
 
 export async function getRecentSearches(): Promise<RecentSearch[]> {
@@ -19,28 +46,25 @@ export async function getRecentSearches(): Promise<RecentSearch[]> {
   }
 }
 
-export async function addRecentSearch(query: string): Promise<void> {
-  const trimmed = query.trim()
+/** Accepts a bare keyword (legacy callers) or a typed entry. Newest first, deduped, capped at 5. */
+export async function addRecentSearch(input: string | RecentSearchInput): Promise<void> {
+  const entry: RecentSearchInput = typeof input === 'string' ? { query: input, kind: 'keyword' } : input
+  const trimmed = entry.query.trim()
   if (!trimmed) return
   try {
     const existing = await getRecentSearches()
-    const deduped = existing.filter(
-      (r) => r.query.toLowerCase() !== trimmed.toLowerCase(),
-    )
-    const updated: RecentSearch[] = [
-      { query: trimmed, timestamp: Date.now() },
-      ...deduped,
-    ].slice(0, MAX)
+    const next: RecentSearch = { ...entry, query: trimmed, timestamp: Date.now() }
+    const updated = [next, ...existing.filter((r) => !sameEntry(r, next))].slice(0, MAX)
     await AsyncStorage.setItem(KEY, JSON.stringify(updated))
   } catch {
     // non-critical
   }
 }
 
-export async function removeRecentSearch(query: string): Promise<void> {
+export async function removeRecentSearch(entry: Pick<RecentSearch, 'query' | 'kind'>): Promise<void> {
   try {
     const existing = await getRecentSearches()
-    const updated = existing.filter((r) => r.query !== query)
+    const updated = existing.filter((r) => !sameEntry(r, entry))
     await AsyncStorage.setItem(KEY, JSON.stringify(updated))
   } catch {
     // non-critical

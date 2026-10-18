@@ -2,7 +2,7 @@
 
 **App:** `tastyplates-mobile` (Expo Router)  
 **Status:** Sections 1–11 match the app as it ships today. The app-mode section at the end is the planned beta gate and is not in the binary yet.  
-**Last updated:** 2026-10-10
+**Last updated:** 2026-10-18
 
 Tastyplates is a restaurant discovery app built around taste identity. People browse by city and cuisine, read reviews from people whose palates match theirs, and publish their own notes from Studio.
 
@@ -106,33 +106,37 @@ Protected actions open the auth sheet or `/login` and remember where to return. 
 
 ## 3. Onboarding
 
-**Routes:** `/onboarding/step1` → `step2` → `step3`  
+**Routes:** `/onboarding/step1` → `step2` → `step3` → `step4` → `step5`  
 **Done when:** `user_profiles.onboarding_complete` is true.
 
-This is the only profile setup. It collects the username, current city, hometown, and up to two cuisine palates.
+This is the only profile setup. It collects the username, first and last name, display name, current city, hometown, and exactly two cuisine palates. Every step shows a 5-segment progress bar and “Step N of 5”.
 
-`OnboardingGate` checks every verified session that is not already on `/onboarding`. A local “just completed” flag stops a redirect loop on the way to Home. Draft answers stay on the device.
+`OnboardingGate` checks every verified session that is not already on `/onboarding`. A local “just completed” flag stops a redirect loop on the way to Home. Draft answers stay on the device (`tastyplates_onboarding_registration_v1`).
 
 ### Step 1 — Username
 
-- Suggests a default, or reuses the username already on the profile.
-- Checks availability while typing.
-- Length is 3–20 characters.
-- Continue stores the draft and opens step 2.
+- No back button. Starts from the draft, then the existing username, then a generated `user_<random>`.
+- Rules: 3–20 characters, letters/numbers/`_`/`-`, no spaces, no leading or trailing `_`/`-`, not all numbers, no `__`, `--` or `_-`.
+- Valid names are checked for availability after a short pause.
 
-### Step 2 — Where you are, and where you are from
+### Step 2 — Name
 
-- **Current location** becomes the city used for Home, Explore, and search. It also updates the in-app location preference.
-- **Hometown** is the place they grew up. It is stored on the profile and shown there. It does not change the browse city.
-- Both use the city picker.
-- Continue requires a current location.
+- First and last name, both required. Saved as private `user_profiles.first_name` / `last_name`; never shown on their own.
 
-### Step 3 — Palate
+### Step 3 — Display name
 
-- “Select a cuisine you grew up with.”
-- Up to **2** leaf cuisines (Chinese, Korean, Italian, and so on). These are identity slugs, not taste words like spicy.
-- Search filters the list.
-- **Done** writes username, locations, and palates, sets `onboarding_complete`, clears the draft, refreshes the session, and replaces the stack with Home.
+- Four variants built from the name: full, first initial + last, first only, last only. Default is full. A preview shows it above `@username`.
+- The pick becomes `display_name`. Changeable later in Edit profile → Display name.
+
+### Step 4 — Where you are, and where you are from
+
+- **Current city** becomes the browse city for Home and Explore. **Hometown** only goes on the profile.
+- Both are required. “Same as current residence for hometown” copies current into hometown.
+
+### Step 5 — Palate
+
+- “Select 2 cuisines you grew up with.” Exactly two leaf cuisines, as brand icon tiles grouped by region, with search.
+- **Done** sends username, names, display name, palates, cities and `onboarding_complete` in one update, clears the draft, refreshes the session, and replaces the stack with Home (toast “Welcome to Tastyplates”).
 
 Skipping steps exists only when `DEV_MODE` is on.
 
@@ -335,7 +339,7 @@ The menu that ships is short:
 
 `/settings/general/language` and `/settings/support/about` exist as routes. They are not linked from this Settings screen.
 
-Sign-out does not clear `onboarding_complete`. The next sign-in skips the three steps.
+Sign-out does not clear `onboarding_complete`. The next sign-in skips the five steps.
 
 Policies remain available from auth: terms, privacy, cookies, and content guidelines.
 
@@ -408,7 +412,7 @@ When a build ships with `launched`, this screen is not rendered. The same accoun
 | Register | `/register` | Shipped, same sheet |
 | Verify email | `/user-verification` | Shipped |
 | Forgot / reset password | `/forgot-password`, `/reset-password` | Shipped |
-| Onboarding | `/onboarding/step1`, `step2`, `step3` | Shipped. Done goes to Home. |
+| Onboarding | `/onboarding/step1` … `step5` | Shipped. Done goes to Home. |
 | Home | `/(tabs)` | Shipped |
 | Explore | `/(tabs)/restaurants` | Shipped. Map and sheet. |
 | Restaurant | `/restaurants/[slug]` | Shipped |

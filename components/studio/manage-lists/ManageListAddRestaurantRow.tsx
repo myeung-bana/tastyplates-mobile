@@ -19,11 +19,11 @@ export function ManageListAddRestaurantRow({ onPress }: ManageListAddRestaurantR
       className="flex-row items-center gap-3 border-b border-gray-50 bg-white px-4 py-3 active:bg-gray-50"
     >
       <View className="h-14 w-14 flex-shrink-0 items-center justify-center overflow-hidden rounded-xl bg-orange-50">
-        <AppIcon name="plus" size={28} color="#ff7c0a" />
+        <AppIcon name="plus" size={28} color="#FF7C09" />
       </View>
 
       <View className="min-w-0 flex-1" style={{ gap: 2 }}>
-        <Text className="font-neusans text-[15px] font-medium text-[#31343F]" numberOfLines={1}>
+        <Text className="text-[15px] text-[#31343F] font-body-medium" numberOfLines={1}>
           Add Restaurant
         </Text>
       </View>

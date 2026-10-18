@@ -103,7 +103,7 @@ export function RestaurantDiscoveryResults({
     return (
       <View className="flex-1 items-center justify-center pt-10">
         <ActivityIndicator color={BRAND_PRIMARY} />
-        <Text className="mt-2.5 font-neusans text-sm text-gray-400">Searching...</Text>
+        <Text className="mt-2.5 text-sm text-gray-400 font-body">Searching...</Text>
       </View>
     )
   }
@@ -112,10 +112,10 @@ export function RestaurantDiscoveryResults({
     return (
       <View className="flex-1 px-6 pt-8">
         {errorMessage ? <DiscoveryErrorBanner message={errorMessage} /> : null}
-        <Text className="mt-4 text-center font-neusans text-base font-medium text-gray-700">
+        <Text className="mt-4 text-center text-base text-gray-700 font-body-medium">
           No results for &quot;{keyword}&quot;
         </Text>
-        <Text className="mt-1.5 text-center font-neusans text-sm text-gray-400">
+        <Text className="mt-1.5 text-center text-sm text-gray-400 font-body">
           Try a different name or check your connection
         </Text>
       </View>
@@ -160,7 +160,7 @@ export function RestaurantDiscoveryResults({
               {loading ? (
                 <View className="items-center py-8">
                   <ActivityIndicator color={BRAND_PRIMARY} />
-                  <Text className="mt-2.5 font-neusans text-sm text-gray-400">Searching...</Text>
+                  <Text className="mt-2.5 text-sm text-gray-400 font-body">Searching...</Text>
                 </View>
               ) : null}
             </>
@@ -172,7 +172,7 @@ export function RestaurantDiscoveryResults({
         <>
           {totalCount === 0 ? (
             <View className="px-6 pb-4">
-              <Text className="text-center font-neusans text-sm text-gray-400">
+              <Text className="text-center text-sm text-gray-400 font-body">
                 No restaurants found for this keyword
               </Text>
             </View>

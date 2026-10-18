@@ -34,6 +34,14 @@ module.exports = {
       },
       fontFamily: {
         "space-mono": ["SpaceMono"],
+        // Brand v1.0 — one family per weight; see constants/typography.ts.
+        body: ["DMSans_400Regular"],
+        "body-medium": ["DMSans_500Medium"],
+        "body-semibold": ["DMSans_600SemiBold"],
+        "body-bold": ["DMSans_700Bold"],
+        heading: ["Jost_600SemiBold"],
+        "heading-medium": ["Jost_500Medium"],
+        "heading-bold": ["Jost_700Bold"],
       },
     },
   },

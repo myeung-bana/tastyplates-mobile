@@ -1,9 +1,11 @@
 import { PillTabBar } from '@/components/ui/PillTabBar'
 
-export type ReviewListingFilter = 'live' | 'draft'
+export type ReviewListingFilter = 'all' | 'live' | 'draft'
 
+/** All · Published · Drafts (design W5). */
 const TABS = [
-  { key: 'live' as const, label: 'Live' },
+  { key: 'all' as const, label: 'All' },
+  { key: 'live' as const, label: 'Published' },
   { key: 'draft' as const, label: 'Drafts' },
 ]
 

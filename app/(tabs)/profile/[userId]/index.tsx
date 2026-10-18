@@ -8,10 +8,17 @@ import { ProfileRecentActivityPreview } from '@/components/profile/ProfileRecent
 import { UnifiedProfileView } from '@/components/profile/UnifiedProfileView'
 import { BRAND_PRIMARY, TEXT_HEADING, TEXT_MUTED } from '@/constants/brand'
 import {
-  SCREEN_EDIT_PROFILE,
+  SCREEN_HOME,
+  SCREEN_PUBLIC_PROFILE,
   SCREEN_REVIEW_VIEWER,
   SCREEN_SETTINGS,
 } from '@/constants/screens'
+import { AUTH_WALL } from '@/constants/authWalls'
+import { ProfilePhotoSheet } from '@/components/profile/ProfilePhotoSheet'
+import { Button } from '@/components/ui/Button'
+import { FONT } from '@/constants/typography'
+import { useProfilePhotoChange } from '@/hooks/useProfilePhotoChange'
+import { pushLoginScreen } from '@/lib/authRoutes'
 import { useAuthSheet } from '@/contexts/AuthSheetContext'
 import { useModeration } from '@/contexts/ModerationContext'
 import { useFollowTarget } from '@/hooks/useFollowTarget'
@@ -146,6 +153,7 @@ export default function PublicProfileIndexScreen() {
   )
 
   const [pullRefreshing, setPullRefreshing] = useState(false)
+  const photo = useProfilePhotoChange(isOwnProfile ? viewerId : null, () => void loadProfile())
 
   const onPullRefresh = useCallback(async () => {
     setPullRefreshing(true)
@@ -182,13 +190,16 @@ export default function PublicProfileIndexScreen() {
     return (
       <View className="flex-1 bg-white">
         <AppTopNav />
-        <View className="flex-1 items-center justify-center px-6">
-          <Text className="text-center text-lg" style={{ color: TEXT_HEADING }}>
+        <View className="flex-1 items-center justify-center" style={{ paddingHorizontal: 32, gap: 10 }}>
+          <Text accessibilityRole="header" className="text-center" style={{ fontFamily: FONT.heading, fontSize: 24, color: TEXT_HEADING }}>
             Profile not found
           </Text>
-          <Text className="mt-2 text-center text-sm leading-relaxed" style={{ color: TEXT_MUTED }}>
-            {error ?? ''}
+          <Text className="text-center" style={{ fontFamily: FONT.body, fontSize: 14, lineHeight: 21, color: TEXT_MUTED }}>
+            This account may have changed its username or no longer exists.
           </Text>
+          <Button style={{ marginTop: 10, alignSelf: 'stretch' }} onPress={() => router.replace(SCREEN_HOME)}>
+            Back to Home
+          </Button>
         </View>
       </View>
     )
@@ -280,7 +291,6 @@ export default function PublicProfileIndexScreen() {
 
   return (
     <View className="flex-1 bg-white">
-      <AppTopNav />
       <UnifiedProfileView
         isOwnProfile={isOwnProfile}
         routeUserId={ru.id}
@@ -301,15 +311,33 @@ export default function PublicProfileIndexScreen() {
         hometownLabel={hometownLabel}
         pullRefreshing={pullRefreshing}
         onRefresh={onPullRefresh}
-        onPressAvatarOwn={
-          isOwnProfile ? () => router.push(SCREEN_EDIT_PROFILE) : undefined
-        }
+        onPressAvatarOwn={isOwnProfile ? photo.openSheet : undefined}
+        avatarUploading={photo.uploading}
+        avatarPendingUri={photo.pendingUri}
         onPressSettings={isOwnProfile ? () => router.push(SCREEN_SETTINGS) : undefined}
         followButton={followUi}
         showFollowPlaceholder={!isAuthenticated && !isOwnProfile}
+        onPressFollowPlaceholder={() =>
+          pushLoginScreen(router, {
+            resume: { pathname: SCREEN_PUBLIC_PROFILE, params: { userId: ru.id } },
+            wall: AUTH_WALL.follow,
+          })
+        }
         onPressMore={onPressMore}
         meTabExtra={meTabExtra}
+        blockedHandle={blocked ? headlineHandle : null}
       />
+      {isOwnProfile ? (
+        <ProfilePhotoSheet
+          visible={photo.sheetOpen}
+          avatarUrl={avatarUrl}
+          hasCustomPhoto={Boolean(avatarUrl)}
+          onTakePhoto={photo.takePhoto}
+          onChooseLibrary={photo.chooseLibrary}
+          onRemove={photo.removePhoto}
+          onClose={photo.closeSheet}
+        />
+      ) : null}
     </View>
   )
 }

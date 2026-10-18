@@ -38,7 +38,7 @@ export function ManageListRow({ list, swipeableRefs, onDelete }: Props): JSX.Ele
           className="h-full w-full items-center justify-center gap-1.5"
         >
           <AppIcon name="trash-2" size={22} color="white" />
-          <Text className="font-neusans text-[11px] font-medium text-white">Delete</Text>
+          <Text className="text-[11px] text-white font-body-medium">Delete</Text>
         </Pressable>
       </View>
     )
@@ -93,10 +93,10 @@ export function ManageListRow({ list, swipeableRefs, onDelete }: Props): JSX.Ele
 
         {/* Info */}
         <View className="min-w-0 flex-1" style={{ gap: 2 }}>
-          <Text className="font-neusans text-[15px] font-medium text-[#31343F]" numberOfLines={1}>
+          <Text className="text-[15px] text-[#31343F] font-body-medium" numberOfLines={1}>
             {list.title}
           </Text>
-          <Text className="font-neusans text-[13px] text-[#6b7280]" numberOfLines={1}>
+          <Text className="text-[13px] text-[#6b7280] font-body" numberOfLines={1}>
             {subtitle}
           </Text>
         </View>

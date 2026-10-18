@@ -34,10 +34,10 @@ export function PalateChipPicker({
               accessibilityState={{ selected: on }}
               accessibilityLabel={p.label}
               onPress={() => onToggle(p.key)}
-              className={`rounded-full border px-3 py-2 ${on ? 'border-[#ff7c0a] bg-orange-50' : 'border-gray-200 bg-white'}`}
+              className={`rounded-full border px-3 py-2 ${on ? 'border-[#FF7C09] bg-orange-50' : 'border-gray-200 bg-white'}`}
               style={{ opacity: dim ? 0.4 : 1 }}
             >
-              <Text className={`text-sm font-medium ${on ? 'text-[#ff7c0a]' : 'text-gray-800'}`}>
+              <Text className={`text-sm font-body-medium ${on ? 'text-[#FF7C09]' : 'text-gray-800'}`}>
                 {p.label}
               </Text>
             </Pressable>
@@ -45,7 +45,7 @@ export function PalateChipPicker({
         })}
       </View>
       {error ? (
-        <Text className="mt-2 text-sm" style={{ color: BRAND_PRIMARY }}>
+        <Text className="mt-2 text-sm font-body" style={{ color: BRAND_PRIMARY }}>
           {error}
         </Text>
       ) : null}

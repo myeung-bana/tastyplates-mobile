@@ -17,6 +17,8 @@ export interface FullScreenOverlayProps extends PropsWithChildren {
   animationType?: ModalProps['animationType']
   backgroundColor?: string
   keyboardAvoiding?: boolean
+  /** See-through modal (bottom sheets drawing their own backdrop). */
+  transparent?: boolean
   style?: StyleProp<ViewStyle>
 }
 
@@ -30,6 +32,7 @@ export function FullScreenOverlay({
   animationType = 'slide',
   backgroundColor = '#fff',
   keyboardAvoiding = false,
+  transparent = false,
   style,
   children,
 }: FullScreenOverlayProps) {
@@ -58,6 +61,7 @@ export function FullScreenOverlay({
       visible={visible}
       animationType={animationType}
       presentationStyle="overFullScreen"
+      transparent={transparent}
       statusBarTranslucent
       onRequestClose={onRequestClose}
     >

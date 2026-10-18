@@ -18,16 +18,16 @@ export function MyListsEmptyState({ tab }: Props): JSX.Element {
         <AppIcon
           name={isToDine ? 'bookmark' : 'map-pin'}
           size="xl"
-          color="#ff7c0a"
+          color="#FF7C09"
         />
       </View>
-      <Text className="mb-2 text-center font-neusans text-lg font-medium text-gray-900">
-        {isToDine ? 'No Restaurants Found' : 'No Check-ins Found'}
+      <Text className="mb-2 text-center text-lg text-gray-900 font-heading">
+        {isToDine ? 'Nothing saved yet' : 'No check-ins yet'}
       </Text>
-      <Text className="mb-6 text-center font-neusans text-sm text-gray-500">
+      <Text className="mb-6 text-center text-sm text-gray-500 font-body">
         {isToDine
-          ? 'No restaurants added to the To-Dine list yet.'
-          : 'No check-ins have been made yet.'}
+          ? 'Tap Save on any restaurant page to keep it here.'
+          : 'Tap Check in on a restaurant page after you visit.'}
       </Text>
       <Button
         variant="primary"

@@ -6,7 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { ProfileAvatarImage } from '@/components/profile/ProfileAvatarImage'
 import { GlobalLocationPill } from '@/components/navigation/GlobalLocationPill'
-import { NAV_ICON, TEXT_MUTED } from '@/constants/brand'
+import { SURFACE_CARD, TEXT_HEADING, TEXT_MUTED } from '@/constants/brand'
 import { SCREEN_PROFILE } from '@/constants/screens'
 import { useAuthSheet } from '@/contexts/AuthSheetContext'
 import { useSearchOverlay } from '@/contexts/SearchOverlayContext'
@@ -37,7 +37,7 @@ function ProfileShortcut(): JSX.Element {
       accessibilityHint="Opens your profile"
       hitSlop={8}
       onPress={goProfile}
-      className="overflow-hidden rounded-full border border-gray-200 bg-gray-50 active:opacity-80"
+      className="overflow-hidden rounded-full border border-[#DCDDE2] bg-[#EFEFF1] active:opacity-80"
       style={{ width: AVATAR_SIZE, height: AVATAR_SIZE }}
     >
       {!isSignedIn ? (
@@ -58,6 +58,16 @@ function ProfileShortcut(): JSX.Element {
 
 const APP_TOP_NAV_INNER_PAD = FULL_SCREEN_OVERLAY_INNER_PAD
 
+/** White floating chrome over the Explore map (design S2). */
+const FLOATING = {
+  backgroundColor: SURFACE_CARD,
+  shadowColor: '#000',
+  shadowOpacity: 0.12,
+  shadowRadius: 8,
+  shadowOffset: { width: 0, height: 2 },
+  elevation: 3,
+} as const
+
 export type AppTopNavVariant = 'default' | 'mapOverlay'
 
 export type AppTopNavProps = {
@@ -75,36 +85,45 @@ export function AppTopNav({ variant = 'default' }: AppTopNavProps): JSX.Element 
     <View
       className={
         isMapOverlay
-          ? 'flex-row items-center justify-between pb-3'
-          : 'flex-row items-center justify-between border-b border-gray-100 bg-white pb-3'
+          ? 'flex-row items-center justify-between'
+          : 'flex-row items-center justify-between'
       }
       style={{
         paddingTop: insets.top + APP_TOP_NAV_INNER_PAD,
-        paddingLeft: insets.left + 12,
+        paddingLeft: insets.left + (isMapOverlay ? 16 : 20),
         paddingRight: insets.right + 12,
+        minHeight: insets.top + APP_TOP_NAV_INNER_PAD + 52,
         gap: 8,
-        backgroundColor: isMapOverlay ? 'transparent' : undefined,
+        backgroundColor: isMapOverlay ? 'transparent' : SURFACE_CARD,
       }}
     >
       <View pointerEvents="box-none" className="min-w-0 flex-1 items-start justify-center pr-2">
-        <GlobalLocationPill maxWidth={260} />
+        <View style={isMapOverlay ? [FLOATING, { borderRadius: 50, paddingHorizontal: 14, height: 40, justifyContent: 'center' }] : null}>
+          <GlobalLocationPill maxWidth={260} />
+        </View>
       </View>
 
       {/* Right: cuisine search + profile */}
-      <View className="flex-shrink-0 flex-row items-center gap-2">
+      <View className="flex-shrink-0 flex-row items-center" style={{ gap: 4 }}>
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Search restaurants"
-          hitSlop={12}
+          hitSlop={6}
           onPress={() => {
             void Haptics.selectionAsync()
             openSearch()
           }}
-          className="h-9 w-9 items-center justify-center rounded-full active:bg-gray-100"
+          className="items-center justify-center rounded-full active:opacity-70"
+          style={[{ width: 44, height: 44 }, isMapOverlay ? [FLOATING, { borderRadius: 22 }] : null]}
         >
-          <AppIcon name="search" size={21} color={NAV_ICON} />
+          <AppIcon name="search" size={21} color={TEXT_HEADING} />
         </Pressable>
-        <ProfileShortcut />
+        <View
+          className="items-center justify-center"
+          style={[{ width: 44, height: 44 }, isMapOverlay ? [FLOATING, { borderRadius: 22 }] : null]}
+        >
+          <ProfileShortcut />
+        </View>
       </View>
     </View>
   )

@@ -101,7 +101,7 @@ export function AuthHeroLayout({
             {headerSlot ? <View className="mb-5">{headerSlot}</View> : null}
 
             <Text
-              className="pt-10 text-center text-2xl font-bold"
+              className="pt-10 text-center text-2xl font-heading-bold"
               style={{ color: TEXT_HEADING }}
               maxFontSizeMultiplier={1.3}
             >
@@ -110,7 +110,7 @@ export function AuthHeroLayout({
 
             {subtitle ? (
               <Text
-                className="mt-2 text-center text-base leading-relaxed"
+                className="mt-2 text-center text-base leading-relaxed font-body"
                 style={{ color: TEXT_MUTED }}
                 maxFontSizeMultiplier={1.25}
               >

@@ -23,8 +23,8 @@ export function EditProfilePalateSummary({
   return (
     <View>
       <View className="flex-row items-center justify-between">
-        <Text className="text-sm font-medium" style={{ color: TEXT_HEADING }}>
-          Your palate
+        <Text className="text-sm font-body-medium" style={{ color: TEXT_HEADING }}>
+          Palates · exactly {palateLimit}
         </Text>
         <Pressable
           onPress={onPressEdit}
@@ -34,7 +34,7 @@ export function EditProfilePalateSummary({
           hitSlop={8}
           className="py-1 active:opacity-70"
         >
-          <Text className="text-sm font-semibold" style={{ color: BRAND_PRIMARY }}>
+          <Text className="text-sm font-body-semibold" style={{ color: BRAND_PRIMARY }}>
             Edit
           </Text>
         </Pressable>
@@ -48,24 +48,24 @@ export function EditProfilePalateSummary({
               className="rounded-full px-3 py-1.5"
               style={{ backgroundColor: '#f3f4f6' }}
             >
-              <Text className="text-xs font-medium" style={{ color: TEXT_BODY }}>
+              <Text className="text-xs font-body-medium" style={{ color: TEXT_BODY }}>
                 {labelForPalateKey(key)}
               </Text>
             </View>
           ))}
         </View>
       ) : (
-        <Text className="mt-2 text-sm" style={{ color: TEXT_MUTED }}>
+        <Text className="mt-2 text-sm font-body" style={{ color: TEXT_MUTED }}>
           Choose {palateLimit} cuisines to represent your taste.
         </Text>
       )}
 
-      <Text className="mt-2 text-xs leading-relaxed" style={{ color: TEXT_MUTED }}>
+      <Text className="mt-2 text-xs leading-relaxed font-body" style={{ color: TEXT_MUTED }}>
         Shown on your profile and reviews.
       </Text>
 
       {error ? (
-        <Text className="mt-2 text-sm" style={{ color: BRAND_PRIMARY }}>
+        <Text className="mt-2 text-sm font-body" style={{ color: BRAND_PRIMARY }}>
           {error}
         </Text>
       ) : null}

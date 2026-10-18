@@ -10,13 +10,14 @@ import { SCREEN_REVIEW_VIEWER } from '@/constants/screens'
 import { useAuth } from '@/hooks/useAuth'
 import { useLatestTrendingReviews } from '@/hooks/useLatestTrendingReviews'
 import { pushLoginScreen } from '@/lib/authRoutes'
+import { AUTH_WALL } from '@/constants/authWalls'
 import { publicProfileFromAuthorFields, pushPublicProfile } from '@/lib/publicProfileNavigation'
 import type { TrendingReviewRow } from '@/services/homeReviewsService'
 
 const TRENDING_LIMIT = 6
 const GRID_GAP = 12
-/** Outer `px-4` gutter on home sections without inner card padding. */
-const SECTION_H_PAD = 16 * 2
+/** Home section gutters (20px each side). */
+const SECTION_H_PAD = 20 * 2
 
 type HomeReviewsSectionProps = {
   /** Bumps when the parent pull-to-refresh runs so trending refetches. */
@@ -43,14 +44,14 @@ export function HomeReviewsSection({ refreshNonce = 0 }: HomeReviewsSectionProps
   const onOpenAuthor = (review: TrendingReviewRow) => {
     void Haptics.selectionAsync()
     if (!isAuthenticated) {
-      pushLoginScreen(router, { resume: '/(tabs)' })
+      pushLoginScreen(router, { resume: '/(tabs)', wall: AUTH_WALL.profile })
       return
     }
     pushPublicProfile(router, publicProfileFromAuthorFields(review.author_id, review.AuthorProfile))
   }
 
   return (
-    <HomeSectionCard title="Recent reviews" shadowed={false} padded={false}>
+    <HomeSectionCard title="Trending reviews">
       {trendingLoading ? (
         <View className="w-full">
           {[0, 1].map((row) => (
@@ -62,7 +63,7 @@ export function HomeReviewsSection({ refreshNonce = 0 }: HomeReviewsSectionProps
         </View>
       ) : error ? (
         <View className="items-center px-2">
-          <Text className="text-center text-sm leading-relaxed" style={{ color: TEXT_MUTED }}>
+          <Text className="text-center text-sm leading-relaxed font-body" style={{ color: TEXT_MUTED }}>
             {error}
           </Text>
           <Pressable
@@ -70,11 +71,11 @@ export function HomeReviewsSection({ refreshNonce = 0 }: HomeReviewsSectionProps
             className="mt-3 rounded-full px-6 py-2.5 active:opacity-90"
             style={{ backgroundColor: BRAND_PRIMARY }}
           >
-            <Text className="text-sm font-medium text-white">Try again</Text>
+            <Text className="text-sm text-white font-body-medium">Try again</Text>
           </Pressable>
         </View>
       ) : reviews.length === 0 ? (
-        <Text className="text-center text-sm leading-relaxed" style={{ color: TEXT_MUTED }}>
+        <Text className="text-center text-sm leading-relaxed font-body" style={{ color: TEXT_MUTED }}>
           No reviews yet — check back soon.
         </Text>
       ) : (

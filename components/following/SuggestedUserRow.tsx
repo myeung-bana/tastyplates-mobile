@@ -59,7 +59,7 @@ export function SuggestedUserRow({ user, viewerId, onFollowed }: SuggestedUserRo
         />
       </Pressable>
       <Text
-        className="mt-2 w-full text-center text-xs font-medium"
+        className="mt-2 w-full text-center text-xs font-body-medium"
         style={{ color: TEXT_HEADING }}
         numberOfLines={2}
       >
@@ -81,7 +81,7 @@ export function SuggestedUserRow({ user, viewerId, onFollowed }: SuggestedUserRo
           <ActivityIndicator color={follow.following ? TEXT_MUTED : '#ffffff'} size="small" />
         ) : (
           <Text
-            className="text-xs font-semibold"
+            className="text-xs font-body-semibold"
             style={{ color: follow.following ? TEXT_HEADING : '#ffffff' }}
           >
             {follow.following ? 'Following' : 'Follow'}

@@ -46,6 +46,9 @@ export interface RestaurantUserRow {
   username?: string | null
   email?: string | null
   display_name?: string | null
+  /** Private — only returned when the signed-in user loads their own row. */
+  first_name?: string | null
+  last_name?: string | null
   /** Legacy shapes: bare URL string **or** `{ url }` from Nhost `toLegacyUser`. */
   profile_image?: string | { url?: string | null } | null
   about_me?: string | null
@@ -216,9 +219,12 @@ export async function createRestaurantUserProfile(
 
 export interface UpdateRestaurantUserProfileParams {
   about_me?: string
-  profile_image?: string
+  /** URL of the uploaded photo, or `null` to remove it (back to the default avatar). */
+  profile_image?: string | null
   palates?: string[]
   display_name?: string
+  first_name?: string
+  last_name?: string
   birthdate?: string | null
   gender?: string | null
   current_location?: UserProfileGeographicLocationInput | null
@@ -241,6 +247,8 @@ export async function updateRestaurantUserProfile(
   if (params.profile_image !== undefined) body.profile_image = params.profile_image
   if (params.palates !== undefined) body.palates = params.palates
   if (params.display_name !== undefined) body.display_name = params.display_name
+  if (params.first_name !== undefined) body.first_name = params.first_name
+  if (params.last_name !== undefined) body.last_name = params.last_name
   if (params.birthdate !== undefined) body.birthdate = params.birthdate
   if (params.gender !== undefined) body.gender = params.gender
   if (params.current_location !== undefined) {

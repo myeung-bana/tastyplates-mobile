@@ -35,18 +35,18 @@ export function ChoosePalatesTopNav({
           onPress={handleCancel}
           className="min-w-[72px] py-2 active:opacity-70"
         >
-          <Text className="text-base" style={{ color: TEXT_MUTED }}>
+          <Text className="text-base font-body" style={{ color: TEXT_MUTED }}>
             Cancel
           </Text>
         </Pressable>
 
-        <Text className="text-base font-semibold" style={{ color: TEXT_HEADING }}>
+        <Text className="text-base font-body-semibold" style={{ color: TEXT_HEADING }}>
           Choose palates
         </Text>
 
         <View className="min-w-[72px] items-end py-2">
           <Text
-            className="text-base font-semibold"
+            className="text-base font-body-semibold"
             style={{ color: complete ? BRAND_PRIMARY : TEXT_MUTED }}
           >
             {selectedCount}/{palateLimit}

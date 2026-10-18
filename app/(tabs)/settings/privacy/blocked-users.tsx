@@ -44,7 +44,7 @@ export default function BlockedUsersScreen(): JSX.Element {
 
   const confirmUnblock = (entry: BlockedUserEntry) => {
     const label = entryLabel(entry)
-    Alert.alert(`Unblock ${label}?`, 'They will be able to see and interact with you again.', [
+    Alert.alert(`Unblock ${label}?`, 'You’ll see each other’s reviews, comments and activity again. Follows aren’t restored.', [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Unblock',
@@ -84,12 +84,21 @@ export default function BlockedUsersScreen(): JSX.Element {
             flexGrow: 1,
           }}
           ListEmptyComponent={
-            <View className="flex-1 items-center justify-center px-6 py-16">
-              <Text className="text-center text-sm font-neusans" style={{ color: TEXT_MUTED }}>
-                {error
-                  ? 'Could not load blocked users. Pull back and try again.'
-                  : 'You have not blocked anyone. People you block will appear here.'}
-              </Text>
+            <View className="flex-1 items-center justify-center px-6 py-16" style={{ gap: 6 }}>
+              {error ? (
+                <Text className="text-center text-sm font-body" style={{ color: TEXT_MUTED }}>
+                  Could not load blocked users. Pull back and try again.
+                </Text>
+              ) : (
+                <>
+                  <Text className="text-center text-lg font-heading" style={{ color: TEXT_HEADING }}>
+                    No blocked users
+                  </Text>
+                  <Text className="text-center text-sm font-body" style={{ color: TEXT_MUTED }}>
+                    People you block from a review, comment or profile show up here.
+                  </Text>
+                </>
+              )}
             </View>
           }
           renderItem={({ item }) => (
@@ -99,7 +108,7 @@ export default function BlockedUsersScreen(): JSX.Element {
             >
               <ProfileAvatarImage size={40} avatarUrl={item.user.profile_image} className="bg-gray-100" />
               <Text
-                className="min-w-0 flex-1 text-base font-neusans"
+                className="min-w-0 flex-1 text-base font-body"
                 style={{ color: TEXT_HEADING }}
                 numberOfLines={1}
               >
@@ -113,7 +122,7 @@ export default function BlockedUsersScreen(): JSX.Element {
                 className="rounded-full border border-gray-300 px-4 py-2 active:opacity-80"
                 style={pendingId === item.user.id ? { opacity: 0.5 } : undefined}
               >
-                <Text className="text-sm font-medium font-neusans" style={{ color: TEXT_HEADING }}>
+                <Text className="text-sm font-body-medium" style={{ color: TEXT_HEADING }}>
                   Unblock
                 </Text>
               </Pressable>

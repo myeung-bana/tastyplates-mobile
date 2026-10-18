@@ -39,11 +39,11 @@ export default function StudioCreateReviewScreen(): JSX.Element {
   if (!placeData) {
     return (
       <View className="flex-1 items-center justify-center bg-white px-8">
-        <Text className="text-center font-neusans text-base" style={{ color: TEXT_HEADING }}>
+        <Text className="text-center text-base font-body" style={{ color: TEXT_HEADING }}>
           Missing Google place data.
         </Text>
         <Text
-          className="mt-4 font-neusans text-sm"
+          className="mt-4 text-sm font-body"
           style={{ color: BRAND_PRIMARY }}
           onPress={() => router.replace(SCREEN_STUDIO_ADD_REVIEW)}
         >
@@ -67,6 +67,7 @@ export default function StudioCreateReviewScreen(): JSX.Element {
           imageUrl,
         }}
         resolveRestaurantUuid={resolveRestaurantUuid}
+        isNewPlace={!createdUuid}
       />
     </View>
   )

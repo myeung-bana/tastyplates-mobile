@@ -2,6 +2,8 @@ import { Pressable, Text } from 'react-native'
 import * as Haptics from 'expo-haptics'
 import { AppIcon } from '@/components/ui/AppIcon'
 
+import { TEXT_HEADING } from '@/constants/brand'
+import { FONT } from '@/constants/typography'
 import { useLocation } from '@/contexts/LocationContext'
 import { formatLocationDisplay } from '@/utils/locationUtils'
 
@@ -10,7 +12,7 @@ type Props = {
   maxWidth?: number
 }
 
-/** Tappable city pill — opens global hierarchy sheet via context. */
+/** Top-bar city (design H1): Jost city name + chevron; opens the shared city picker (H3). */
 export function GlobalLocationPill({ maxWidth = 200 }: Props): JSX.Element {
   const { location, hierarchy, openLocationPicker } = useLocation()
   const countries = hierarchy?.hierarchy.countries ?? null
@@ -24,17 +26,19 @@ export function GlobalLocationPill({ maxWidth = 200 }: Props): JSX.Element {
         void Haptics.selectionAsync()
         openLocationPicker()
       }}
-      className="flex-row items-center gap-2 rounded-[50px] border border-gray-300 bg-white px-4 py-2 active:opacity-90"
-      style={{ maxWidth }}
+      hitSlop={8}
+      className="flex-row items-center active:opacity-70"
+      style={{ maxWidth, gap: 4, height: 44 }}
     >
       <Text
         numberOfLines={1}
-        className="flex-shrink font-neusans text-sm font-normal text-gray-900"
+        className="flex-shrink"
+        style={{ fontFamily: FONT.headingMedium, fontSize: 16, color: TEXT_HEADING }}
         maxFontSizeMultiplier={1.15}
       >
         {line}
       </Text>
-      <AppIcon name="chevron-down" size="sm" color="#6b7280" />
+      <AppIcon name="chevron-down" size={16} color={TEXT_HEADING} />
     </Pressable>
   )
 }

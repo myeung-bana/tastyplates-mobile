@@ -1,4 +1,5 @@
 import type { TextStyle, ViewStyle } from 'react-native'
+import { bodyFont } from '@/constants/typography'
 
 /** Pill toast — dark overlay surface, white text (aligned with tastyplates-v2-1 web). */
 export const TOAST_PILL_CONTAINER: ViewStyle = {
@@ -17,7 +18,7 @@ export const TOAST_PILL_CONTAINER: ViewStyle = {
 export const TOAST_PILL_TEXT: TextStyle = {
   color: '#ffffff',
   fontSize: 14,
-  fontWeight: '500',
+  fontFamily: bodyFont('500'),
   textAlign: 'center',
 }
 

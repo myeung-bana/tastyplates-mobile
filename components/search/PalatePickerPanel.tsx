@@ -39,14 +39,14 @@ export function PalatePickerPanel({
           selectedKey === null ? 'border-orange-500 bg-orange-50' : 'border-gray-200 bg-gray-50'
         }`}
       >
-        <Text className={`text-sm font-medium ${selectedKey === null ? 'text-orange-600' : 'text-gray-700'}`}>
+        <Text className={`text-sm font-body-medium ${selectedKey === null ? 'text-orange-600' : 'text-gray-700'}`}>
           All cuisines
         </Text>
       </Pressable>
 
       {palateOptions.map((region) => (
         <View key={region.key} className="mb-5 w-full">
-          <Text className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
+          <Text className="mb-2 text-xs uppercase tracking-wide text-gray-500 font-body-semibold">
             {region.label}
           </Text>
           <Pressable
@@ -56,7 +56,7 @@ export function PalatePickerPanel({
             }`}
           >
             <Text
-              className={`text-sm font-medium ${selectedKey === region.key ? 'text-orange-600' : 'text-gray-800'}`}
+              className={`text-sm font-body-medium ${selectedKey === region.key ? 'text-orange-600' : 'text-gray-800'}`}
             >
               All {region.label}
             </Text>
@@ -71,7 +71,7 @@ export function PalatePickerPanel({
                 }`}
               >
                 <Text
-                  className={`text-sm font-medium ${selectedKey === c.key ? 'text-orange-600' : 'text-gray-800'}`}
+                  className={`text-sm font-body-medium ${selectedKey === c.key ? 'text-orange-600' : 'text-gray-800'}`}
                 >
                   {c.label}
                 </Text>

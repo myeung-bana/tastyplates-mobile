@@ -18,10 +18,14 @@ import {
 import {
   BORDER_SUBTLE,
   BRAND_PRIMARY,
+  BRAND_PRIMARY_DARK,
+  BRAND_PRIMARY_TINT,
+  SURFACE_FOG,
   TEXT_BODY,
   TEXT_HEADING,
   TEXT_MUTED,
 } from '@/constants/brand'
+import { FONT } from '@/constants/typography'
 import { errorOccurred } from '@/constants/messages'
 import { studioEditReviewPath } from '@/constants/screens'
 import { castHref } from '@/lib/routeParams'
@@ -37,7 +41,8 @@ import { toast } from '@/utils/toast'
 
 function emptyStateMessage(filter: ReviewListingFilter): string {
   if (filter === 'draft') return 'There are no drafts currently.'
-  return 'There are no live reviews yet.'
+  if (filter === 'all') return 'You haven’t written any reviews yet.'
+  return 'There are no published reviews yet.'
 }
 
 function ReviewListRowSkeleton(): JSX.Element {
@@ -82,7 +87,7 @@ function ReviewSwipeRow(props: {
           style={{ borderColor: BRAND_PRIMARY, backgroundColor: '#fff8f3' }}
           onPress={() => void props.onPublishDraft?.()}
         >
-          <Text className="text-center text-[11px] font-bold uppercase" style={{ color: BRAND_PRIMARY }}>
+          <Text className="text-center text-[11px] uppercase font-body-bold" style={{ color: BRAND_PRIMARY }}>
             Publish
           </Text>
         </Pressable>
@@ -105,7 +110,7 @@ function ReviewSwipeRow(props: {
 
   const trimmedTitle = props.row.title?.trim() ?? ''
   const restaurantLabel = resolveRestaurantLabel(props.row)
-  const showDraftBadge = props.chip === 'draft'
+  const isDraft = props.row.status === 'draft' || props.row.status === 'pending'
 
   return (
     <Swipeable renderRightActions={rightAction}>
@@ -121,27 +126,36 @@ function ReviewSwipeRow(props: {
           {props.row.rating != null ? (
             <RatingDisplay value={props.row.rating} size="sm" />
           ) : (
-            <Text className="text-xs" style={{ color: TEXT_MUTED }}>
+            <Text className="text-xs font-body" style={{ color: TEXT_MUTED }}>
               —
             </Text>
           )}
         </View>
-        {showDraftBadge ? (
-          <Text className="mb-1 text-[11px] font-semibold uppercase" style={{ color: TEXT_MUTED }}>
-            Draft
+        <View
+          style={{
+            alignSelf: 'flex-start',
+            marginBottom: 6,
+            paddingVertical: 3,
+            paddingHorizontal: 8,
+            borderRadius: 50,
+            backgroundColor: isDraft ? SURFACE_FOG : BRAND_PRIMARY_TINT,
+          }}
+        >
+          <Text style={{ fontFamily: FONT.bodySemibold, fontSize: 11, color: isDraft ? TEXT_MUTED : BRAND_PRIMARY_DARK }}>
+            {isDraft ? 'Draft' : 'Published'}
           </Text>
-        ) : null}
+        </View>
         <Text
-          className="mb-1 text-sm font-semibold"
+          className="mb-1 text-sm font-body-semibold"
           style={{ color: BRAND_PRIMARY }}
           numberOfLines={1}
         >
           {restaurantLabel}
         </Text>
-        <Text className="text-base font-semibold" style={{ color: TEXT_HEADING }} numberOfLines={2}>
+        <Text className="text-base font-body-semibold" style={{ color: TEXT_HEADING }} numberOfLines={2}>
           {trimmedTitle.length > 0 ? trimmedTitle : 'Untitled review'}
         </Text>
-        <Text className="mt-2 text-sm leading-relaxed" style={{ color: TEXT_BODY }} numberOfLines={5}>
+        <Text className="mt-2 text-sm leading-relaxed font-body" style={{ color: TEXT_BODY }} numberOfLines={5}>
           {props.row.content ?? '—'}
         </Text>
       </Pressable>
@@ -160,7 +174,7 @@ export default function ReviewListingScreen(): JSX.Element {
   const [reviews, setReviews] = useState<RestaurantReviewMine[]>([])
   const [fetching, setFetching] = useState(true)
   const [loadError, setLoadError] = useState<string | null>(null)
-  const [chip, setChip] = useState<ReviewListingFilter>('live')
+  const [chip, setChip] = useState<ReviewListingFilter>('all')
 
   const loadReviews = useCallback(async () => {
     if (!isReady || !userId || !accessToken) {
@@ -208,7 +222,8 @@ export default function ReviewListingScreen(): JSX.Element {
     })
 
     if (chip === 'draft') return sorted.filter((r) => r.status === 'draft' || r.status === 'pending')
-    return sorted.filter((r) => r.status === 'approved')
+    if (chip === 'live') return sorted.filter((r) => r.status === 'approved')
+    return sorted
   }, [chip, reviews])
 
   const guardedDelete = async (id: string): Promise<void> => {
@@ -233,7 +248,7 @@ export default function ReviewListingScreen(): JSX.Element {
   if (isReady && userId == null) {
     return (
       <SafeAreaView className="flex-1 items-center justify-center bg-white px-8">
-        <Text className="text-center text-sm" style={{ color: TEXT_MUTED }}>
+        <Text className="text-center text-sm font-body" style={{ color: TEXT_MUTED }}>
           Unexpected — Studio stack redirects guests prior to arriving here.
         </Text>
       </SafeAreaView>
@@ -252,8 +267,8 @@ export default function ReviewListingScreen(): JSX.Element {
           onPress={() => void loadReviews()}
           className="mt-3 rounded-xl bg-red-50 px-3 py-2"
         >
-          <Text className="font-neusans text-xs text-red-600">{loadError}</Text>
-          <Text className="mt-1 font-neusans text-xs font-semibold text-red-700">Tap to retry</Text>
+          <Text className="text-xs text-red-600 font-body">{loadError}</Text>
+          <Text className="mt-1 text-xs text-red-700 font-body-semibold">Tap to retry</Text>
         </Pressable>
       ) : null}
 
@@ -276,7 +291,7 @@ export default function ReviewListingScreen(): JSX.Element {
           keyExtractor={(review) => review.id}
           ListHeaderComponent={<ReviewListingCreateRow />}
           ListEmptyComponent={
-            <Text className="mt-24 text-center text-sm" style={{ color: TEXT_MUTED }}>
+            <Text className="mt-24 text-center text-sm font-body" style={{ color: TEXT_MUTED }}>
               {emptyStateMessage(chip)}
             </Text>
           }

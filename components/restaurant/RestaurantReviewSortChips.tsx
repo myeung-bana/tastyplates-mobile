@@ -2,11 +2,12 @@ import { PillTabBar } from '@/components/ui/PillTabBar'
 
 export type RestaurantReviewSortFilter = 'all' | 'asc' | 'desc' | 'highest'
 
+/** Sort: All · Oldest · Newest · Highest rated (design R1). */
 const TABS = [
   { key: 'all' as const, label: 'All' },
-  { key: 'asc' as const, label: 'Oldest first', icon: 'arrow-up' as const, iconOnly: true },
-  { key: 'desc' as const, label: 'Newest first', icon: 'arrow-down' as const, iconOnly: true },
-  { key: 'highest' as const, label: 'Highest Rated' },
+  { key: 'asc' as const, label: 'Oldest' },
+  { key: 'desc' as const, label: 'Newest' },
+  { key: 'highest' as const, label: 'Highest rated' },
 ]
 
 type Props = {

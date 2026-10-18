@@ -89,7 +89,7 @@ export const GoogleReviewDetailSheet = forwardRef<
         }}
       >
         <View className="mb-4 flex-row items-center justify-between">
-          <Text className="font-neusans text-lg font-normal" style={{ color: TEXT_HEADING }}>
+          <Text className="text-lg font-body" style={{ color: TEXT_HEADING }}>
             Review
           </Text>
           <Pressable
@@ -109,17 +109,17 @@ export const GoogleReviewDetailSheet = forwardRef<
               <View className="min-w-0 flex-1">
                 {review.authorUrl?.startsWith('http') ? (
                   <Pressable accessibilityRole="link" onPress={openAuthorProfile}>
-                    <Text className="font-neusans text-base font-medium" style={{ color: TEXT_HEADING }} numberOfLines={1}>
+                    <Text className="text-base font-body-medium" style={{ color: TEXT_HEADING }} numberOfLines={1}>
                       {review.authorName}
                     </Text>
                   </Pressable>
                 ) : (
-                  <Text className="font-neusans text-base font-medium" style={{ color: TEXT_HEADING }} numberOfLines={1}>
+                  <Text className="text-base font-body-medium" style={{ color: TEXT_HEADING }} numberOfLines={1}>
                     {review.authorName}
                   </Text>
                 )}
                 {review.timeLabel ? (
-                  <Text className="font-neusans text-sm" style={{ color: TEXT_MUTED }}>
+                  <Text className="text-sm font-body" style={{ color: TEXT_MUTED }}>
                     {review.timeLabel}
                   </Text>
                 ) : null}
@@ -127,11 +127,11 @@ export const GoogleReviewDetailSheet = forwardRef<
               <RatingDisplay size="sm" value={review.rating} />
             </View>
 
-            <Text className="font-neusans text-base leading-6" style={{ color: TEXT_BODY }}>
+            <Text className="text-base leading-6 font-body" style={{ color: TEXT_BODY }}>
               {body || 'No review text.'}
             </Text>
 
-            <Text className="mt-6 text-center font-neusans text-xs" style={{ color: TEXT_MUTED }}>
+            <Text className="mt-6 text-center text-xs font-body" style={{ color: TEXT_MUTED }}>
               Review from Google
             </Text>
 
@@ -141,7 +141,7 @@ export const GoogleReviewDetailSheet = forwardRef<
                 onPress={onViewOnGoogleMaps}
                 className="mt-3 w-full items-center justify-center rounded-xl border border-gray-300 bg-white py-3 active:opacity-90"
               >
-                <Text className="font-neusans text-sm font-medium" style={{ color: BRAND_PRIMARY }}>
+                <Text className="text-sm font-body-medium" style={{ color: BRAND_PRIMARY }}>
                   View on Google Maps
                 </Text>
               </Pressable>

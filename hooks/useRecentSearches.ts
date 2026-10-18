@@ -5,6 +5,7 @@ import {
   getRecentSearches,
   removeRecentSearch,
   type RecentSearch,
+  type RecentSearchInput,
 } from '@/lib/recentSearches'
 
 export function useRecentSearches() {
@@ -22,16 +23,16 @@ export function useRecentSearches() {
   }, [refresh])
 
   const add = useCallback(
-    async (query: string) => {
-      await addRecentSearch(query)
+    async (entry: string | RecentSearchInput) => {
+      await addRecentSearch(entry)
       await refresh()
     },
     [refresh],
   )
 
   const remove = useCallback(
-    async (query: string) => {
-      await removeRecentSearch(query)
+    async (entry: Pick<RecentSearch, 'query' | 'kind'>) => {
+      await removeRecentSearch(entry)
       await refresh()
     },
     [refresh],

@@ -4,11 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { ReviewDetailTopNav } from '@/components/review/ReviewDetailTopNav'
 import { ProfileMenuCard, ProfileMenuRow } from '@/components/profile/UnifiedProfileView'
-import {
-  SCREEN_SETTINGS_DELETE_ACCOUNT,
-  SCREEN_SETTINGS_PASSWORD,
-  SCREEN_SETTINGS_PROFILE,
-} from '@/constants/screens'
+import { SCREEN_SETTINGS_DELETE_ACCOUNT, SCREEN_SETTINGS_PROFILE } from '@/constants/screens'
 
 export default function AccountSecurityScreen(): JSX.Element {
   const router = useRouter()
@@ -21,30 +17,24 @@ export default function AccountSecurityScreen(): JSX.Element {
         className="flex-1"
         contentContainerStyle={{
           paddingHorizontal: 20,
-          paddingTop: 20,
+          paddingTop: 4,
           paddingBottom: Math.max(insets.bottom, 20) + 24,
         }}
       >
-        <ProfileMenuCard>
+        <ProfileMenuCard title="Profile">
           <ProfileMenuRow
             icon="user"
             title="Profile"
-            subtitle="Email, birthdate, gender"
-            topBorder={false}
+            subtitle="Email, birthdate and gender."
             onPress={() => router.push(SCREEN_SETTINGS_PROFILE)}
           />
-          <ProfileMenuRow
-            icon="lock"
-            title="Password"
-            subtitle="Send a reset email"
-            topBorder
-            onPress={() => router.push(SCREEN_SETTINGS_PASSWORD)}
-          />
+        </ProfileMenuCard>
+        <ProfileMenuCard title="Danger zone">
           <ProfileMenuRow
             icon="trash-2"
             title="Delete Account"
-            subtitle="Permanently delete your account and data"
-            topBorder
+            subtitle="Hidden now, gone for good after 30 days."
+            danger
             onPress={() => router.push(SCREEN_SETTINGS_DELETE_ACCOUNT)}
           />
         </ProfileMenuCard>

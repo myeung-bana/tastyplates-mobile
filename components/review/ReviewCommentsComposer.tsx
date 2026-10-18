@@ -5,12 +5,20 @@ import type { TextInput as RNTextInput } from 'react-native'
 
 import { ProfileAvatarImage } from '@/components/profile/ProfileAvatarImage'
 import { AppIcon } from '@/components/ui/AppIcon'
-import { BRAND_PRIMARY } from '@/constants/brand'
-import { reviewDescriptionDisplayLimit } from '@/constants/validation'
+import {
+  BORDER_SUBTLE,
+  BRAND_PRIMARY,
+  SURFACE_CARD,
+  SURFACE_FOG,
+  TEXT_HEADING,
+  TEXT_MUTED,
+  TEXT_TERTIARY,
+} from '@/constants/brand'
+import { commentMaxLength } from '@/constants/validation'
 import { useOwnProfilePresentation } from '@/hooks/useOwnProfilePresentation'
 import type { UseReviewCommentsResult } from '@/hooks/useReviewComments'
+import { FONT } from '@/constants/typography'
 
-const NEUSANS = 'Neusans'
 const SEND_BUTTON_SIZE = 36
 const COMPOSER_INPUT_MIN_HEIGHT = 36
 const COMPOSER_INPUT_MAX_HEIGHT = 120
@@ -53,12 +61,9 @@ export const ReviewCommentsComposer = forwardRef<RNTextInput, ReviewCommentsComp
     const inputProps = {
       value: commentText,
       onChangeText: setCommentText,
-      placeholder:
-        cooldown > 0
-          ? `Please wait ${cooldown}s before commenting again...`
-          : 'Add a comment...',
-      placeholderTextColor: '#9ca3af' as const,
-      maxLength: reviewDescriptionDisplayLimit,
+      placeholder: 'Add a comment…',
+      placeholderTextColor: TEXT_TERTIARY,
+      maxLength: commentMaxLength,
       editable: cooldown === 0 && !submitting,
       multiline: true,
       blurOnSubmit: false,
@@ -66,10 +71,13 @@ export const ReviewCommentsComposer = forwardRef<RNTextInput, ReviewCommentsComp
       textAlignVertical: 'top' as const,
       style: {
         flex: 1,
-        fontFamily: NEUSANS,
-        fontSize: 14,
-        color: '#31343F',
+        fontFamily: FONT.body,
+        fontSize: 15,
+        color: TEXT_HEADING,
         paddingVertical: 8,
+        paddingHorizontal: 12,
+        borderRadius: 18,
+        backgroundColor: SURFACE_FOG,
         minHeight: COMPOSER_INPUT_MIN_HEIGHT,
         maxHeight: COMPOSER_INPUT_MAX_HEIGHT,
       },
@@ -79,11 +87,11 @@ export const ReviewCommentsComposer = forwardRef<RNTextInput, ReviewCommentsComp
       <View
         style={{
           borderTopWidth: 1,
-          borderTopColor: '#e5e7eb',
+          borderTopColor: BORDER_SUBTLE,
           paddingHorizontal: 16,
           paddingTop: 10,
           paddingBottom: bottomInset,
-          backgroundColor: '#fff',
+          backgroundColor: SURFACE_CARD,
         }}
       >
         {isAuthenticated ? (
@@ -116,23 +124,37 @@ export const ReviewCommentsComposer = forwardRef<RNTextInput, ReviewCommentsComp
                   borderRadius: SEND_BUTTON_SIZE / 2,
                   alignItems: 'center',
                   justifyContent: 'center',
-                  backgroundColor: canSend ? BRAND_PRIMARY : '#e5e7eb',
+                  backgroundColor: canSend ? BRAND_PRIMARY : BORDER_SUBTLE,
                   marginBottom: 2,
                 }}
               >
                 {submitting ? (
                   <ActivityIndicator size="small" color="#ffffff" />
                 ) : (
-                  <AppIcon name="arrow-up" size={18} color={canSend ? '#ffffff' : '#9ca3af'} />
+                  <AppIcon name="arrow-up" size={18} color={canSend ? '#ffffff' : TEXT_TERTIARY} />
                 )}
               </Pressable>
             </View>
           </View>
+        ) : null}
+        {isAuthenticated ? (
+          // Composer meta (design R3): cooldown after posting, then the character count.
+          <View className="flex-row justify-between" style={{ marginTop: 6, paddingLeft: 42 }}>
+            <Text
+              accessibilityLiveRegion="polite"
+              style={{ fontFamily: FONT.body, fontSize: 11, color: cooldown > 0 ? BRAND_PRIMARY : TEXT_TERTIARY }}
+            >
+              {cooldown > 0 ? `Posted · next comment in ${cooldown}s` : 'Visible to everyone on this review'}
+            </Text>
+            <Text style={{ fontFamily: FONT.body, fontSize: 11, color: TEXT_TERTIARY }}>
+              {commentText.length.toLocaleString()} / {commentMaxLength.toLocaleString()}
+            </Text>
+          </View>
         ) : (
-          <Pressable onPress={promptSignIn} style={{ alignItems: 'center', paddingVertical: 8 }}>
-            <Text style={{ fontFamily: NEUSANS, fontSize: 14, color: '#6b7280' }}>
-              Sign in to like or comment{' '}
-              <Text style={{ color: '#3b82f6' }}>Sign in</Text>
+          <Pressable accessibilityRole="button" onPress={promptSignIn} style={{ alignItems: 'center', paddingVertical: 8 }}>
+            <Text style={{ fontFamily: FONT.body, fontSize: 14, color: TEXT_MUTED }}>
+              Sign in to like and comment{'  '}
+              <Text style={{ fontFamily: FONT.bodySemibold, color: BRAND_PRIMARY }}>Sign in</Text>
             </Text>
           </Pressable>
         )}

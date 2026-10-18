@@ -5,8 +5,8 @@ export default function ListingDraftScreen() {
   return (
     <SafeAreaView className="flex-1 bg-white">
       <View className="flex-1 items-center justify-center">
-        <Text className="text-lg font-semibold text-gray-800">Listing Drafts</Text>
-        <Text className="mt-2 text-sm text-gray-500">Saved restaurant listing drafts</Text>
+        <Text className="text-lg text-gray-800 font-heading">Listing Drafts</Text>
+        <Text className="mt-2 text-sm text-gray-500 font-body">Saved restaurant listing drafts</Text>
       </View>
     </SafeAreaView>
   )

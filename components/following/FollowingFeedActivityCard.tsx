@@ -15,6 +15,7 @@ import type {
   FollowingFeedCommentRow,
   FollowingFeedReviewActivity,
 } from '@/services/followingFeedService'
+import { bodyFont } from '@/constants/typography'
 
 const COMMENT_EXCERPT_MAX = 160
 
@@ -243,15 +244,15 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
   },
   headlineUsername: {
-    fontWeight: '700',
+    fontFamily: bodyFont('700'),
     color: TEXT_HEADING,
   },
   headlineVerb: {
-    fontWeight: '400',
+    fontFamily: bodyFont('400'),
     color: TEXT_MUTED,
   },
   headlineRestaurant: {
-    fontWeight: '700',
+    fontFamily: bodyFont('700'),
     color: TEXT_HEADING,
   },
   timeLabel: {
@@ -273,7 +274,7 @@ const styles = StyleSheet.create({
   viewReviewLink: {
     marginTop: 10,
     fontSize: 13,
-    fontWeight: '600',
+    fontFamily: bodyFont('600'),
     color: TEXT_HEADING,
   },
 })

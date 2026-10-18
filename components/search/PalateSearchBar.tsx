@@ -57,14 +57,14 @@ export function PalateSearchBar({
             className="min-h-[48px] flex-1 justify-center px-2"
             onPress={onOpenPalatePicker}
           >
-            <Text className="text-xs font-medium text-gray-500">Palate</Text>
-            <Text className="text-base font-medium text-gray-900" numberOfLines={1}>
+            <Text className="text-xs text-gray-500 font-body-medium">Palate</Text>
+            <Text className="text-base text-gray-900 font-body-medium" numberOfLines={1}>
               {cuisineLabel}
             </Text>
           </Pressable>
         ) : (
           <TextInput
-            className="min-h-[48px] flex-1 px-2 py-2 text-base text-gray-900"
+            className="min-h-[48px] flex-1 px-2 py-2 text-base text-gray-900 font-body"
             style={mergeTextInputBodyTypography()}
             placeholder="Search restaurants…"
             placeholderTextColor="#9ca3af"

@@ -43,11 +43,11 @@ export function GoogleReviewCard({
         <View className="mb-2 flex-row items-center gap-2">
           <ProfileAvatarImage size={28} avatarUrl={avatarUrl} className="bg-gray-200" />
           <View className="min-w-0 flex-1">
-            <Text className="text-[12px] font-medium" style={{ color: TEXT_HEADING }} numberOfLines={1}>
+            <Text className="text-[12px] font-body-medium" style={{ color: TEXT_HEADING }} numberOfLines={1}>
               {authorName}
             </Text>
             {timeLabel ? (
-              <Text className="text-[11px] font-normal" style={{ color: TEXT_MUTED }} numberOfLines={1}>
+              <Text className="text-[11px] font-body" style={{ color: TEXT_MUTED }} numberOfLines={1}>
                 {timeLabel}
               </Text>
             ) : null}
@@ -55,7 +55,7 @@ export function GoogleReviewCard({
           <RatingDisplay size="xs" value={rating} />
         </View>
 
-        <Text className="text-[12px] font-normal leading-[1.45]" style={{ color: TEXT_BODY }} numberOfLines={5}>
+        <Text className="text-[12px] leading-[1.45] font-body" style={{ color: TEXT_BODY }} numberOfLines={5}>
           {body || 'No review text.'}
         </Text>
 
@@ -66,11 +66,11 @@ export function GoogleReviewCard({
             style={{ borderColor: BORDER_SUBTLE, backgroundColor: '#fafafa' }}
           >
             <AppIcon name="logo-google" size={10} color={TEXT_MUTED} />
-            <Text className="text-[10px] font-medium" style={{ color: TEXT_MUTED }}>
+            <Text className="text-[10px] font-body-medium" style={{ color: TEXT_MUTED }}>
               Google
             </Text>
           </View>
-          <Text className="text-[11px] font-medium" style={{ color: TEXT_MUTED }}>
+          <Text className="text-[11px] font-body-medium" style={{ color: TEXT_MUTED }}>
             Read more
           </Text>
         </View>

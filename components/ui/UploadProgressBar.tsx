@@ -38,11 +38,11 @@ export function UploadProgressBar(): JSX.Element | null {
           ) : (
             <Text className="text-green-500">✓</Text>
           )}
-          <Text className="font-neusans text-sm text-gray-700" numberOfLines={1}>
+          <Text className="text-sm text-gray-700 font-body" numberOfLines={1}>
             {message}
           </Text>
         </View>
-        <Text className="font-neusans text-sm font-medium" style={{ color: BRAND_PRIMARY }}>
+        <Text className="text-sm font-body-medium" style={{ color: BRAND_PRIMARY }}>
           {localProgress}%
         </Text>
       </View>

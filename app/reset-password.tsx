@@ -67,13 +67,13 @@ export default function ResetPasswordScreen() {
       >
         {!isAuthenticated ? (
           <Pressable onPress={() => router.replace(SCREEN_LOGIN)} className="self-start py-2">
-            <Text className="text-sm font-semibold" style={{ color: BRAND_PRIMARY }}>
+            <Text className="text-sm font-body-semibold" style={{ color: BRAND_PRIMARY }}>
               Go to log in
             </Text>
           </Pressable>
         ) : (
           <>
-            <Text className="mb-1 text-sm font-medium text-gray-700">New password</Text>
+            <Text className="mb-1 text-sm text-gray-700 font-body-medium">New password</Text>
             <Controller
               control={control}
               name="password"
@@ -90,12 +90,12 @@ export default function ResetPasswordScreen() {
               )}
             />
             {errors.password ? (
-              <Text className="mb-4 text-sm text-red-600">{errors.password.message}</Text>
+              <Text className="mb-4 text-sm text-red-600 font-body">{errors.password.message}</Text>
             ) : (
               <View className="mb-4" />
             )}
 
-            <Text className="mb-1 text-sm font-medium text-gray-700">Confirm password</Text>
+            <Text className="mb-1 text-sm text-gray-700 font-body-medium">Confirm password</Text>
             <Controller
               control={control}
               name="confirm"
@@ -112,7 +112,7 @@ export default function ResetPasswordScreen() {
               )}
             />
             {errors.confirm ? (
-              <Text className="mb-6 text-sm text-red-600">{errors.confirm.message}</Text>
+              <Text className="mb-6 text-sm text-red-600 font-body">{errors.confirm.message}</Text>
             ) : (
               <View className="mb-6" />
             )}
@@ -127,7 +127,7 @@ export default function ResetPasswordScreen() {
               {isLoading ? (
                 <ActivityIndicator color="#fff" />
               ) : (
-                <Text className="text-base font-semibold text-white">Update password</Text>
+                <Text className="text-base text-white font-body-semibold">Update password</Text>
               )}
             </Pressable>
           </>

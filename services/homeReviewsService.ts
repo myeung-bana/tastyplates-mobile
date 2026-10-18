@@ -22,6 +22,8 @@ export interface TrendingReviewRow {
   likes_count?: number | null
   replies_count?: number | null
   AuthorProfile?: TrendingReviewAuthor | null
+  /** Present when requested with `include_restaurant=1`. */
+  restaurant?: { uuid: string; title: string | null; slug: string | null } | null
 }
 
 export interface GetAllReviewsResponse {
@@ -41,6 +43,7 @@ export async function getLatestReviews(limit = 5): Promise<TrendingReviewRow[]> 
   const q = new URLSearchParams({
     limit: String(Math.min(Math.max(limit, 1), 100)),
     offset: '0',
+    include_restaurant: '1',
   })
   const envelope = await tastyplatesFetch<GetAllReviewsResponse>(
     `restaurant-reviews/get-all-reviews?${q.toString()}`,

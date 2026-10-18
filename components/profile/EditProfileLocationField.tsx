@@ -24,11 +24,11 @@ export function EditProfileLocationField({
 
   return (
     <View className="mb-5">
-      <Text className="mb-2 text-sm font-medium" style={{ color: TEXT_HEADING }}>
+      <Text className="mb-2 text-sm font-body-medium" style={{ color: TEXT_HEADING }}>
         {label}
       </Text>
       {helper ? (
-        <Text className="mb-3 text-xs leading-relaxed" style={{ color: TEXT_MUTED }}>
+        <Text className="mb-3 text-xs leading-relaxed font-body" style={{ color: TEXT_MUTED }}>
           {helper}
         </Text>
       ) : null}
@@ -44,7 +44,7 @@ export function EditProfileLocationField({
           style={{ borderColor: BORDER_SUBTLE }}
         >
           <Text
-            className="flex-1 text-base"
+            className="flex-1 text-base font-body"
             style={{ color: hasValue ? TEXT_BODY : TEXT_MUTED }}
             numberOfLines={1}
           >

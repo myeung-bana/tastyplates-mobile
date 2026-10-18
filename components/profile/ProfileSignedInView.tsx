@@ -3,7 +3,9 @@ import * as Haptics from 'expo-haptics'
 import { useFocusEffect, useRouter } from 'expo-router'
 
 import { ProfileRecentActivityPreview } from '@/components/profile/ProfileRecentActivityPreview'
+import { ProfilePhotoSheet } from '@/components/profile/ProfilePhotoSheet'
 import { UnifiedProfileView } from '@/components/profile/UnifiedProfileView'
+import { useProfilePhotoChange } from '@/hooks/useProfilePhotoChange'
 import { readStringMeta } from '@/lib/profileMetaUtils'
 import { formatMemberSince, initialsFromName, parseProfilePalates } from '@/lib/profileFormatting'
 import { pushPublicProfile } from '@/lib/publicProfileNavigation'
@@ -14,11 +16,7 @@ import { useLocationHierarchy } from '@/hooks/useLocationHierarchy'
 import { useProfileRecentActivity } from '@/hooks/useProfileRecentActivity'
 import type { RestaurantUserRow } from '@/services/restaurantUserService'
 import { formatProfileLocationCityCountry } from '@/utils/locationUtils'
-import {
-  SCREEN_EDIT_PROFILE,
-  SCREEN_REVIEW_VIEWER,
-  SCREEN_SETTINGS,
-} from '@/constants/screens'
+import { SCREEN_REVIEW_VIEWER, SCREEN_SETTINGS } from '@/constants/screens'
 
 /** Session profile + merged `restaurant_users` row (username, `about_me`, palates JSON). */
 export function ProfileSignedInView() {
@@ -36,6 +34,7 @@ export function ProfileSignedInView() {
   const { hierarchy } = useLocationHierarchy(Boolean(userId))
   const hierarchyCountries = hierarchy?.hierarchy.countries ?? null
   const [pullRefreshing, setPullRefreshing] = useState(false)
+  const photo = useProfilePhotoChange(userId, () => void refreshRestaurantUser())
 
   const refreshAll = useCallback(async () => {
     await Promise.all([statsApi.refresh(), refreshRestaurantUser(), activityApi.refresh()])
@@ -114,6 +113,7 @@ export function ProfileSignedInView() {
   )
 
   return (
+    <>
     <UnifiedProfileView
       isOwnProfile
       routeUserId={userId}
@@ -137,11 +137,23 @@ export function ProfileSignedInView() {
       hometownLabel={formatProfileLocationCityCountry(ru?.hometown, hierarchyCountries)}
       pullRefreshing={pullRefreshing}
       onRefresh={onPullRefresh}
-      onPressAvatarOwn={() => router.push(SCREEN_EDIT_PROFILE)}
+      onPressAvatarOwn={photo.openSheet}
+      avatarUploading={photo.uploading}
+      avatarPendingUri={photo.pendingUri}
       onPressSettings={() => router.push(SCREEN_SETTINGS)}
       followButton={null}
       meTabExtra={meTabExtra}
     />
+    <ProfilePhotoSheet
+      visible={photo.sheetOpen}
+      avatarUrl={avatarUrl}
+      hasCustomPhoto={Boolean(avatarUrl)}
+      onTakePhoto={photo.takePhoto}
+      onChooseLibrary={photo.chooseLibrary}
+      onRemove={photo.removePhoto}
+      onClose={photo.closeSheet}
+    />
+    </>
   )
 }
 

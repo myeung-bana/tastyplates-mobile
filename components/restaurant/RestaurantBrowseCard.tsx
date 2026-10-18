@@ -14,11 +14,12 @@ import * as Haptics from 'expo-haptics'
 import { usePathname, useRouter } from 'expo-router'
 
 import { RatingDisplay } from '@/components/ui/RatingDisplay'
-import { BRAND_PRIMARY } from '@/constants/brand'
-import { DEFAULT_RESTAURANT_IMAGE } from '@/constants/images'
+import { ImageFallback } from '@/components/brand/ImageFallback'
+import { BORDER_SUBTLE, BRAND_PRIMARY, SURFACE_CARD, SURFACE_FOG, TEXT_MUTED } from '@/constants/brand'
 import { useAuth } from '@/hooks/useAuth'
 import { resolveEffectiveFeaturedImageUrl } from '@/lib/featuredImageUtils'
 import { coerceResumeHref, pushLoginScreen } from '@/lib/authRoutes'
+import { AUTH_WALL } from '@/constants/authWalls'
 import { coerceRatingNumber, hasDisplayableRating } from '@/lib/ratingDisplayUtils'
 import {
   getFavoriteStatus,
@@ -30,12 +31,9 @@ import {
   type RestaurantListCategory,
   type RestaurantListCuisine,
 } from '@/services/restaurantsV2Service'
-
-const DEFAULT_IMAGE = DEFAULT_RESTAURANT_IMAGE
+import { FONT, bodyFont } from '@/constants/typography'
 
 const TEXT_COLOR = '#31343F'
-const CUISINE_PILL_BG = '#ff7c0a'
-const NEUSANS = 'Neusans'
 
 export interface RestaurantBrowseCardProps {
   title: string
@@ -63,6 +61,8 @@ export interface RestaurantBrowseCardProps {
   searchPalateReviewCount?: number | null
   /** When `palate-match`, hides overall rating and shows match score only. */
   ratingMode?: 'overall' | 'palate-match'
+  /** `compact` — Home carousel tile (design H1): 152px photo, no save/comment overlays. */
+  variant?: 'default' | 'compact'
 }
 
 function buildAccessibilityLabel(
@@ -87,22 +87,24 @@ function buildAccessibilityLabel(
   return parts.join(', ')
 }
 
+/** Outlined cuisine chip under the card text (brand v1.0). */
 function CuisinePill({ label }: { label: string }): JSX.Element {
   return (
     <View
       style={{
-        paddingHorizontal: 10,
+        paddingHorizontal: 8,
         paddingVertical: 4,
-        borderRadius: 20,
-        backgroundColor: CUISINE_PILL_BG,
+        borderRadius: 50,
+        borderWidth: 1.5,
+        borderColor: BORDER_SUBTLE,
+        backgroundColor: SURFACE_CARD,
       }}
     >
       <Text
         style={{
-          fontFamily: NEUSANS,
-          fontSize: 13,
-          fontWeight: '400',
-          color: '#fff',
+          fontSize: 11,
+          fontFamily: bodyFont('400'),
+          color: TEXT_COLOR,
         }}
         numberOfLines={1}
       >
@@ -160,8 +162,10 @@ export function RestaurantBrowseCard({
   searchPalateRating,
   searchPalateReviewCount,
   ratingMode = 'overall',
+  variant = 'default',
 }: RestaurantBrowseCardProps) {
-  const uri = resolveEffectiveFeaturedImageUrl(imageUrl) ?? DEFAULT_IMAGE
+  const uri = resolveEffectiveFeaturedImageUrl(imageUrl)
+  const [imageFailed, setImageFailed] = useState(false)
   const router = useRouter()
   const pathname = usePathname()
   const { isAuthenticated } = useAuth()
@@ -229,7 +233,7 @@ export function RestaurantBrowseCard({
 
   const promptSignIn = useCallback(() => {
     void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning)
-    pushLoginScreen(router, { resume: coerceResumeHref(pathname) })
+    pushLoginScreen(router, { resume: coerceResumeHref(pathname), wall: AUTH_WALL.saveCheckin })
   }, [pathname, router])
 
   const onBookmarkPress = useCallback(async () => {
@@ -298,7 +302,7 @@ export function RestaurantBrowseCard({
         style={{
           position: 'relative',
           width: '100%',
-          ...(isNarrow ? { aspectRatio: 16 / 9 } : { height: 222 }),
+          ...(variant === 'compact' ? { height: 152 } : isNarrow ? { aspectRatio: 16 / 9 } : { height: 222 }),
         }}
       >
         <Pressable
@@ -309,37 +313,20 @@ export function RestaurantBrowseCard({
           onPressOut={onPressOut}
           style={{ width: '100%', height: '100%' }}
         >
-          <Image
-            source={{ uri }}
-            style={{ width: '100%', height: '100%', borderRadius: 16 }}
-            resizeMode="cover"
-            accessibilityIgnoresInvertColors
-          />
+          {uri && !imageFailed ? (
+            <Image
+              source={{ uri }}
+              style={{ width: '100%', height: '100%', borderRadius: 16, backgroundColor: SURFACE_FOG }}
+              resizeMode="cover"
+              accessibilityIgnoresInvertColors
+              onError={() => setImageFailed(true)}
+            />
+          ) : (
+            <ImageFallback style={{ width: '100%', height: '100%', borderRadius: 16 }} />
+          )}
         </Pressable>
 
-        {visibleCuisines.length > 0 ? (
-          <View
-            pointerEvents="none"
-            style={{
-              position: 'absolute',
-              bottom: 8,
-              left: 8,
-              flexDirection: 'row',
-              flexWrap: 'wrap',
-              gap: 4,
-              maxWidth: '85%',
-            }}
-          >
-            {visibleCuisines.map((cuisine) => (
-              <CuisinePill key={cuisine.slug || String(cuisine.id)} label={cuisine.name} />
-            ))}
-            {cuisineOverflow > 0 ? (
-              <CuisinePill label={`+${cuisineOverflow}`} />
-            ) : null}
-          </View>
-        ) : null}
-
-        {slug ? (
+        {slug && variant !== 'compact' ? (
           <View
             style={{
               position: 'absolute',
@@ -383,7 +370,7 @@ export function RestaurantBrowseCard({
         onPressOut={onPressOut}
         style={{ backgroundColor: 'transparent' }}
       >
-        <View style={{ paddingTop: isNarrow ? 12 : 16 }}>
+        <View style={{ paddingTop: variant === 'compact' ? 8 : isNarrow ? 12 : 16 }}>
           <View
             style={{
               flexDirection: 'row',
@@ -396,9 +383,9 @@ export function RestaurantBrowseCard({
               style={{
                 flexShrink: 1,
                 maxWidth: titleMaxWidth,
-                fontFamily: NEUSANS,
+                
                 fontSize: nameSize,
-                fontWeight: '500',
+                fontFamily: FONT.headingMedium,
                 color: TEXT_COLOR,
               }}
               numberOfLines={1}
@@ -434,10 +421,10 @@ export function RestaurantBrowseCard({
             <Text
               style={{
                 marginTop: 4,
-                fontFamily: NEUSANS,
+                
                 fontSize: addressSize,
-                fontWeight: '400',
-                color: TEXT_COLOR,
+                fontFamily: bodyFont('400'),
+                color: TEXT_MUTED,
                 lineHeight: addressSize * 1.4,
               }}
               numberOfLines={2}
@@ -446,7 +433,16 @@ export function RestaurantBrowseCard({
             </Text>
           ) : null}
 
-          {parentCategories.length > 0 ? (
+          {visibleCuisines.length > 0 ? (
+            <View style={{ marginTop: 6, flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+              {visibleCuisines.map((cuisine) => (
+                <CuisinePill key={cuisine.slug || String(cuisine.id)} label={cuisine.name} />
+              ))}
+              {cuisineOverflow > 0 ? <CuisinePill label={`+${cuisineOverflow}`} /> : null}
+            </View>
+          ) : null}
+
+          {variant !== 'compact' && parentCategories.length > 0 ? (
             <View
               style={{
                 marginTop: 4,
@@ -463,7 +459,7 @@ export function RestaurantBrowseCard({
                   {index > 0 ? (
                     <Text
                       style={{
-                        fontFamily: NEUSANS,
+                        fontFamily: FONT.body,
                         fontSize: categorySize,
                         color: BRAND_PRIMARY,
                       }}
@@ -473,9 +469,9 @@ export function RestaurantBrowseCard({
                   ) : null}
                   <Text
                     style={{
-                      fontFamily: NEUSANS,
+                      
                       fontSize: categorySize,
-                      fontWeight: '400',
+                      fontFamily: bodyFont('400'),
                       color: BRAND_PRIMARY,
                     }}
                     numberOfLines={1}

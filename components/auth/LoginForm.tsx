@@ -1,15 +1,8 @@
-import {
-  ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  ScrollView,
-  Text,
-  TextInput,
-  View,
-} from 'react-native'
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, View } from 'react-native'
 import { AppIcon } from '@/components/ui/AppIcon'
-import { PasswordInput } from '@/components/ui/PasswordInput'
+import { Button } from '@/components/ui/Button'
+import { PasswordField } from '@/components/ui/PasswordField'
+import { TextField } from '@/components/ui/TextField'
 import { Link } from 'expo-router'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Controller, useForm } from 'react-hook-form'
@@ -18,20 +11,18 @@ import { useSignInEmailPassword } from '@nhost/react'
 import { z } from 'zod'
 
 import {
+  BORDER_SUBTLE,
   BRAND_PRIMARY,
-  mergeTextInputBodyTypography,
-  TEXT_BODY,
+  BRAND_PRIMARY_DARK,
   TEXT_HEADING,
   TEXT_MUTED,
+  TEXT_TERTIARY,
 } from '@/constants/brand'
 import { SCREEN_FORGOT_PASSWORD } from '@/constants/screens'
+import { FONT } from '@/constants/typography'
 import { useGoogleSignIn } from '@/hooks/useGoogleSignIn'
 import { loginScreenHref } from '@/lib/authRoutes'
 import { toast } from '@/utils/toast'
-
-/** Auth screen inputs — aligns with `_auth.scss` / design_system (16px avoids iOS zoom). */
-const inputClass =
-  'mb-1 rounded-[10px] border border-[#797979] bg-white px-4 py-3 text-base text-gray-900'
 
 const loginSchema = z.object({
   email: z.string().trim().email('Enter a valid email'),
@@ -104,151 +95,112 @@ export function LoginForm({
 
   const signUpFooter =
     embedded && onSwitchToSignUp ? (
-      <View className="flex-row flex-wrap justify-center gap-1 pb-6">
-        <Text className="text-center text-sm" style={{ color: TEXT_MUTED }}>
-          {"Don't have an account?"}
-        </Text>
-        <Pressable onPress={onSwitchToSignUp}>
-          <Text className="text-sm font-semibold" style={{ color: BRAND_PRIMARY }}>
-            Sign up
-          </Text>
+      <View className="flex-row flex-wrap justify-center" style={{ gap: 4, paddingBottom: 12 }}>
+        <Text style={{ fontFamily: FONT.body, fontSize: 14, color: TEXT_MUTED }}>New to Tastyplates?</Text>
+        <Pressable onPress={onSwitchToSignUp} hitSlop={6}>
+          <Text style={{ fontFamily: FONT.bodySemibold, fontSize: 14, color: BRAND_PRIMARY }}>Create account</Text>
         </Pressable>
       </View>
     ) : !embedded ? (
-      <View className="flex-row flex-wrap justify-center gap-1 pb-6">
-        <Text className="text-center text-sm" style={{ color: TEXT_MUTED }}>
-          {"Don't have an account?"}
-        </Text>
+      <View className="flex-row flex-wrap justify-center" style={{ gap: 4, paddingBottom: 12 }}>
+        <Text style={{ fontFamily: FONT.body, fontSize: 14, color: TEXT_MUTED }}>New to Tastyplates?</Text>
         <Link href={loginScreenHref({ mode: 'signup', resume })} asChild>
-          <Pressable>
-            <Text className="text-sm font-semibold" style={{ color: BRAND_PRIMARY }}>
-              Sign up
-            </Text>
+          <Pressable hitSlop={6}>
+            <Text style={{ fontFamily: FONT.bodySemibold, fontSize: 14, color: BRAND_PRIMARY }}>Create account</Text>
           </Pressable>
         </Link>
       </View>
     ) : null
 
   const fields = (
-    <>
+    <View style={{ gap: 16 }}>
       {showIntro ? (
-        <Text className="mb-8 text-base leading-relaxed" style={{ color: TEXT_BODY }}>
+        <Text style={{ fontFamily: FONT.body, fontSize: 15, lineHeight: 22, color: TEXT_MUTED }}>
           Sign in with your Tastyplates email and password.
         </Text>
       ) : null}
 
-      <Text className="mb-1 text-sm font-medium" style={{ color: TEXT_HEADING }}>
-        Email
-      </Text>
       <Controller
         control={control}
         name="email"
         render={({ field: { onChange, onBlur, value } }) => (
-          <TextInput
+          <TextField
+            label="Email"
             autoCapitalize="none"
             autoComplete="email"
             autoCorrect={false}
             keyboardType="email-address"
+            textContentType="emailAddress"
             onBlur={onBlur}
             onChangeText={onChange}
-            placeholder="Email Address"
-            placeholderTextColor="#797979"
             value={value}
-            className={inputClass}
-            style={mergeTextInputBodyTypography()}
+            error={errors.email?.message}
           />
         )}
       />
-      {errors.email ? (
-        <Text className="mb-4 text-sm text-red-600">{errors.email.message}</Text>
-      ) : (
-        <View className="mb-4" />
-      )}
 
-      <Text className="mb-1 text-sm font-medium" style={{ color: TEXT_HEADING }}>
-        Password
-      </Text>
       <Controller
         control={control}
         name="password"
         render={({ field: { onChange, onBlur, value } }) => (
-          <PasswordInput
+          <PasswordField
+            label="Password"
             autoComplete="password"
+            textContentType="password"
             onBlur={onBlur}
             onChangeText={onChange}
-            placeholder="••••••••"
-            placeholderTextColor="#797979"
             value={value}
-            className={inputClass}
+            error={errors.password?.message}
+            returnKeyType="go"
+            onSubmitEditing={() => void onSubmit()}
           />
         )}
       />
-      {errors.password ? (
-        <Text className="mb-4 text-sm text-red-600">{errors.password.message}</Text>
-      ) : (
-        <View className="mb-2" />
-      )}
 
       <Link href={SCREEN_FORGOT_PASSWORD} asChild>
-        <Pressable className="mb-6 self-start py-1">
-          <Text className="text-sm font-medium" style={{ color: TEXT_BODY }}>
+        <Pressable className="self-start" hitSlop={6} style={{ paddingVertical: 2 }}>
+          <Text style={{ fontFamily: FONT.bodySemibold, fontSize: 14, color: BRAND_PRIMARY_DARK }}>
             Forgot password?
           </Text>
         </Pressable>
       </Link>
 
-      <Pressable
-        accessibilityRole="button"
-        disabled={busy || googleBusy}
-        onPress={onSubmit}
-        className="mb-8 items-center rounded-full py-4 active:opacity-90 disabled:opacity-50"
-        style={{ backgroundColor: BRAND_PRIMARY }}
-      >
-        {busy ? (
-          <ActivityIndicator color="#fff" />
-        ) : (
-          <Text className="text-base font-semibold text-white">Continue</Text>
-        )}
-      </Pressable>
+      <Button loading={busy} disabled={googleBusy} onPress={() => void onSubmit()} style={{ marginTop: 8 }}>
+        Sign in
+      </Button>
 
       {showGoogle ? (
         <>
-          <View className="mb-6 flex-row items-center gap-3">
-            <View className="h-px flex-1 bg-gray-200" />
-            <Text className="text-xs font-medium uppercase" style={{ color: TEXT_MUTED }}>
+          <View className="flex-row items-center" style={{ gap: 12 }}>
+            <View style={{ height: 1, flex: 1, backgroundColor: BORDER_SUBTLE }} />
+            <Text style={{ fontFamily: FONT.bodyMedium, fontSize: 12, color: TEXT_TERTIARY, textTransform: 'uppercase' }}>
               or
             </Text>
-            <View className="h-px flex-1 bg-gray-200" />
+            <View style={{ height: 1, flex: 1, backgroundColor: BORDER_SUBTLE }} />
           </View>
-
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Continue with Google"
-            disabled={busy || googleBusy}
+          <Button
+            variant="secondary"
+            loading={googleBusy}
+            disabled={busy}
             onPress={() => void continueWithGoogle()}
-            className="mb-8 flex-row items-center justify-center gap-3 rounded-full border bg-white px-5 py-3.5 active:bg-gray-50 disabled:opacity-50"
-            style={{ borderColor: '#d1d5db', borderWidth: 1 }}
+            accessibilityLabel="Continue with Google"
           >
-            {googleBusy ? (
-              <ActivityIndicator color={TEXT_HEADING} />
-            ) : (
-              <>
-                <AppIcon name="logo-google" size={22} color="#4285F4" />
-                <Text className="text-base font-semibold" style={{ color: TEXT_HEADING }}>
-                  Continue with Google
-                </Text>
-              </>
-            )}
-          </Pressable>
+            <View className="flex-row items-center" style={{ gap: 10 }}>
+              <AppIcon name="logo-google" size={20} color="#4285F4" />
+              <Text style={{ fontFamily: FONT.heading, fontSize: 17, letterSpacing: 0.6, color: TEXT_HEADING }}>
+                Continue with Google
+              </Text>
+            </View>
+          </Button>
         </>
       ) : null}
 
       {signUpFooter}
-    </>
+    </View>
   )
 
   if (embedded) {
-    return <View>{fields}</View>
+    return fields
   }
 
   return (

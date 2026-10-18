@@ -1,13 +1,18 @@
-import { useCallback, useEffect } from 'react'
-import { View, Text, Pressable } from 'react-native'
+import { useEffect } from 'react'
+import { Pressable, Text, View } from 'react-native'
 import * as Haptics from 'expo-haptics'
-import { router } from 'expo-router'
+import { useRouter } from 'expo-router'
 
 import { AppIcon } from '@/components/ui/AppIcon'
-import { SCREEN_RESTAURANTS } from '@/constants/screens'
+import { BORDER_SUBTLE, SURFACE_FOG, TEXT_HEADING, TEXT_MUTED } from '@/constants/brand'
+import { FONT } from '@/constants/typography'
+import { useLocation } from '@/contexts/LocationContext'
 import { useSearchOverlay } from '@/contexts/SearchOverlayContext'
 import { useRecentSearches } from '@/hooks/useRecentSearches'
+import { openRecentSearch } from '@/lib/openRecentSearch'
+import { recentKindLabel } from '@/lib/recentSearches'
 
+/** Uber-style: only the two most recent searches sit under the field. */
 const HOME_RECENT_LIMIT = 2
 
 type HomeHeroProps = {
@@ -15,11 +20,11 @@ type HomeHeroProps = {
   recentRefreshKey?: number
 }
 
-/**
- * Hero: subtitle + tap-to-open full-screen search overlay.
- */
+/** Home hero (design H1): headline, search pill (opens S1), two recent searches. */
 export function HomeHero({ recentRefreshKey = 0 }: HomeHeroProps) {
+  const router = useRouter()
   const { openSearch } = useSearchOverlay()
+  const { location } = useLocation()
   const { recents, refresh } = useRecentSearches()
 
   useEffect(() => {
@@ -28,66 +33,70 @@ export function HomeHero({ recentRefreshKey = 0 }: HomeHeroProps) {
 
   const recentOnHome = recents.slice(0, HOME_RECENT_LIMIT)
 
-  const runRecentSearch = useCallback((query: string) => {
-    void Haptics.selectionAsync()
-    router.navigate({
-      pathname: SCREEN_RESTAURANTS,
-      params: { listing: query.trim() },
-    })
-  }, [])
-
   return (
-    <View className="overflow-hidden bg-white">
-      <View className="px-4 pb-6 pt-0">
-        <Text className="text-center text-sm leading-snug text-gray-600">
-          Dine like a Brazilian in Tokyo — or Korean in New York?
+    <View style={{ paddingHorizontal: 20, paddingTop: 4, gap: 16 }}>
+      <Text
+        accessibilityRole="header"
+        style={{ fontFamily: FONT.heading, fontSize: 28, lineHeight: 32, letterSpacing: -0.4, color: TEXT_HEADING }}
+      >
+        Dine like a Brazilian in Tokyo — or Korean in New York?
+      </Text>
+
+      <Pressable
+        onPress={() => {
+          void Haptics.selectionAsync()
+          openSearch()
+        }}
+        accessibilityRole="search"
+        accessibilityLabel="Search a cuisine or restaurant"
+        className="flex-row items-center active:opacity-80"
+        style={{ height: 56, borderRadius: 999, backgroundColor: SURFACE_FOG, paddingHorizontal: 20, gap: 12 }}
+      >
+        <AppIcon name="search" size={20} color={TEXT_HEADING} />
+        <Text numberOfLines={1} style={{ flex: 1, fontFamily: FONT.bodySemibold, fontSize: 18, color: TEXT_HEADING }}>
+          Search a cuisine or restaurant
         </Text>
+      </Pressable>
 
-        <Pressable
-          onPress={() => {
-            void Haptics.selectionAsync()
-            openSearch()
-          }}
-          accessibilityRole="button"
-          accessibilityLabel="Search restaurants"
-          className="mt-4 flex-row items-center gap-3 rounded-2xl border border-gray-100 bg-gray-50 px-4 py-3 shadow-sm shadow-black/5 active:opacity-80"
-        >
-          <AppIcon name="search" size={18} color="#9ca3af" />
-          <Text className="flex-1 font-neusans text-[15px] text-gray-400">
-            Search restaurants or palate...
-          </Text>
-        </Pressable>
-
-        {recentOnHome.length > 0 ? (
-          <View className="mt-3 overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm shadow-black/5">
-            {recentOnHome.map((recent, index) => (
-              <Pressable
-                key={recent.query}
-                accessibilityRole="button"
-                accessibilityLabel={`Search for ${recent.query}`}
-                onPress={() => runRecentSearch(recent.query)}
-                className={`flex-row items-center gap-3 px-3 py-3 active:bg-gray-50 ${
-                  index < recentOnHome.length - 1 ? 'border-b border-gray-100' : ''
-                }`}
+      {recentOnHome.length > 0 ? (
+        <View style={{ marginTop: -4 }}>
+          {recentOnHome.map((recent, index) => (
+            <Pressable
+              key={`${recent.kind ?? 'keyword'}:${recent.query}`}
+              accessibilityRole="button"
+              accessibilityLabel={`${recent.query}, ${recentKindLabel(recent.kind)}`}
+              onPress={() => {
+                void Haptics.selectionAsync()
+                openRecentSearch(router, recent)
+              }}
+              className="flex-row items-center active:opacity-70"
+              style={{ gap: 14, paddingVertical: 12 }}
+            >
+              <View className="items-center justify-center" style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: SURFACE_FOG }}>
+                <AppIcon name="clock" size={17} color={TEXT_HEADING} />
+              </View>
+              <View
+                style={{
+                  flex: 1,
+                  minWidth: 0,
+                  gap: 4,
+                  paddingBottom: 12,
+                  marginBottom: -12,
+                  borderBottomWidth: index < recentOnHome.length - 1 ? 1 : 0,
+                  borderBottomColor: BORDER_SUBTLE,
+                }}
               >
-                <View className="h-10 w-10 items-center justify-center rounded-full bg-[#f3f4f6]">
-                  <AppIcon name="clock" size={18} color="#6b7280" />
-                </View>
-                <View className="min-w-0 flex-1">
-                  <Text
-                    className="font-neusans text-[15px] font-medium text-[#31343F]"
-                    numberOfLines={1}
-                  >
-                    {recent.query}
-                  </Text>
-                  <Text className="mt-0.5 font-neusans text-xs text-gray-500">Recent search</Text>
-                </View>
-                <AppIcon name="chevron-right" size={18} color="#d1d5db" />
-              </Pressable>
-            ))}
-          </View>
-        ) : null}
-      </View>
+                <Text numberOfLines={1} style={{ fontFamily: FONT.bodySemibold, fontSize: 16, color: TEXT_HEADING }}>
+                  {recent.query}
+                </Text>
+                <Text numberOfLines={1} style={{ fontFamily: FONT.body, fontSize: 13, color: TEXT_MUTED }}>
+                  {recentKindLabel(recent.kind)} · {location.label}
+                </Text>
+              </View>
+            </Pressable>
+          ))}
+        </View>
+      ) : null}
     </View>
   )
 }

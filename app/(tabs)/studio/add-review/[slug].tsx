@@ -47,11 +47,11 @@ export default function AddReviewWriteScreen(): JSX.Element {
   if (phase === 'missing' || phase === 'error' || !restaurant) {
     return (
       <View className="flex-1 items-center justify-center bg-white px-8">
-        <Text className="text-center font-neusans text-base" style={{ color: TEXT_HEADING }}>
+        <Text className="text-center text-base font-body" style={{ color: TEXT_HEADING }}>
           {phase === 'missing' ? 'Missing restaurant slug.' : 'Could not load this restaurant.'}
         </Text>
         <Text
-          className="mt-2 text-center font-neusans text-sm"
+          className="mt-2 text-center text-sm font-body"
           style={{ color: TEXT_MUTED }}
           onPress={() => router.back()}
         >

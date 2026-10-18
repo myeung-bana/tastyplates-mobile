@@ -1,6 +1,7 @@
 import { Stack } from 'expo-router'
 
-import { TEXT_HEADING } from '@/constants/brand'
+import { SURFACE_CARD, TEXT_HEADING } from '@/constants/brand'
+import { headingFont } from '@/constants/typography'
 
 export default function RestaurantsStackLayout() {
   return (
@@ -11,8 +12,9 @@ export default function RestaurantsStackLayout() {
         headerShown: false,
         headerShadowVisible: false,
         headerTintColor: TEXT_HEADING,
-        headerStyle: { backgroundColor: '#ffffff' },
-        contentStyle: { backgroundColor: '#ffffff' },
+        headerTitleStyle: { fontFamily: headingFont('600') },
+        headerStyle: { backgroundColor: SURFACE_CARD },
+        contentStyle: { backgroundColor: SURFACE_CARD },
       }}
     >
       <Stack.Screen name="[slug]" options={{ headerShown: true }} />

@@ -1,189 +1,194 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import {
-  Dimensions,
-  ImageBackground,
-  NativeScrollEvent,
-  NativeSyntheticEvent,
+  AccessibilityInfo,
   Pressable,
   ScrollView,
-  StyleSheet,
   Text,
+  useWindowDimensions,
   View,
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
 } from 'react-native'
-import { Stack, useRouter } from 'expo-router'
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { StatusBar } from 'expo-status-bar'
-import { SafeAreaView } from 'react-native-safe-area-context'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
-import TastyLogoWhite from '@/assets/icons/TastyPlates_Logo_White.svg'
-import { BRAND_PRIMARY } from '@/constants/brand'
+import TastyLogoColour from '@/assets/icons/TastyPlates_Logo_Colour.svg'
+import { PalateOrbit } from '@/components/onboarding/PalateOrbit'
+import type { AppIconName } from '@/components/ui/AppIcon'
+import { Button } from '@/components/ui/Button'
+import { BORDER_SUBTLE, BRAND_PRIMARY, SURFACE_CARD, TEXT_HEADING } from '@/constants/brand'
 import { SCREEN_HOME } from '@/constants/screens'
+import { FONT } from '@/constants/typography'
 import { useAuthSheet } from '@/contexts/AuthSheetContext'
-import { enterGuestBrowseMode } from '@/lib/guestBrowse'
 import { setGetStartedCompleted } from '@/lib/getStartedIntro'
+import { enterGuestBrowseMode } from '@/lib/guestBrowse'
+import { firstSegmentParam } from '@/lib/routeParams'
+import { toast } from '@/utils/toast'
 
-const { width: WINDOW_WIDTH } = Dimensions.get('window')
-const SPLASH_BACKGROUND = require('@/assets/images/tastyplates-splash.webp')
-const FOOTER_LINK_TEXT = 'text-base font-medium text-white/90'
-const LOGO_VIEWBOX_RATIO = 35 / 199
-const LOGO_WIDTH = 250
-
-type Slide = {
-  id: string
-  title: string
-  body: string
-}
+type Slide = { id: string; title: string; body: string; icons: AppIconName[] }
 
 const SLIDES: Slide[] = [
   {
-    id: '1',
+    id: 'discover',
     title: 'Discover By Your Palate',
-    body: 'Browse restaurants and cuisines tailored to your taste profile.',
+    body: 'Restaurants scored by people who grew up eating what you grew up eating.',
+    icons: ['coffee', 'map-pin', 'star', 'globe', 'heart', 'compass', 'award'],
   },
   {
-    id: '2',
+    id: 'share',
     title: 'Share your plates',
-    body: 'Write a review, add photos, and become the trusted voice that steers someone else toward their best meal yet.',
+    body: 'Write a review, add photos, and become the trusted voice that steers someone toward their best meal yet.',
+    icons: ['camera', 'edit-3', 'star', 'image', 'message-circle', 'thumbs-up', 'send'],
   },
   {
-    id: '3',
+    id: 'world',
     title: 'Build your food world',
-    body: 'Follow reviewers you trust, save places you want to try, and keep a record of everywhere you\'ve been.',
+    body: 'Follow reviewers you trust, save places you want to try, and keep a record of everywhere you’ve been.',
+    icons: ['users', 'bookmark', 'map', 'check-circle', 'list', 'user-plus', 'flag'],
   },
 ]
 
+const LOGO_HEIGHT = 24
+const LOGO_RATIO = 199 / 35
+
+/**
+ * `/get-started` (design G1). Three swipeable slides; Create account → auth chooser, Sign in →
+ * same sheet on the sign-in form, Browse as guest → Home with no account.
+ *
+ * `?deletionScheduledFor=<ISO date>` shows the one-time D3 toast after an account deletion.
+ */
 export default function GetStartedScreen(): JSX.Element {
   const router = useRouter()
+  const insets = useSafeAreaInsets()
+  const { width } = useWindowDimensions()
   const { openAuthSheet } = useAuthSheet()
-  const [pageIndex, setPageIndex] = useState(0)
+  const params = useLocalSearchParams<{ deletionScheduledFor?: string | string[] }>()
+  const [page, setPage] = useState(0)
+  const [reduceMotion, setReduceMotion] = useState(false)
 
-  const onScroll = useCallback((e: NativeSyntheticEvent<NativeScrollEvent>) => {
-    const x = e.nativeEvent.contentOffset.x
-    const next = Math.round(x / WINDOW_WIDTH)
-    setPageIndex(next)
+  useEffect(() => {
+    void AccessibilityInfo.isReduceMotionEnabled().then(setReduceMotion)
   }, [])
 
-  const goAuth = useCallback(async () => {
+  const deletionScheduledFor = firstSegmentParam(params.deletionScheduledFor)
+  useEffect(() => {
+    if (!deletionScheduledFor) return
+    const date = new Date(deletionScheduledFor)
+    if (Number.isNaN(date.getTime())) return
+    const label = date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+    toast.info(`Your account is scheduled for deletion. Sign in before ${label} to restore it.`)
+  }, [deletionScheduledFor])
+
+  const onScroll = useCallback(
+    (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+      setPage(Math.round(e.nativeEvent.contentOffset.x / width))
+    },
+    [width],
+  )
+
+  const createAccount = useCallback(async () => {
     await setGetStartedCompleted()
     openAuthSheet({ mode: 'chooser', showSkipLogin: true })
   }, [openAuthSheet])
 
-  const goSignIn = useCallback(async () => {
+  const signIn = useCallback(async () => {
     await setGetStartedCompleted()
     openAuthSheet({ mode: 'signin', showSkipLogin: true })
   }, [openAuthSheet])
 
-  const goBrowse = useCallback(async () => {
+  const browseAsGuest = useCallback(async () => {
     await enterGuestBrowseMode()
     router.replace(SCREEN_HOME)
   }, [router])
 
   return (
-    <>
+    <View style={{ flex: 1, backgroundColor: SURFACE_CARD, paddingTop: insets.top }}>
       <Stack.Screen options={{ headerShown: false, animation: 'fade' }} />
-      <StatusBar style="light" />
-      <ImageBackground
-        source={SPLASH_BACKGROUND}
-        resizeMode="cover"
-        style={styles.background}
-        accessibilityIgnoresInvertColors
+      <StatusBar style="dark" />
+
+      <View className="justify-center px-6" style={{ height: 44, marginTop: 8 }}>
+        <TastyLogoColour
+          accessible
+          accessibilityLabel="Tastyplates"
+          height={LOGO_HEIGHT}
+          width={Math.round(LOGO_HEIGHT * LOGO_RATIO)}
+        />
+      </View>
+
+      <ScrollView
+        horizontal
+        pagingEnabled
+        showsHorizontalScrollIndicator={false}
+        onScroll={onScroll}
+        scrollEventThrottle={16}
+        style={{ flex: 1 }}
       >
-        <View pointerEvents="none" style={styles.backgroundScrim} />
-        <SafeAreaView className="flex-1" edges={['top', 'left', 'right']}>
-          <View className="flex-1 items-center justify-center">
-            <View className="mb-8 items-center" pointerEvents="none">
-              <TastyLogoWhite
-                accessible
-                accessibilityLabel="TastyPlates"
-                width={LOGO_WIDTH}
-                height={Math.round(LOGO_WIDTH * LOGO_VIEWBOX_RATIO)}
-              />
+        {SLIDES.map((slide) => (
+          <View key={slide.id} style={{ width }}>
+            <View style={{ marginTop: 18 }}>
+              <PalateOrbit icons={slide.icons} reduceMotion={reduceMotion} />
             </View>
-
-            <ScrollView
-              horizontal
-              pagingEnabled
-              showsHorizontalScrollIndicator={false}
-              decelerationRate="fast"
-              onScroll={onScroll}
-              scrollEventThrottle={16}
-              style={styles.textCarousel}
-              contentContainerStyle={styles.textCarouselContent}
-            >
-              {SLIDES.map((slide) => (
-                <View key={slide.id} style={styles.textSlide}>
-                  <Text className="mt-10 mb-3 text-center text-2xl font-semibold text-white">
-                    {slide.title}
-                  </Text>
-                  <Text className="text-center text-base leading-relaxed text-white/90">
-                    {slide.body}
-                  </Text>
-                </View>
-              ))}
-            </ScrollView>
-          </View>
-
-          <View className="px-4 pb-2 pt-2">
-            <View className="mb-6 flex-row items-center justify-center gap-2">
-              {SLIDES.map((s, i) => (
-                <View
-                  key={s.id}
-                  className="h-2 rounded-full"
-                  style={{
-                    width: i === pageIndex ? 22 : 8,
-                    backgroundColor: i === pageIndex ? BRAND_PRIMARY : 'rgba(255, 255, 255, 0.4)',
-                  }}
-                />
-              ))}
-            </View>
-
-            <Pressable
-              accessibilityRole="button"
-              onPress={() => void goAuth()}
-              className="mb-8 w-full items-center rounded-full py-4 active:opacity-90"
-              style={{ backgroundColor: BRAND_PRIMARY }}
-            >
-              <Text className="text-base font-semibold text-white">Get Started</Text>
-            </Pressable>
-
-            <Pressable
-              accessibilityRole="button"
-              onPress={() => void goBrowse()}
-              className="mb-4 w-full items-center py-2 active:opacity-70"
-            >
-              <Text className={FOOTER_LINK_TEXT}>Browse without signing in</Text>
-            </Pressable>
-
-            <View className="flex-row flex-wrap items-center justify-center pb-6">
-              <Text className={FOOTER_LINK_TEXT}>Already have an account? </Text>
-              <Pressable onPress={() => void goSignIn()} hitSlop={8}>
-                <Text className="text-base font-semibold text-white">Log in</Text>
-              </Pressable>
+            <View className="px-7" style={{ marginTop: 56, gap: 10 }}>
+              <Text
+                accessibilityRole="header"
+                className="text-center"
+                style={{ fontFamily: FONT.heading, fontSize: 30, lineHeight: 36, color: TEXT_HEADING }}
+              >
+                {slide.title}
+              </Text>
+              <Text
+                className="text-center"
+                style={{ fontFamily: FONT.body, fontSize: 15, lineHeight: 22, color: TEXT_HEADING }}
+              >
+                {slide.body}
+              </Text>
             </View>
           </View>
-        </SafeAreaView>
-      </ImageBackground>
-    </>
+        ))}
+      </ScrollView>
+
+      <View
+        className="flex-row justify-center"
+        style={{ gap: 6, marginBottom: 20 }}
+        accessibilityLabel={`Slide ${page + 1} of ${SLIDES.length}`}
+      >
+        {SLIDES.map((s, i) => (
+          <View
+            key={s.id}
+            style={{
+              width: i === page ? 20 : 6,
+              height: 6,
+              borderRadius: 3,
+              backgroundColor: i === page ? BRAND_PRIMARY : BORDER_SUBTLE,
+            }}
+          />
+        ))}
+      </View>
+
+      <View className="px-6" style={{ gap: 10, paddingBottom: Math.max(insets.bottom, 12) + 22 }}>
+        <Button onPress={() => void createAccount()}>Create account</Button>
+        <Button variant="secondary" onPress={() => void signIn()}>
+          Sign in
+        </Button>
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => void browseAsGuest()}
+          className="items-center justify-center active:opacity-70"
+          style={{ height: 40 }}
+        >
+          <Text
+            style={{
+              fontFamily: FONT.bodyMedium,
+              fontSize: 15,
+              color: TEXT_HEADING,
+              textDecorationLine: 'underline',
+            }}
+          >
+            Browse as guest
+          </Text>
+        </Pressable>
+      </View>
+    </View>
   )
 }
-
-const styles = StyleSheet.create({
-  background: {
-    flex: 1,
-  },
-  backgroundScrim: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0, 0, 0, 0.68)',
-  },
-  textCarousel: {
-    flexGrow: 0,
-  },
-  textCarouselContent: {
-    alignItems: 'center',
-  },
-  textSlide: {
-    width: WINDOW_WIDTH,
-    justifyContent: 'center',
-    paddingHorizontal: 32,
-    minHeight: 120,
-  },
-})

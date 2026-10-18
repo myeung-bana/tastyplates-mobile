@@ -208,7 +208,7 @@ export default function RestaurantReviewsScreen() {
       <>
         <Stack.Screen options={{ headerShown: true, title: 'Reviews' }} />
         <View className="flex-1 items-center justify-center bg-white px-8">
-          <Text className="text-center text-base" style={{ color: TEXT_BODY }}>
+          <Text className="text-center text-base font-body" style={{ color: TEXT_BODY }}>
             Invalid restaurant link.
           </Text>
         </View>
@@ -236,7 +236,7 @@ export default function RestaurantReviewsScreen() {
     <View>
       {restaurantTitle ? (
         <View className="border-b border-gray-100 px-4 pb-3 pt-2">
-          <Text className="text-sm" style={{ color: TEXT_MUTED }}>
+          <Text className="text-sm font-body" style={{ color: TEXT_MUTED }}>
             {total > 0 ? `${total} review${total === 1 ? '' : 's'}` : 'No reviews yet'}
           </Text>
         </View>
@@ -265,7 +265,7 @@ export default function RestaurantReviewsScreen() {
         ListEmptyComponent={
           error ? (
             <View className="mt-12 items-center px-6">
-              <Text className="text-center text-sm leading-relaxed" style={{ color: TEXT_MUTED }}>
+              <Text className="text-center text-sm leading-relaxed font-body" style={{ color: TEXT_MUTED }}>
                 {error}
               </Text>
               <Pressable
@@ -273,17 +273,17 @@ export default function RestaurantReviewsScreen() {
                 className="mt-4 rounded-full px-6 py-2.5 active:opacity-90"
                 style={{ backgroundColor: BRAND_PRIMARY }}
               >
-                <Text className="text-sm font-medium text-white">Try again</Text>
+                <Text className="text-sm text-white font-body-medium">Try again</Text>
               </Pressable>
             </View>
           ) : (
             <View className="mt-12 items-center px-6">
-              <Text className="text-center text-sm leading-relaxed" style={{ color: TEXT_MUTED }}>
+              <Text className="text-center text-sm leading-relaxed font-body" style={{ color: TEXT_MUTED }}>
                 No reviews yet. Be the first to write one.
               </Text>
               {restaurantSlug ? (
                 <Pressable onPress={onGoBack} className="mt-4 py-2">
-                  <Text className="text-sm font-medium" style={{ color: BRAND_PRIMARY }}>
+                  <Text className="text-sm font-body-medium" style={{ color: BRAND_PRIMARY }}>
                     Back to restaurant
                   </Text>
                 </Pressable>

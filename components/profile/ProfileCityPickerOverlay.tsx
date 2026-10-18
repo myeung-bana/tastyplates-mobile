@@ -227,11 +227,11 @@ export function ProfileCityPickerOverlay({
         </View>
 
         <View className="flex-1 px-4 pt-5">
-          <Text className="mb-1 font-neusans text-lg font-semibold text-gray-900">{title}</Text>
+          <Text className="mb-1 text-lg text-gray-900 font-heading">{title}</Text>
 
           {showQuickPicks ? (
             <View className="mt-3 flex-1">
-              <Text className="mb-4 font-neusans text-xs font-semibold uppercase tracking-wide text-gray-400">
+              <Text className="mb-4 text-xs uppercase tracking-wide text-gray-400 font-body-semibold">
                 TastyPlates cities
               </Text>
               <View className="flex-1">
@@ -243,19 +243,19 @@ export function ProfileCityPickerOverlay({
                   onSelectCity={pickSupportedCity}
                 />
               </View>
-              <Text className="mt-3 pb-4 text-sm leading-relaxed" style={{ color: TEXT_MUTED }}>
+              <Text className="mt-3 pb-4 text-sm leading-relaxed font-body" style={{ color: TEXT_MUTED }}>
                 Or search above for any city worldwide.
               </Text>
             </View>
           ) : (
             <View className="mt-3 flex-1">
-              <Text className="mb-4 font-neusans text-xs font-semibold uppercase tracking-wide text-gray-400">
+              <Text className="mb-4 text-xs uppercase tracking-wide text-gray-400 font-body-semibold">
                 Search results
               </Text>
 
               {filteredSupportedCountries.length > 0 ? (
                 <View className="mb-4">
-                  <Text className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">
+                  <Text className="mb-2 text-xs uppercase tracking-wide text-gray-400 font-body-semibold">
                     Supported cities
                   </Text>
                   <LocationPickerScrollPanel
@@ -275,13 +275,13 @@ export function ProfileCityPickerOverlay({
               ) : null}
 
               {searchError ? (
-                <Text className="py-4 text-sm" style={{ color: BRAND_PRIMARY }}>
+                <Text className="py-4 text-sm font-body" style={{ color: BRAND_PRIMARY }}>
                   {searchError}
                 </Text>
               ) : null}
 
               {showGoogleEmpty ? (
-                <Text className="py-6 text-center text-sm" style={{ color: TEXT_MUTED }}>
+                <Text className="py-6 text-center text-sm font-body" style={{ color: TEXT_MUTED }}>
                   No cities match your search.
                 </Text>
               ) : null}
@@ -307,11 +307,11 @@ export function ProfileCityPickerOverlay({
                     >
                       <View className="flex-row items-center justify-between">
                         <View className="mr-3 flex-1">
-                          <Text className="text-base font-medium" style={{ color: TEXT_BODY }}>
+                          <Text className="text-base font-body-medium" style={{ color: TEXT_BODY }}>
                             {main}
                           </Text>
                           {secondary ? (
-                            <Text className="mt-0.5 text-sm" style={{ color: TEXT_MUTED }}>
+                            <Text className="mt-0.5 text-sm font-body" style={{ color: TEXT_MUTED }}>
                               {secondary}
                             </Text>
                           ) : null}

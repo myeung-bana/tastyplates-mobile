@@ -1,5 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Alert, Image, Pressable, RefreshControl, Share, Text, View } from 'react-native'
+import { Alert, Pressable, RefreshControl, Share, Text, View } from 'react-native'
+import { ListCover } from '@/components/studio/manage-lists/ListCover'
+import { FONT } from '@/constants/typography'
+import { SURFACE_FOG, TEXT_HEADING as TEXT_HEADING_LIST, TEXT_MUTED as TEXT_MUTED_LIST } from '@/constants/brand'
 import * as Haptics from 'expo-haptics'
 import { FlashList } from '@shopify/flash-list'
 import { SafeAreaView } from 'react-native-safe-area-context'
@@ -182,12 +185,12 @@ export default function ListDetailScreen(): JSX.Element {
   const handleDelete = useCallback(() => {
     if (!list) return
     Alert.alert(
-      'Delete List',
-      `Are you sure you want to delete "${list.title}"? This cannot be undone.`,
+      `Delete “${list.title}”?`,
+      `The list and its ${list.items.length} ${list.items.length === 1 ? 'restaurant' : 'restaurants'} will be removed. The restaurants themselves stay saved anywhere else you added them.`,
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: 'Keep it', style: 'cancel' },
         {
-          text: 'Delete',
+          text: 'Delete list',
           style: 'destructive',
           onPress: () => {
             void (async () => {
@@ -219,12 +222,8 @@ export default function ListDetailScreen(): JSX.Element {
     })
   }, [uuid, list?.title, titleParam, openAddRestaurant])
 
-  const coverUri =
-    list?.display_pic?.trim() ||
-    list?.cover_image_url?.trim() ||
-    displayPicParam?.trim() ||
-    list?.items[0]?.image_url?.trim() ||
-    null
+  // A custom photo always wins; otherwise the generated cover tracks the item count (design L3).
+  const coverUri = list?.display_pic?.trim() || (!list ? displayPicParam?.trim() : '') || null
 
   if (loading && !fetched) {
     return (
@@ -252,10 +251,7 @@ export default function ListDetailScreen(): JSX.Element {
             {/* Spotify-style centered list artwork */}
             <View className="items-center px-4 pt-6 pb-2">
               <View
-                className="items-center justify-center overflow-hidden rounded-lg bg-gray-100"
                 style={{
-                  width: 200,
-                  height: 200,
                   shadowColor: '#000',
                   shadowOffset: { width: 0, height: 4 },
                   shadowOpacity: 0.12,
@@ -263,26 +259,33 @@ export default function ListDetailScreen(): JSX.Element {
                   elevation: 6,
                 }}
               >
-                {coverUri ? (
-                  <Image
-                    source={{ uri: coverUri }}
-                    style={{ width: 200, height: 200 }}
-                    resizeMode="cover"
-                  />
-                ) : (
-                  <AppIcon name="image" size={72} color="#9ca3af" />
-                )}
+                <ListCover
+                  title={list?.title ?? titleParam ?? ''}
+                  count={itemCount}
+                  imageUrl={coverUri}
+                  seed={uuid ?? list?.uuid ?? 'list'}
+                  size={200}
+                />
               </View>
+            </View>
+
+            <View className="items-center px-6" style={{ gap: 6, paddingBottom: 6 }}>
+              <View style={{ paddingVertical: 3, paddingHorizontal: 9, borderRadius: 50, backgroundColor: SURFACE_FOG }}>
+                <Text style={{ fontFamily: FONT.bodySemibold, fontSize: 11, color: TEXT_MUTED_LIST }}>{visibilityLabel}</Text>
+              </View>
+              <Text accessibilityRole="header" className="text-center" style={{ fontFamily: FONT.heading, fontSize: 26, lineHeight: 31, color: TEXT_HEADING_LIST }}>
+                {list?.title ?? titleParam ?? ''}
+              </Text>
             </View>
 
             {/* List metadata header */}
             <View className="border-b border-gray-100 px-4 pt-2 pb-3">
               {list?.description ? (
-                <Text className="font-neusans text-sm text-[#6b7280]" numberOfLines={3}>
+                <Text className="text-sm text-[#6b7280] font-body" numberOfLines={3}>
                   {list.description}
                 </Text>
               ) : null}
-              <Text className={`font-neusans text-xs text-[#9ca3af]${list?.description ? ' mt-2' : ''}`}>
+              <Text className={`text-xs text-[#9ca3af] font-body${list?.description ? ' mt-2' : ''}`}>
                 {`${itemCount} ${itemCount === 1 ? 'place' : 'places'} · ${visibilityLabel} · Updated ${updatedLabel}`}
               </Text>
 
@@ -294,7 +297,7 @@ export default function ListDetailScreen(): JSX.Element {
                   className="flex-row items-center gap-2 rounded-[50px] border border-gray-300 bg-white px-4 py-2"
                 >
                   <AppIcon name="share-2" size={14} color="#374151" />
-                  <Text className="font-neusans text-sm text-[#374151]">Share Link</Text>
+                  <Text className="text-sm text-[#374151] font-body">Share</Text>
                 </Pressable>
 
                 {list && !isListOwner ? (
@@ -312,7 +315,7 @@ export default function ListDetailScreen(): JSX.Element {
                     className="flex-row items-center gap-2 rounded-[50px] border border-gray-300 bg-white px-4 py-2"
                   >
                     <AppIcon name="flag" size={14} color="#374151" />
-                    <Text className="font-neusans text-sm text-[#374151]">Report</Text>
+                    <Text className="text-sm text-[#374151] font-body">Report</Text>
                   </Pressable>
                 ) : null}
 
@@ -324,8 +327,8 @@ export default function ListDetailScreen(): JSX.Element {
                     className="flex-row items-center gap-2 rounded-[50px] border border-gray-300 bg-white px-4 py-2"
                   >
                     <AppIcon name="globe" size={14} color="#374151" />
-                    <Text className="font-neusans text-sm text-[#374151]">
-                      {makingPublic ? 'Saving…' : 'Make Public'}
+                    <Text className="text-sm text-[#374151] font-body">
+                      {makingPublic ? 'Saving…' : 'Make public'}
                     </Text>
                   </Pressable>
                 ) : null}
@@ -350,7 +353,7 @@ export default function ListDetailScreen(): JSX.Element {
                       className="flex-row items-center gap-2 rounded-[50px] border border-gray-300 bg-white px-4 py-2"
                     >
                       <AppIcon name="edit-2" size={14} color="#374151" />
-                      <Text className="font-neusans text-sm text-[#374151]">Edit</Text>
+                      <Text className="text-sm text-[#374151] font-body">Edit</Text>
                     </Pressable>
 
                     <Pressable
@@ -359,7 +362,7 @@ export default function ListDetailScreen(): JSX.Element {
                       className="flex-row items-center gap-2 rounded-[50px] border border-red-200 bg-white px-4 py-2"
                     >
                       <AppIcon name="trash-2" size={14} color="#ef4444" />
-                      <Text className="font-neusans text-sm text-red-500">Delete</Text>
+                      <Text className="text-sm text-red-500 font-body">Delete</Text>
                     </Pressable>
                   </>
                 ) : null}

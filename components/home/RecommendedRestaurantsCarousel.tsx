@@ -3,7 +3,6 @@ import { View, Text, ScrollView, useWindowDimensions } from 'react-native'
 
 import {
   RestaurantBrowseCardItem,
-  getHomeCarouselRestaurantCardWidth,
   getRestaurantBrowseCardWidth,
   restaurantBrowseCardItemFromFeatured,
 } from '@/components/restaurant/RestaurantBrowseCardItem'
@@ -16,6 +15,9 @@ import {
   fetchFeaturedRestaurants,
   type FeaturedRestaurantApi,
 } from '@/lib/homeContentApi'
+
+/** Home Recommended tile width (design H1). */
+const HOME_CARD_WIDTH = 228
 
 export interface RecommendedRestaurantsCarouselProps {
   /** Section title (`design_system` §3.3). */
@@ -57,7 +59,8 @@ export function RecommendedRestaurantsCarousel({
   /** Home feed only (`hideSectionHeader`) — carousel cards are 15% narrower for a right-edge peek. */
   const cardWidth = useMemo(() => {
     if (screenWidth <= 0) return undefined
-    if (hideSectionHeader) return getHomeCarouselRestaurantCardWidth(screenWidth)
+    // Home row: fixed 228pt tiles so the next one peeks (design H1).
+    if (hideSectionHeader) return HOME_CARD_WIDTH
     return getRestaurantBrowseCardWidth(screenWidth)
   }, [screenWidth, hideSectionHeader])
 
@@ -89,8 +92,9 @@ export function RecommendedRestaurantsCarousel({
     <RestaurantBrowseCardItem
       key={row.id}
       {...restaurantBrowseCardItemFromFeatured(row)}
-      showReviewCount={!hideSectionHeader}
-      containerStyle={layout === 'carousel' ? { width: cardWidth } : undefined}
+      showReviewCount
+      variant={hideSectionHeader ? 'compact' : 'default'}
+      containerStyle={layout === 'carousel' ? { width: cardWidth, paddingBottom: 4 } : undefined}
     />
   ))
 
@@ -108,10 +112,10 @@ export function RecommendedRestaurantsCarousel({
           className="items-center px-4 pb-3"
           style={{ borderBottomWidth: 1, borderBottomColor: BORDER_SUBTLE }}
         >
-          <Text className="mb-1 text-lg font-normal" style={{ color: TEXT_HEADING }}>
+          <Text className="mb-1 text-lg font-body" style={{ color: TEXT_HEADING }}>
             {heading}
           </Text>
-          <Text className="text-center text-xs leading-relaxed" style={{ color: TEXT_MUTED }}>
+          <Text className="text-center text-xs leading-relaxed font-body" style={{ color: TEXT_MUTED }}>
             {subheading}
           </Text>
         </View>

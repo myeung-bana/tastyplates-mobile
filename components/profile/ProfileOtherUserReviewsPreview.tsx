@@ -52,7 +52,7 @@ export function ProfileOtherUserReviewsPreview({
 
   if (error) {
     return previewWrap(
-      <Text className="text-sm leading-relaxed" style={{ color: TEXT_MUTED }}>
+      <Text className="text-sm leading-relaxed font-body" style={{ color: TEXT_MUTED }}>
         {error}
       </Text>,
       'pb-4',
@@ -61,7 +61,7 @@ export function ProfileOtherUserReviewsPreview({
 
   if (reviews.length === 0) {
     return previewWrap(
-      <Text className="text-sm leading-relaxed" style={{ color: TEXT_MUTED }}>
+      <Text className="text-sm leading-relaxed font-body" style={{ color: TEXT_MUTED }}>
         {emptyMessage}
       </Text>,
       'pb-4',
@@ -105,7 +105,7 @@ export function ProfileOtherUserReviewsPreview({
           className="mt-6 w-full items-center justify-center rounded-full px-8 py-3 active:opacity-90"
           style={{ backgroundColor: BRAND_PRIMARY }}
         >
-          <Text className="text-sm font-normal text-white">View all Reviews</Text>
+          <Text className="text-sm text-white font-body">View all Reviews</Text>
         </Pressable>
       ) : null}
     </>,

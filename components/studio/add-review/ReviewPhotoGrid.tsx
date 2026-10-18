@@ -121,7 +121,7 @@ export function ReviewPhotoGrid({
   return (
     <View className="px-4 pb-4">
       <Text
-        className="mb-3 font-neusans text-sm text-[#374151]"
+        className="mb-3 text-sm text-[#374151] font-body"
         style={{ marginTop: 10 }}
       >
         Upload Photos (Max 6 Photos)
@@ -153,13 +153,13 @@ export function ReviewPhotoGrid({
             style={{ width: TILE, height: TILE }}
           >
             <AppIcon name="plus" size={24} color="#9ca3af" />
-            <Text className="mt-1 text-center font-neusans text-[10px] text-[#9ca3af]">
+            <Text className="mt-1 text-center text-[10px] text-[#9ca3af] font-body">
               Add{'\n'}Photo
             </Text>
           </Pressable>
         ) : null}
       </View>
-      {error ? <Text className="mt-1 font-neusans text-xs text-red-600">{error}</Text> : null}
+      {error ? <Text className="mt-1 text-xs text-red-600 font-body">{error}</Text> : null}
     </View>
   )
 }

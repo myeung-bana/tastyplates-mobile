@@ -3,7 +3,7 @@ import { Image, Pressable, ScrollView, Text, View } from 'react-native'
 import { QUICK_FINDS } from '@/constants/quickFinds'
 import { getCuisineIconSource } from '@/lib/cuisineIconAssets'
 
-const ACTIVE = '#ff7c0a'
+const ACTIVE = '#FF7C09'
 const INACTIVE_BORDER = '#e5e7eb'
 
 type Props = {
@@ -34,7 +34,7 @@ export function CuisineFilterPills({ activeCuisineFilter, onSelect }: Props): JS
         }}
       >
         <Text
-          className="font-neusans text-sm"
+          className="text-sm font-body"
           style={{ color: activeCuisineFilter === null ? '#ffffff' : '#31343F', textAlign: 'center' }}
         >
           All
@@ -55,7 +55,7 @@ export function CuisineFilterPills({ activeCuisineFilter, onSelect }: Props): JS
               borderColor: active ? ACTIVE : INACTIVE_BORDER,
             }}
           >
-            <Text className="font-neusans text-sm" style={{ color: active ? '#ffffff' : '#31343F' }}>
+            <Text className="text-sm font-body" style={{ color: active ? '#ffffff' : '#31343F' }}>
               {item.label}
             </Text>
           </Pressable>

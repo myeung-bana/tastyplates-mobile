@@ -38,6 +38,7 @@ import { stripHtml } from '@/lib/restaurantDetailUtils'
 import { reviewHashtagLabels, reviewImageUris } from '@/lib/reviewDisplayUtils'
 import { capitalizeWords, formatLikeCount, formatRelativeTime } from '@/lib/utils'
 import { pushLoginScreen } from '@/lib/authRoutes'
+import { AUTH_WALL } from '@/constants/authWalls'
 import {
   fetchRestaurantBriefByUuid,
   fetchReviewById,
@@ -46,6 +47,7 @@ import {
 import { reviewService } from '@/services/reviewService'
 import type { RestaurantUserRow } from '@/services/restaurantUserService'
 import { fetchRestaurantUserById } from '@/services/restaurantUserService'
+import { FONT, bodyFont } from '@/constants/typography'
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
@@ -53,7 +55,6 @@ const UUID_RE =
 const DEFAULT_COVER =
   'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=900&q=80'
 
-const NEUSANS = 'Neusans'
 
 function openReviewAuthorProfile(review: ReviewDetailRow) {
   void Haptics.selectionAsync()
@@ -89,6 +90,7 @@ function ReviewViewerBody({
   const promptSignIn = useCallback(() => {
     pushLoginScreen(router, {
       resume: { pathname: SCREEN_REVIEW_VIEWER, params: { reviewId: review.id } },
+      wall: AUTH_WALL.likeComment,
     })
   }, [review.id])
 
@@ -171,7 +173,7 @@ function ReviewViewerBody({
             >
               <View className="flex-row flex-wrap items-center gap-1.5">
                 <Text
-                  className="text-base font-semibold"
+                  className="text-base font-body-semibold"
                   style={{ color: TEXT_HEADING }}
                   numberOfLines={1}
                 >
@@ -183,13 +185,13 @@ function ReviewViewerBody({
                     className="rounded-full px-2 py-0.5"
                     style={{ backgroundColor: '#f3f4f6' }}
                   >
-                    <Text className="font-neusans text-[11px]" style={{ color: TEXT_BODY }}>
+                    <Text className="text-[11px] font-body" style={{ color: TEXT_BODY }}>
                       {label}
                     </Text>
                   </View>
                 ))}
               </View>
-              <Text className="mt-0.5 text-sm" style={{ color: TEXT_MUTED }} numberOfLines={1}>
+              <Text className="mt-0.5 text-sm font-body" style={{ color: TEXT_MUTED }} numberOfLines={1}>
                 {metaBits.join(' · ')}
               </Text>
             </Pressable>
@@ -218,7 +220,7 @@ function ReviewViewerBody({
           >
             <AppIcon name="restaurant" size={18} color={TEXT_MUTED} />
             <Text
-              className="text-[15px] font-medium underline"
+              className="text-[15px] underline font-body-medium"
               style={{ color: TEXT_MUTED }}
               numberOfLines={2}
             >
@@ -235,24 +237,24 @@ function ReviewViewerBody({
             className="mb-3 self-start rounded-full px-3 py-1"
             style={{ backgroundColor: '#fef3e7', borderWidth: 1, borderColor: '#fde4c9' }}
           >
-            <Text className="text-xs font-medium capitalize" style={{ color: TEXT_HEADING }}>
+            <Text className="text-xs capitalize font-body-medium" style={{ color: TEXT_HEADING }}>
               {statusLabel}
             </Text>
           </View>
         ) : null}
 
         {title ? (
-          <Text className="mb-2 text-xl font-semibold leading-snug" style={{ color: TEXT_HEADING }}>
+          <Text className="mb-2 text-xl leading-snug font-heading" style={{ color: TEXT_HEADING }}>
             {title}
           </Text>
         ) : null}
 
         {body ? (
-          <Text className="text-base leading-relaxed" style={{ color: TEXT_BODY }}>
+          <Text className="text-base leading-relaxed font-body" style={{ color: TEXT_BODY }}>
             {body}
           </Text>
         ) : (
-          <Text className="text-base italic leading-relaxed" style={{ color: TEXT_MUTED }}>
+          <Text className="text-base italic leading-relaxed font-body" style={{ color: TEXT_MUTED }}>
             No written review.
           </Text>
         )}
@@ -274,7 +276,7 @@ function ReviewViewerBody({
                 className="rounded-full border px-3 py-1.5 active:opacity-80"
                 style={{ borderColor: BORDER_SUBTLE, backgroundColor: '#fafafa' }}
               >
-                <Text className="text-sm" style={{ color: TEXT_BODY }}>
+                <Text className="text-sm font-body" style={{ color: TEXT_BODY }}>
                   #{t}
                 </Text>
               </Pressable>
@@ -303,7 +305,7 @@ function ReviewViewerBody({
               color={isLiked ? BRAND_PRIMARY : '#31343F'}
             />
             {likesCount > 0 ? (
-              <Text style={{ fontFamily: NEUSANS, fontSize: 14, color: '#31343F' }}>
+              <Text style={{ fontFamily: FONT.body, fontSize: 14, color: '#31343F' }}>
                 {formatLikeCount(likesCount)}
               </Text>
             ) : null}
@@ -317,7 +319,7 @@ function ReviewViewerBody({
           >
             <AppIcon name="message-circle" size={22} color="#31343F" />
             {comments.totalCount > 0 ? (
-              <Text style={{ fontFamily: NEUSANS, fontSize: 14, color: '#31343F' }}>
+              <Text style={{ fontFamily: FONT.body, fontSize: 14, color: '#31343F' }}>
                 {formatLikeCount(comments.totalCount)}
               </Text>
             ) : null}
@@ -330,10 +332,10 @@ function ReviewViewerBody({
           <ReplySkeleton count={2} />
         ) : previewReplies.length === 0 ? (
           <View className="items-center py-6">
-            <Text style={{ fontFamily: NEUSANS, fontSize: 16, fontWeight: '500', color: '#374151' }}>
+            <Text style={{  fontSize: 16, fontFamily: bodyFont('500'), color: '#374151' }}>
               No Comments Yet
             </Text>
-            <Text style={{ fontFamily: NEUSANS, fontSize: 14, color: '#6b7280', marginTop: 4 }}>
+            <Text style={{ fontFamily: FONT.body, fontSize: 14, color: '#6b7280', marginTop: 4 }}>
               Be the first to comment!
             </Text>
           </View>
@@ -365,7 +367,7 @@ function ReviewViewerBody({
             backgroundColor: '#fff',
           }}
         >
-          <Text style={{ fontFamily: NEUSANS, fontSize: 14, color: '#31343F' }}>
+          <Text style={{ fontFamily: FONT.body, fontSize: 14, color: '#31343F' }}>
             View All Comments ({comments.totalCount})
           </Text>
         </Pressable>
@@ -467,7 +469,7 @@ export default function ReviewViewerScreen() {
       />
       {paramError ? (
         <View className="flex-1 items-center justify-center px-8">
-          <Text className="text-center text-base leading-relaxed" style={{ color: TEXT_MUTED }}>
+          <Text className="text-center text-base leading-relaxed font-body" style={{ color: TEXT_MUTED }}>
             {paramError}
           </Text>
         </View>
@@ -477,7 +479,7 @@ export default function ReviewViewerScreen() {
         </View>
       ) : error ? (
         <View className="flex-1 items-center justify-center px-8">
-          <Text className="text-center text-base leading-relaxed" style={{ color: TEXT_MUTED }}>
+          <Text className="text-center text-base leading-relaxed font-body" style={{ color: TEXT_MUTED }}>
             {error}
           </Text>
         </View>
@@ -490,7 +492,7 @@ export default function ReviewViewerScreen() {
         />
       ) : (
         <View className="flex-1 items-center justify-center px-8">
-          <Text className="text-center text-base" style={{ color: TEXT_MUTED }}>
+          <Text className="text-center text-base font-body" style={{ color: TEXT_MUTED }}>
             Something went wrong.
           </Text>
         </View>

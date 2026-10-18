@@ -23,6 +23,8 @@ import { castHref } from '@/lib/routeParams'
 import * as Haptics from 'expo-haptics'
 import Animated, {
   Easing,
+  FadeIn,
+  FadeInRight,
   interpolate,
   runOnJS,
   useAnimatedStyle,
@@ -33,10 +35,19 @@ import Animated, {
 import {
   SCREEN_STUDIO_ADD_REVIEW,
   SCREEN_STUDIO_MANAGE_LISTS,
+  SCREEN_STUDIO_MANAGE_LISTS_CREATE,
   SCREEN_STUDIO_MY_LISTS,
   SCREEN_STUDIO_REVIEW_LISTING,
 } from '@/constants/screens'
-import { BRAND_PRIMARY, TEXT_HEADING, TEXT_MUTED } from '@/constants/brand'
+import {
+  BORDER_SUBTLE,
+  BRAND_PRIMARY,
+  SURFACE_CARD,
+  TEXT_HEADING,
+  TEXT_MUTED,
+  TEXT_TERTIARY,
+} from '@/constants/brand'
+import { FONT } from '@/constants/typography'
 import { FloatingTabBarPill } from '@/components/navigation/FloatingTabBarPill'
 import { useTabBarScroll } from '@/contexts/TabBarScrollContext'
 import { getStudioSheetBottomPadding } from '@/constants/tabBar'
@@ -45,7 +56,7 @@ import { useStudioQuickMenu } from '@/contexts/StudioQuickMenuContext'
 
 const { height: SCREEN_H, width: SCREEN_W } = Dimensions.get('window')
 
-const SHEET_MAX_H = Math.min(SCREEN_H * 0.52, 400)
+const SHEET_MAX_H = Math.min(SCREEN_H * 0.7, 560)
 /** Sheet translate baseline: hides panel below viewport */
 const SHEET_HIDDEN_Y = SHEET_MAX_H + 24
 
@@ -98,7 +109,7 @@ export function StudioTabBarWithQuickActions(props: BottomTabBarProps): JSX.Elem
     sheetY.value = withTiming(0, { duration: DURATION_MS, easing: EASE })
     backdropProg.value = withTiming(1, { duration: DURATION_MS, easing: EASE })
     orbOpacity.value = withTiming(1, { duration: DURATION_MS, easing: EASE })
-    orbRotate.value = withTiming(45, { duration: DURATION_MS, easing: EASE })
+    orbRotate.value = withTiming(135, { duration: 380, easing: Easing.bezier(0.32, 0.72, 0, 1) })
   }, [sheetY, backdropProg, orbOpacity, orbRotate])
 
   const animateClose = useCallback(
@@ -180,7 +191,7 @@ export function StudioTabBarWithQuickActions(props: BottomTabBarProps): JSX.Elem
   }
 
   const backdropStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(backdropProg.value, [0, 1], [0, 0.45]),
+    opacity: interpolate(backdropProg.value, [0, 1], [0, 0.5]),
   }))
 
   const sheetStyle = useAnimatedStyle(() => ({
@@ -227,28 +238,48 @@ export function StudioTabBarWithQuickActions(props: BottomTabBarProps): JSX.Elem
             accessibilityViewIsModal
             importantForAccessibility="yes"
           >
+            <View style={styles.handle} />
+            <Animated.Text entering={FadeInRight.delay(40).duration(320)} style={styles.sheetTitle} accessibilityRole="header">
+              Studio
+            </Animated.Text>
+
+            <GroupLabel delay={80}>Create</GroupLabel>
             <QuickActionRow
+              index={0}
               icon="edit-3"
-              label="Create a Review"
-              subtitle="Share a taste note from a recent restaurant you visited"
+              label="Write Review"
+              subtitle="Leave a review for a restaurant"
               onPress={() => queueNavThenClose(SCREEN_STUDIO_ADD_REVIEW)}
             />
             <QuickActionRow
-              icon="list"
-              label="Manage Reviews"
-              subtitle="Manage your previous taste notes"
+              index={1}
+              icon="plus-circle"
+              label="Create List"
+              subtitle="Start a new list of places"
+              onPress={() => queueNavThenClose(castHref(SCREEN_STUDIO_MANAGE_LISTS_CREATE))}
+            />
+
+            <View style={styles.groupDivider} />
+            <GroupLabel delay={230}>Manage</GroupLabel>
+            <QuickActionRow
+              index={2}
+              icon="file-text"
+              label="My Reviews"
+              subtitle="Edit or delete past reviews"
               onPress={() => queueNavThenClose(SCREEN_STUDIO_REVIEW_LISTING)}
             />
             <QuickActionRow
-              icon="image"
-              label="Manage Lists"
-              subtitle="Create and edit your restaurant playlists"
+              index={3}
+              icon="list"
+              label="My Lists"
+              subtitle="Lists you recommend to others"
               onPress={() => queueNavThenClose(castHref(SCREEN_STUDIO_MANAGE_LISTS))}
             />
             <QuickActionRow
-              icon="bookmark"
+              index={4}
+              icon="map-pin"
               label="Dine-In / Check-Ins"
-              subtitle="Track your favourite restaurants"
+              subtitle="Track your favourite restaurants."
               onPress={() => queueNavThenClose(SCREEN_STUDIO_MY_LISTS)}
             />
           </Animated.View>
@@ -278,36 +309,54 @@ export function StudioTabBarWithQuickActions(props: BottomTabBarProps): JSX.Elem
   )
 }
 
+/** Rows slide in from the right one after another (design ST): Create group first, then Manage. */
+const ROW_DELAYS = [100, 160, 220, 280, 340]
+
+function GroupLabel({ children, delay }: { children: string; delay: number }): JSX.Element {
+  return (
+    <Animated.Text entering={FadeIn.delay(delay).duration(300)} style={styles.groupLabel}>
+      {children}
+    </Animated.Text>
+  )
+}
+
 function QuickActionRow({
+  index,
   icon,
   label,
   subtitle,
   onPress,
 }: {
+  index: number
   icon: AppIconName
   label: string
   subtitle: string
   onPress: () => void
 }): JSX.Element {
   return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={`${label}. ${subtitle}`}
-      onPress={onPress}
-      className="mb-1 flex-row items-center gap-4 rounded-xl py-4 pl-3 pr-4 active:bg-gray-50"
-    >
-      <View className="h-11 w-11 items-center justify-center rounded-full bg-gray-100">
-        <AppIcon name={icon} size="lg" color={BRAND_PRIMARY} />
-      </View>
-      <View className="min-w-0 flex-1">
-        <Text className="text-base font-medium" style={{ color: TEXT_HEADING }}>
-          {label}
-        </Text>
-        <Text className="mt-0.5 text-xs" style={{ color: TEXT_MUTED }} numberOfLines={2}>
-          {subtitle}
-        </Text>
-      </View>
-    </Pressable>
+    <Animated.View entering={FadeInRight.delay(ROW_DELAYS[index] ?? 0).duration(420).easing(Easing.bezier(0.32, 0.72, 0, 1))}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={`${label}. ${subtitle}`}
+        onPress={onPress}
+        className="flex-row items-center active:opacity-70"
+        style={{ gap: 14, paddingVertical: 10 }}
+      >
+        <View
+          className="items-center justify-center"
+          style={{ width: 52, height: 52, borderRadius: 26, borderWidth: 2, borderColor: BORDER_SUBTLE, backgroundColor: SURFACE_CARD }}
+        >
+          <AppIcon name={icon} size={20} color={TEXT_HEADING} />
+        </View>
+        <View style={{ flex: 1, minWidth: 0, gap: 4 }}>
+          <Text style={{ fontFamily: FONT.heading, fontSize: 16, color: TEXT_HEADING }}>{label}</Text>
+          <Text style={{ fontFamily: FONT.body, fontSize: 13, lineHeight: 17, color: TEXT_MUTED }} numberOfLines={2}>
+            {subtitle}
+          </Text>
+        </View>
+        <AppIcon name="chevron-right" size={18} color={TEXT_TERTIARY} />
+      </Pressable>
+    </Animated.View>
   )
 }
 
@@ -320,18 +369,45 @@ const styles = StyleSheet.create({
     backgroundColor: '#000',
   },
   sheet: {
-    maxHeight: SHEET_MAX_H,
-    minHeight: SHEET_MAX_H * 0.85,
-    backgroundColor: '#ffffff',
-    borderTopLeftRadius: 18,
-    borderTopRightRadius: 18,
-    paddingHorizontal: 16,
-    paddingTop: 12,
+    backgroundColor: SURFACE_CARD,
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    paddingHorizontal: 20,
+    paddingTop: 10,
     elevation: 8,
     shadowColor: '#000',
     shadowOpacity: 0.12,
     shadowRadius: 12,
     shadowOffset: { width: 0, height: -4 },
+  },
+  handle: {
+    alignSelf: 'center',
+    width: 40,
+    height: 5,
+    borderRadius: 3,
+    backgroundColor: BORDER_SUBTLE,
+  },
+  sheetTitle: {
+    fontFamily: FONT.heading,
+    fontSize: 24,
+    lineHeight: 30,
+    color: TEXT_HEADING,
+    marginTop: 10,
+    marginBottom: 12,
+  },
+  groupLabel: {
+    fontFamily: FONT.heading,
+    fontSize: 11,
+    lineHeight: 14,
+    letterSpacing: 2.2,
+    textTransform: 'uppercase',
+    color: TEXT_MUTED,
+  },
+  groupDivider: {
+    height: 1,
+    backgroundColor: BORDER_SUBTLE,
+    marginTop: 6,
+    marginBottom: 12,
   },
   orbTouchable: {
     position: 'absolute',

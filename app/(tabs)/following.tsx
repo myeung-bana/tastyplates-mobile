@@ -19,7 +19,10 @@ import { FollowingFeedShowMore } from '@/components/following/FollowingFeedShowM
 import { SuggestedUserRow } from '@/components/following/SuggestedUserRow'
 import { AppTopNav } from '@/components/layout/AppTopNav'
 import { SectionTitle } from '@/components/layout/SectionTitle'
-import { BRAND_PRIMARY, TEXT_MUTED } from '@/constants/brand'
+import { TpMark } from '@/components/brand/TpMark'
+import { Button } from '@/components/ui/Button'
+import { BRAND_PRIMARY, SURFACE_CARD, SURFACE_FOG, TEXT_HEADING, TEXT_MUTED } from '@/constants/brand'
+import { FONT } from '@/constants/typography'
 import {
   SCREEN_REVIEW_VIEWER,
 } from '@/constants/screens'
@@ -38,6 +41,18 @@ const GRID_GAP = 12
 
 type SuggestedUserList = Awaited<ReturnType<typeof fetchSuggestedUsers>>
 
+/** Page heading under the top bar (design A1). */
+function ActivityTitle(): ReactElement {
+  return (
+    <Text
+      accessibilityRole="header"
+      style={{ paddingHorizontal: 20, paddingTop: 4, paddingBottom: 16, fontFamily: FONT.heading, fontSize: 28, lineHeight: 34, color: TEXT_HEADING }}
+    >
+      Activity
+    </Text>
+  )
+}
+
 /** Suggested accounts — horizontal row (ScrollView avoids nesting inside the feed list). */
 function FollowingSuggestedSection({
   userId,
@@ -49,10 +64,13 @@ function FollowingSuggestedSection({
   onFollowed: () => void
 }): ReactElement {
   return (
-    <View className="px-4 pt-2">
-      <SectionTitle>Suggested Users</SectionTitle>
+    <View className="px-5 pt-1">
+      <View className="flex-row items-baseline justify-between">
+        <SectionTitle>Suggested</SectionTitle>
+        <Text style={{ fontFamily: FONT.body, fontSize: 13, color: TEXT_MUTED }}>Newest members</Text>
+      </View>
       {suggested.length === 0 ? (
-        <Text className="mt-3 text-sm" style={{ color: TEXT_MUTED }}>
+        <Text className="mt-3 text-sm font-body" style={{ color: TEXT_MUTED }}>
           No suggestions right now — check back later.
         </Text>
       ) : (
@@ -148,21 +166,24 @@ export default function FollowingScreen() {
     return (
       <View className="flex-1 bg-white">
         <AppTopNav />
-        <View className="flex-1 items-center justify-center px-8">
-          <SectionTitle className="text-center">Following</SectionTitle>
-          <Text className="mt-3 text-center text-sm leading-relaxed" style={{ color: TEXT_MUTED }}>
-            Sign in to see activity from people you follow.
+        <ActivityTitle />
+        <View className="flex-1 items-center justify-center" style={{ paddingHorizontal: 32, gap: 12, marginTop: -60 }}>
+          <TpMark size={40} />
+          <Text accessibilityRole="header" className="text-center" style={{ fontFamily: FONT.heading, fontSize: 24, lineHeight: 30, color: TEXT_HEADING }}>
+            See what your people are eating
           </Text>
-          <Pressable
+          <Text className="text-center" style={{ fontFamily: FONT.body, fontSize: 15, lineHeight: 22, color: TEXT_MUTED }}>
+            Sign in to follow people and see their reviews, comments and check-ins here.
+          </Text>
+          <Button
+            style={{ marginTop: 8, alignSelf: 'stretch' }}
             onPress={() => {
               void Haptics.selectionAsync()
               pushLoginScreen(router, { resume: '/(tabs)/following' })
             }}
-            className="mt-6 rounded-full px-8 py-3 active:opacity-90"
-            style={{ backgroundColor: BRAND_PRIMARY }}
           >
-            <Text className="font-normal text-base text-white">Sign in</Text>
-          </Pressable>
+            Sign in
+          </Button>
         </View>
       </View>
     )
@@ -181,14 +202,12 @@ export default function FollowingScreen() {
 
   const feedListHeader = (
     <View>
+      <ActivityTitle />
       <FollowingSuggestedSection
         userId={userId}
         suggested={suggested}
         onFollowed={() => void onRefresh()}
       />
-      <View className="mt-3 px-4 pb-2">
-        <SectionTitle>Follower Activity</SectionTitle>
-      </View>
     </View>
   )
 
@@ -216,12 +235,10 @@ export default function FollowingScreen() {
       <View className="flex-1 bg-white">
         <AppTopNav />
         <ScrollView className="flex-1" contentContainerStyle={{ paddingBottom: 32 }}>
-          <View className="px-4 pt-2">
-            <SectionTitle>Suggested Users</SectionTitle>
-            <View className="mt-3 h-28 rounded-2xl bg-neutral-100" />
-          </View>
-          <View className="mt-3 px-4 pb-2">
-            <SectionTitle>Follower Activity</SectionTitle>
+          <ActivityTitle />
+          <View className="px-5 pt-1">
+            <SectionTitle>Suggested</SectionTitle>
+            <View className="mt-3 h-28 rounded-2xl" style={{ backgroundColor: SURFACE_FOG }} />
           </View>
           <View className="px-4">
             {[0, 1, 2].map((i) => (
@@ -245,7 +262,7 @@ export default function FollowingScreen() {
           }
         >
           <View className="mt-10 items-center px-6">
-            <Text className="text-center text-sm leading-relaxed" style={{ color: TEXT_MUTED }}>
+            <Text className="text-center text-sm leading-relaxed font-body" style={{ color: TEXT_MUTED }}>
               {error}
             </Text>
             <Pressable
@@ -253,7 +270,7 @@ export default function FollowingScreen() {
               className="mt-4 rounded-full px-6 py-2.5 active:opacity-90"
               style={{ backgroundColor: BRAND_PRIMARY }}
             >
-              <Text className="text-sm font-medium text-white">Try again</Text>
+              <Text className="text-sm text-white font-body-medium">Try again</Text>
             </Pressable>
           </View>
         </ScrollView>
@@ -275,20 +292,27 @@ export default function FollowingScreen() {
         ListFooterComponent={feedListFooter}
         ListEmptyComponent={
           activities.length === 0 ? (
-            <Text className="mt-4 px-4 text-center text-sm leading-relaxed" style={{ color: TEXT_MUTED }}>
-              No activity from people you follow yet.
-            </Text>
+            <View className="items-center" style={{ paddingHorizontal: 32, paddingTop: 32, gap: 8 }}>
+              <Text style={{ fontFamily: FONT.heading, fontSize: 20, color: TEXT_HEADING }}>Your feed is empty</Text>
+              <Text className="text-center" style={{ fontFamily: FONT.body, fontSize: 14, lineHeight: 21, color: TEXT_MUTED }}>
+                Activity shows reviews, comments and check-ins from people you follow. Follow someone above to get
+                started.
+              </Text>
+            </View>
           ) : null
         }
         renderSectionHeader={({ section }: { section: ActivityFeedSection }) => (
-          <View className="bg-white px-4 pb-2 pt-4">
-            <Text className="font-neusans text-xs font-semibold uppercase tracking-wide text-gray-400">
+          <View className="px-5 pb-2" style={{ paddingTop: 20, backgroundColor: SURFACE_CARD }}>
+            <Text
+              accessibilityRole="header"
+              style={{ fontFamily: FONT.heading, fontSize: 11, letterSpacing: 2.2, textTransform: 'uppercase', color: TEXT_MUTED }}
+            >
               {section.title}
             </Text>
           </View>
         )}
         renderItem={({ item }) => (
-          <View className="px-4">
+          <View className="px-5">
             <FollowingFeedActivityCard
               activity={item}
               onPressReview={onOpenReview}

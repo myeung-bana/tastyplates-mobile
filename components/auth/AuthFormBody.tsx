@@ -21,6 +21,7 @@ import { useGoogleSignIn } from '@/hooks/useGoogleSignIn'
 import { useSession } from '@/hooks/useSession'
 import { navigateAfterAuth } from '@/lib/authNavigation'
 import type { AuthScreenMode, TypedResumeHref } from '@/lib/authRoutes'
+import type { AuthWallCopy } from '@/lib/authSheetRef'
 import { enterGuestBrowseMode } from '@/lib/guestBrowse'
 
 export type AuthFormBodyProps = {
@@ -33,25 +34,20 @@ export type AuthFormBodyProps = {
   layout?: 'hero' | 'overlay'
   /** Required when `layout` is `overlay`. */
   onClose?: () => void
+  /** Sign-in wall copy (design R4) — chooser shows Google / email / Not now. */
+  wall?: AuthWallCopy
 }
 
 function authCopy(view: AuthScreenMode): { title: string; subtitle: string } {
   if (view === 'signin') {
-    return {
-      title: 'Login to Continue',
-      subtitle: 'Sign in with your Tastyplates email and password.',
-    }
+    return { title: 'Sign in', subtitle: 'Welcome back. Use your Tastyplates email and password.' }
   }
   if (view === 'signup') {
-    return {
-      title: 'Create an account',
-      subtitle:
-        'Create a free account to save favourites, write reviews, and follow other food lovers.',
-    }
+    return { title: 'Sign up with email', subtitle: '' }
   }
   return {
-    title: 'Welcome to TastyPlates',
-    subtitle: 'Discover restaurants, share reviews, and follow food lovers you trust.',
+    title: 'Create your account',
+    subtitle: 'Save places, follow palates like yours and leave reviews.',
   }
 }
 
@@ -65,6 +61,7 @@ export function AuthFormBody({
   onBeforeNavigate,
   layout = 'hero',
   onClose,
+  wall,
   renderShell,
 }: AuthFormBodyProps & {
   renderShell?: (content: {
@@ -130,7 +127,9 @@ export function AuthFormBody({
     router.replace(SCREEN_HOME)
   }, [router, onBeforeNavigate])
 
-  const { title, subtitle } = authCopy(view)
+  const copy = authCopy(view)
+  const title = view === 'chooser' && wall ? wall.title : copy.title
+  const subtitle = view === 'chooser' && wall ? (wall.subtitle ?? '') : copy.subtitle
   const headerSlot =
     view === 'chooser' ? null : <AuthBackButton onPress={goChooser} label="Back" />
 
@@ -138,8 +137,10 @@ export function AuthFormBody({
     <>
       {view === 'chooser' ? (
         <AuthMethodChooser
+          variant={wall ? 'wall' : 'default'}
+          onNotNow={onClose}
           onSignUpFree={goSignUp}
-          onContinueWithEmail={goSignIn}
+          onContinueWithEmail={wall ? goSignIn : goSignUp}
           onContinueWithGoogle={() => void continueWithGoogle()}
           onSkipLogin={showSkipLogin && !resume ? () => void onSkipLogin() : undefined}
           googleBusy={googleBusy}
@@ -160,7 +161,6 @@ export function AuthFormBody({
       {view === 'signup' ? (
         <RegisterEmailForm
           resume={resume}
-          showIntro={false}
           embedded
           onRegisterSuccess={onAuthSuccess}
           onSwitchToSignIn={goSignIn}
@@ -178,8 +178,10 @@ export function AuthFormBody({
     return (
       <AuthOverlayLayout
         title={shellContent.title}
-        subtitle={shellContent.subtitle}
-        headerSlot={shellContent.headerSlot}
+        subtitle={shellContent.subtitle || undefined}
+        variant={view === 'chooser' ? 'sheet' : 'page'}
+        // A sheet opened straight on sign-in (from a wall or get-started) closes on back.
+        onBack={initialMode === 'chooser' ? goChooser : undefined}
         onClose={onClose}
       >
         {shellContent.body}

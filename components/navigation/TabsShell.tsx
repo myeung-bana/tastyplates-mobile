@@ -4,7 +4,7 @@ import type { BottomTabBarButtonProps, BottomTabBarProps } from '@react-navigati
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import type { AppIconName } from '@/components/ui/AppIcon'
-import { TabBarAnimatedIcon } from '@/components/navigation/TabBarAnimatedIcon'
+import { StudioPlusIcon, TabBarAnimatedIcon } from '@/components/navigation/TabBarAnimatedIcon'
 import {
   getTabSceneStylePaddingBottom as getTabBarHeight,
   getTabBarStyle,
@@ -116,7 +116,8 @@ export function TabsShell({ visibleTabs, useStudioTabBar = false }: TabsShellPro
               }}
               options={{
                 title: config.title,
-                tabBarIcon: tabBarIcon(config),
+                tabBarAccessibilityLabel: 'Studio',
+                tabBarIcon: () => <StudioPlusIcon />,
                 tabBarButton: (props: BottomTabBarButtonProps) => (
                   <StudioTabAnchorButton {...props} />
                 ),

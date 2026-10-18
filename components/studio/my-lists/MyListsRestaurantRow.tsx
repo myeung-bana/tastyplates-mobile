@@ -48,7 +48,7 @@ export function MyListsRestaurantRow({ restaurant, swipeableRefs, onRemove }: Pr
           className="h-full w-full items-center justify-center gap-1.5"
         >
           <AppIcon name="trash-2" size={22} color="white" />
-          <Text className="font-neusans text-[11px] font-medium text-white">Remove</Text>
+          <Text className="text-[11px] text-white font-body-medium">Remove</Text>
         </Pressable>
       </View>
     )
@@ -93,14 +93,14 @@ export function MyListsRestaurantRow({ restaurant, swipeableRefs, onRemove }: Pr
         {/* Centre */}
         <View className="min-w-0 flex-1" style={{ gap: 2 }}>
           <Text
-            className="font-neusans text-[15px] font-medium text-[#31343F]"
+            className="text-[15px] text-[#31343F] font-body-medium"
             numberOfLines={1}
           >
             {restaurant.name}
           </Text>
           {address ? (
             <Text
-              className="font-neusans text-[13px] text-[#6b7280]"
+              className="text-[13px] text-[#6b7280] font-body"
               numberOfLines={1}
             >
               {address}
@@ -112,7 +112,7 @@ export function MyListsRestaurantRow({ restaurant, swipeableRefs, onRemove }: Pr
         <View className="flex-shrink-0 items-end" style={{ gap: 2 }}>
           <View className="flex-row items-center gap-1">
             <StarIcon width={12} height={12} />
-            <Text className="font-neusans text-[13px] text-[#31343F]">{ratingDisplay}</Text>
+            <Text className="text-[13px] text-[#31343F] font-body">{ratingDisplay}</Text>
           </View>
           <AppIcon name="chevron-right" size={14} color="#e5e7eb" />
         </View>

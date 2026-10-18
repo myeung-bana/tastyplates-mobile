@@ -34,10 +34,10 @@ export function CuisineSearchShortcutRow({ label, slug, onPress }: Props): JSX.E
         )}
       </View>
       <View className="min-w-0 flex-1">
-        <Text className="font-neusans text-[15px] font-semibold text-[#31343F]" numberOfLines={1}>
+        <Text className="text-[15px] text-[#31343F] font-body-semibold" numberOfLines={1}>
           {label}
         </Text>
-        <Text className="mt-0.5 font-neusans text-xs text-gray-500">Search by cuisine</Text>
+        <Text className="mt-0.5 text-xs text-gray-500 font-body">Search by cuisine</Text>
       </View>
       <AppIcon name="chevron-right" size={18} color="#9ca3af" />
     </Pressable>

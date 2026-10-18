@@ -277,7 +277,7 @@ export default function EditReviewScreen(): JSX.Element {
   if (phase === 'missing' || phase === 'error') {
     return (
       <View className="flex-1 items-center justify-center bg-white px-10">
-        <Text className="text-center text-base" style={{ color: TEXT_HEADING }}>
+        <Text className="text-center text-base font-body" style={{ color: TEXT_HEADING }}>
           {phase === 'missing' ? 'Missing review identifier.' : 'Could not load this review.'}
         </Text>
       </View>
@@ -318,7 +318,7 @@ export default function EditReviewScreen(): JSX.Element {
           <HalfStarRating value={rating} onChange={setRating} />
 
           <View className="px-4 pb-4">
-            <Text className="mb-2 font-neusans text-sm text-[#374151]">Review Title</Text>
+            <Text className="mb-2 text-sm text-[#374151] font-body">Review Title</Text>
             <Controller
               control={control}
               name="title"
@@ -334,11 +334,11 @@ export default function EditReviewScreen(): JSX.Element {
                     multiline
                     numberOfLines={2}
                     textAlignVertical="top"
-                    className="px-4 py-3 font-neusans text-base text-[#31343F]"
+                    className="px-4 py-3 text-base text-[#31343F] font-body"
                     style={mergeTextInputBodyTypography({ fontSize: 16, ...inputBorder })}
                   />
                   <Text
-                    className={`mt-1 text-right font-neusans text-xs ${value.length > 40 ? 'text-red-500' : 'text-gray-500'}`}
+                    className={`mt-1 text-right text-xs font-body ${value.length > 40 ? 'text-red-500' : 'text-gray-500'}`}
                   >
                     {value.length}/{reviewTitleMaxLimit}
                   </Text>
@@ -348,7 +348,7 @@ export default function EditReviewScreen(): JSX.Element {
           </View>
 
           <View className="px-4 pb-4">
-            <Text className="mb-2 font-neusans text-sm text-[#374151]">
+            <Text className="mb-2 text-sm text-[#374151] font-body">
               Tell us about your experience
             </Text>
             <Controller
@@ -365,7 +365,7 @@ export default function EditReviewScreen(): JSX.Element {
                     maxLength={reviewDescriptionMaxLimit}
                     multiline
                     textAlignVertical="top"
-                    className="min-h-[120px] px-4 py-3 font-neusans text-base text-[#31343F]"
+                    className="min-h-[120px] px-4 py-3 text-base text-[#31343F] font-body"
                     style={mergeTextInputBodyTypography({
                       fontSize: 16,
                       minHeight: 120,
@@ -373,7 +373,7 @@ export default function EditReviewScreen(): JSX.Element {
                     })}
                   />
                   <Text
-                    className={`mt-1 text-right font-neusans text-xs ${value.length > 1000 ? 'text-red-500' : 'text-gray-500'}`}
+                    className={`mt-1 text-right text-xs font-body ${value.length > 1000 ? 'text-red-500' : 'text-gray-500'}`}
                   >
                     {value.length}/{reviewDescriptionMaxLimit}
                   </Text>
@@ -395,7 +395,7 @@ export default function EditReviewScreen(): JSX.Element {
                 {unpublishing ? (
                   <ActivityIndicator color={BRAND_PRIMARY} />
                 ) : (
-                  <Text className="text-center font-semibold" style={{ color: BRAND_PRIMARY }}>
+                  <Text className="text-center font-body-semibold" style={{ color: BRAND_PRIMARY }}>
                     Unpublish
                   </Text>
                 )}

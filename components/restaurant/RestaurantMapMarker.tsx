@@ -8,6 +8,7 @@ import {
   restaurantSearchResultRating,
 } from '@/lib/restaurantSearchMerge'
 import type { RestaurantSearchResult } from '@/types/restaurantSearchResult'
+import { isTPResult } from '@/types/restaurantSearchResult'
 
 const TRACKS_VIEW_CHANGES_MS = 400
 
@@ -15,6 +16,8 @@ export type RestaurantMapMarkerProps = {
   result: RestaurantSearchResult
   isSelected: boolean
   onPress: (result: RestaurantSearchResult) => void
+  /** Palate match 0–100 when a palate cuisine filter is active. */
+  matchPercent?: number | null
 }
 
 /**
@@ -25,6 +28,7 @@ function RestaurantMapMarkerInner({
   result,
   isSelected,
   onPress,
+  matchPercent = null,
 }: RestaurantMapMarkerProps): JSX.Element | null {
   const coords = restaurantSearchResultCoords(result)
   const rating = restaurantSearchResultRating(result)
@@ -44,7 +48,7 @@ function RestaurantMapMarkerInner({
     setTracksViewChanges(true)
     const timer = setTimeout(() => setTracksViewChanges(false), TRACKS_VIEW_CHANGES_MS)
     return () => clearTimeout(timer)
-  }, [isSelected, rating, id])
+  }, [isSelected, rating, id, matchPercent])
 
   if (!coordinate) return null
 
@@ -56,7 +60,12 @@ function RestaurantMapMarkerInner({
       onPress={() => onPress(result)}
       tracksViewChanges={tracksViewChanges}
     >
-      <RestaurantMapPin isSelected={isSelected} rating={rating} />
+      <RestaurantMapPin
+        isSelected={isSelected}
+        rating={rating}
+        isGoogle={!isTPResult(result)}
+        matchPercent={matchPercent}
+      />
     </Marker>
   )
 }
@@ -65,6 +74,7 @@ export const RestaurantMapMarker = memo(
   RestaurantMapMarkerInner,
   (prev, next) =>
     prev.isSelected === next.isSelected &&
+    prev.matchPercent === next.matchPercent &&
     restaurantSearchResultId(prev.result) === restaurantSearchResultId(next.result) &&
     restaurantSearchResultRating(prev.result) === restaurantSearchResultRating(next.result) &&
     restaurantSearchResultCoords(prev.result).latitude ===

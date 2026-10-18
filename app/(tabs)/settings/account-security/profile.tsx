@@ -170,7 +170,7 @@ export default function AccountProfileSettingsScreen(): JSX.Element {
               <TextInput
                 editable={false}
                 value={user?.email ?? ''}
-                className="rounded-xl border px-4 py-3 font-neusans text-base"
+                className="rounded-xl border px-4 py-3 text-base font-body"
                 style={mergeTextInputBodyTypography({
                   color: TEXT_HEADING,
                   borderColor: BORDER_SUBTLE,

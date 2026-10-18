@@ -46,12 +46,12 @@ export function EditProfileTopNav({
           disabled={saving}
           className="min-w-[72px] py-2 active:opacity-70"
         >
-          <Text className="text-base" style={{ color: TEXT_MUTED }}>
+          <Text className="text-base font-body" style={{ color: TEXT_MUTED }}>
             Cancel
           </Text>
         </Pressable>
 
-        <Text className="text-base font-semibold" style={{ color: TEXT_HEADING }}>
+        <Text className="text-base font-body-semibold" style={{ color: TEXT_HEADING }}>
           {title}
         </Text>
 
@@ -67,7 +67,7 @@ export function EditProfileTopNav({
             <ActivityIndicator size="small" color={BRAND_PRIMARY} />
           ) : (
             <Text
-              className="text-base font-semibold"
+              className="text-base font-body-semibold"
               style={{ color: doneEnabled ? BRAND_PRIMARY : TEXT_MUTED }}
             >
               Done

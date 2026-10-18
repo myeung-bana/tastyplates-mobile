@@ -4,7 +4,7 @@ import { router } from 'expo-router'
 
 import { ArticleListCard } from '@/components/articles/ArticleListCard'
 import { fetchArticles, type ArticleApi } from '@/lib/homeContentApi'
-import { SCREEN_ARTICLE_DETAIL } from '@/constants/screens'
+import { SCREEN_ARTICLE_DETAIL, SCREEN_ARTICLES_LIST } from '@/constants/screens'
 import { BRAND_PRIMARY, TEXT_MUTED } from '@/constants/brand'
 import { HomeSectionCard } from '@/components/home/HomeSectionCard'
 import { useLocation } from '@/contexts/LocationContext'
@@ -38,7 +38,7 @@ export function HomeArticlesSection() {
   }
 
   return (
-    <HomeSectionCard title="Articles" className="pb-8" shadowed={false} padded={false}>
+    <HomeSectionCard title="Articles" className="pb-8" onSeeAll={() => router.push(SCREEN_ARTICLES_LIST)}>
       {loading ? (
         <View className="items-center py-12">
           <ActivityIndicator color={BRAND_PRIMARY} />
@@ -46,17 +46,18 @@ export function HomeArticlesSection() {
       ) : (
         <>
           {articles.length > 0 ? (
-            <View className="gap-4">
+            <View style={{ gap: 14 }}>
               {articles.map((article) => (
                 <ArticleListCard
                   key={String(article.id)}
+                  variant="row"
                   article={article}
                   onPress={() => navigateToArticle(article)}
                 />
               ))}
             </View>
           ) : (
-            <Text className="py-4 text-center text-sm" style={{ color: TEXT_MUTED }}>
+            <Text className="py-4 text-center text-sm font-body" style={{ color: TEXT_MUTED }}>
               No featured articles for this location yet.
             </Text>
           )}

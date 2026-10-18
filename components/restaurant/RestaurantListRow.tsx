@@ -41,11 +41,11 @@ export function RestaurantListRow({
       />
 
       <View className="min-w-0 flex-1">
-        <Text className="font-neusans text-[15px] font-medium text-[#31343F]" numberOfLines={1}>
+        <Text className="text-[15px] text-[#31343F] font-body-medium" numberOfLines={1}>
           {title}
         </Text>
         {address ? (
-          <Text className="mt-0.5 font-neusans text-[13px] text-gray-500" numberOfLines={1}>
+          <Text className="mt-0.5 text-[13px] text-gray-500 font-body" numberOfLines={1}>
             {address}
           </Text>
         ) : null}

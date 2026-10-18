@@ -34,7 +34,7 @@ export function MyListPlaceCard({ row, onRemove }: MyListPlaceCardProps): JSX.El
         className="h-full items-center justify-center rounded-2xl bg-red-600 px-5 py-6 active:bg-red-700"
       >
         <AppIcon name="trash-2" color="#ffffff" size={22} />
-        <Text className="mt-1 text-[11px] font-semibold text-white">Remove</Text>
+        <Text className="mt-1 text-[11px] text-white font-body-semibold">Remove</Text>
       </Pressable>
     </View>
   )
@@ -60,20 +60,20 @@ export function MyListPlaceCard({ row, onRemove }: MyListPlaceCardProps): JSX.El
           </View>
         )}
         <View className="flex-1">
-          <Text className="text-base font-semibold" style={{ color: TEXT_HEADING }} numberOfLines={2}>
+          <Text className="text-base font-body-semibold" style={{ color: TEXT_HEADING }} numberOfLines={2}>
             {row.name}
           </Text>
           {subtitle ? (
-            <Text className="mt-1 text-xs leading-snug" style={{ color: TEXT_MUTED }} numberOfLines={2}>
+            <Text className="mt-1 text-xs leading-snug font-body" style={{ color: TEXT_MUTED }} numberOfLines={2}>
               {subtitle}
             </Text>
           ) : null}
           {slug ? (
-            <Text className="mt-2 text-[11px] font-semibold uppercase tracking-wide" style={{ color: TEXT_MUTED }}>
+            <Text className="mt-2 text-[11px] uppercase tracking-wide font-body-semibold" style={{ color: TEXT_MUTED }}>
               On TastyPlates — tap for listing
             </Text>
           ) : (
-            <Text className="mt-2 text-[11px] font-semibold uppercase tracking-wide" style={{ color: TEXT_MUTED }}>
+            <Text className="mt-2 text-[11px] uppercase tracking-wide font-body-semibold" style={{ color: TEXT_MUTED }}>
               Google Place — stub detail or open Maps
             </Text>
           )}

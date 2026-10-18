@@ -8,7 +8,7 @@ const STEPS: { id: 1 | 2 | 3; label: string }[] = [
   { id: 3, label: 'Palate' },
 ]
 
-const BRAND = '#ff7c0a'
+const BRAND = '#FF7C09'
 const MUTED = '#d1d5db'
 const TRACK = '#e5e7eb'
 
@@ -36,13 +36,13 @@ export function OnboardingStepIndicator({ currentStep }: Props): JSX.Element {
                 {complete ? (
                   <AppIcon name="check" size={20} color="#fff" />
                 ) : (
-                  <Text className="text-sm font-semibold" style={{ color: active ? '#fff' : '#9ca3af' }}>
+                  <Text className="text-sm font-body-semibold" style={{ color: active ? '#fff' : '#9ca3af' }}>
                     {step.id}
                   </Text>
                 )}
               </View>
               <Text
-                className="text-center text-xs font-medium"
+                className="text-center text-xs font-body-medium"
                 style={{ color: active || complete ? '#374151' : '#9ca3af' }}
                 numberOfLines={1}
               >

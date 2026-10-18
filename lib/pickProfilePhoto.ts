@@ -10,7 +10,7 @@ export interface PickedProfilePhoto {
   mimeType: string
 }
 
-async function pickFromLibrary(): Promise<PickedProfilePhoto | null> {
+export async function pickFromLibrary(): Promise<PickedProfilePhoto | null> {
   const result = await ImagePicker.launchImageLibraryAsync({
     mediaTypes: ['images'],
     allowsEditing: true,
@@ -29,7 +29,7 @@ async function pickFromLibrary(): Promise<PickedProfilePhoto | null> {
   }
 }
 
-async function pickFromCamera(): Promise<PickedProfilePhoto | null> {
+export async function pickFromCamera(): Promise<PickedProfilePhoto | null> {
   const perm = await ImagePicker.requestCameraPermissionsAsync()
   if (!perm.granted) return null
   const result = await ImagePicker.launchCameraAsync({

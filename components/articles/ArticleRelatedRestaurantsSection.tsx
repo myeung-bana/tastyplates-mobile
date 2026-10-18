@@ -47,12 +47,12 @@ export function ArticleRelatedRestaurantsSection({
       {showFallbackOnly ? (
         <>
           <Text
-            className="mb-2 text-center text-lg font-semibold"
+            className="mb-2 text-center text-lg font-heading"
             style={{ color: TEXT_HEADING }}
           >
             Restaurants in this story
           </Text>
-          <Text className="mb-3 text-center text-sm leading-relaxed" style={{ color: TEXT_BODY }}>
+          <Text className="mb-3 text-center text-sm leading-relaxed font-body" style={{ color: TEXT_BODY }}>
             This article covers {fallbackAssociationCount}{' '}
             {fallbackAssociationCount === 1 ? 'place' : 'places'} on TastyPlates.
           </Text>
@@ -65,7 +65,7 @@ export function ArticleRelatedRestaurantsSection({
             }}
             className="items-center py-2 active:opacity-80"
           >
-            <Text className="text-sm font-semibold" style={{ color: BRAND_PRIMARY }}>
+            <Text className="text-sm font-body-semibold" style={{ color: BRAND_PRIMARY }}>
               Explore restaurants →
             </Text>
           </Pressable>
@@ -73,12 +73,12 @@ export function ArticleRelatedRestaurantsSection({
       ) : (
         <>
           <Text
-            className="mb-2 text-center text-lg font-semibold leading-snug"
+            className="mb-2 text-center text-lg leading-snug font-heading"
             style={{ color: TEXT_HEADING }}
           >
             Restaurants in this article
           </Text>
-          <Text className="mb-6 text-center text-sm leading-relaxed" style={{ color: TEXT_MUTED }}>
+          <Text className="mb-6 text-center text-sm leading-relaxed font-body" style={{ color: TEXT_MUTED }}>
             Places we mention in this story — tap through for full listings, photos, and reviews.
           </Text>
           <View style={{ gap: 12 }}>

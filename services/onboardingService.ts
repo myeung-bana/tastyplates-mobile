@@ -4,6 +4,7 @@ import {
   DEFAULT_LOCATION_FALLBACK_SLUG,
   type SavedLocationPreference,
 } from '@/constants/locations'
+import type { DisplayNameVariant } from '@/lib/displayNameOptions'
 import { tastyplatesFetch, unwrapEnvelope } from '@/lib/tastyplatesFetch'
 import type { RestaurantUserRow, UserProfileGeographicLocationInput } from '@/services/restaurantUserService'
 import {
@@ -27,6 +28,11 @@ export type OnboardingLocationValue = {
 
 export type OnboardingRegistrationDraft = {
   username?: string
+  /** Step 2 — private, only feeds the display-name options. */
+  first_name?: string
+  last_name?: string
+  /** Step 3 — which variant of the name becomes `display_name`. */
+  display_name_variant?: DisplayNameVariant
   current_location?: OnboardingLocationValue | null
   hometown_location?: OnboardingLocationValue | null
   /** @deprecated Migrated to `current_location` on read */
@@ -87,10 +93,14 @@ export interface UpdateRestaurantUserResponse {
 }
 
 /**
- * Complete onboarding: username, palates, locations, flag. Requires JWT.
+ * Complete onboarding in one update: username, names, display name, palates, cities and the
+ * `onboarding_complete` flag. Requires JWT.
  */
 export async function completeOnboardingProfile(params: {
   username: string
+  first_name: string
+  last_name: string
+  display_name: string
   palates: string[]
   current_location: UserProfileGeographicLocationInput
   hometown?: UserProfileGeographicLocationInput | null
@@ -102,6 +112,9 @@ export async function completeOnboardingProfile(params: {
 
   const payload: Record<string, unknown> = {
     username: params.username.trim(),
+    first_name: params.first_name.trim(),
+    last_name: params.last_name.trim(),
+    display_name: params.display_name.trim(),
     palates: params.palates,
     onboarding_complete: true,
     current_location: current,

@@ -28,7 +28,7 @@ function promptRestoreAccount(deletion: AccountDeletionPending): Promise<boolean
   return new Promise((resolve) => {
     Alert.alert(
       'Restore your account?',
-      `Your account is scheduled for deletion on ${formatScheduledDate(deletion.scheduled_for)}. Restore it to keep your profile, reviews and lists.`,
+      `Your account is scheduled for permanent deletion on ${formatScheduledDate(deletion.scheduled_for)}. Restore it to bring back your profile, lists and reviews.`,
       [
         { text: 'Keep deleting', style: 'destructive', onPress: () => resolve(false) },
         { text: 'Restore account', onPress: () => resolve(true) },

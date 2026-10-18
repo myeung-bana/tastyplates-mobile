@@ -28,11 +28,11 @@ export function ReviewRestaurantHeader({ restaurant }: Props): JSX.Element {
           accessibilityIgnoresInvertColors
         />
         <View className="min-w-0 flex-1">
-          <Text className="font-neusans text-base font-medium text-[#31343F]" numberOfLines={1}>
+          <Text className="text-base text-[#31343F] font-body-medium" numberOfLines={1}>
             {restaurant.name}
           </Text>
           {restaurant.address ? (
-            <Text className="mt-0.5 font-neusans text-xs text-gray-500" numberOfLines={1}>
+            <Text className="mt-0.5 text-xs text-gray-500 font-body" numberOfLines={1}>
               {restaurant.address}
             </Text>
           ) : null}

@@ -1,6 +1,6 @@
 import type { Href, Router } from 'expo-router'
 
-import { authSheetOpenRef } from '@/lib/authSheetRef'
+import { authSheetOpenRef, type AuthWallCopy } from '@/lib/authSheetRef'
 import { SCREEN_LOGIN } from '@/constants/screens'
 
 /**
@@ -92,13 +92,19 @@ export function loginScreenHref(options?: {
 
 export function pushLoginScreen(
   router: Router,
-  options?: { resume?: Parameters<Router['replace']>[0]; mode?: AuthScreenMode },
+  options?: {
+    resume?: Parameters<Router['replace']>[0]
+    mode?: AuthScreenMode
+    /** Sign-in wall copy, e.g. "Sign in to like and comment". */
+    wall?: AuthWallCopy
+  },
 ): void {
   const resume = serializeAuthResume(options?.resume)
   const sheetOptions = {
     mode: options?.mode,
     resume: options?.resume,
     showSkipLogin: !resume,
+    wall: options?.wall,
   }
   if (authSheetOpenRef.current) {
     authSheetOpenRef.current(sheetOptions)

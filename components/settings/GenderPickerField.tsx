@@ -50,7 +50,7 @@ export function GenderPickerField({
         }}
       >
         <Text
-          className="flex-1 font-neusans text-base"
+          className="flex-1 text-base font-body"
           style={mergeTextInputBodyTypography({
             color: placeholder ? TEXT_MUTED : TEXT_HEADING,
           })}
@@ -68,7 +68,7 @@ export function GenderPickerField({
             onPress={(e) => e.stopPropagation()}
           >
             <View className="items-center border-b py-3" style={{ borderColor: BORDER_SUBTLE }}>
-              <Text className="text-base font-semibold font-neusans" style={{ color: TEXT_HEADING }}>
+              <Text className="text-base font-body-semibold" style={{ color: TEXT_HEADING }}>
                 Gender
               </Text>
             </View>
@@ -81,7 +81,7 @@ export function GenderPickerField({
                   className="flex-row items-center justify-between px-5 py-4 active:bg-orange-50/60"
                 >
                   <Text
-                    className="text-base font-neusans"
+                    className="text-base font-body"
                     style={{ color: selected ? BRAND_PRIMARY : TEXT_HEADING }}
                   >
                     {option.label}

@@ -7,6 +7,7 @@ import { SCREEN_HOME, SCREEN_REVIEW_COMMENTS } from '@/constants/screens'
 import { useAuth } from '@/hooks/useAuth'
 import { useNhostSession } from '@/hooks/useNhostSession'
 import { pushLoginScreen } from '@/lib/authRoutes'
+import { AUTH_WALL } from '@/constants/authWalls'
 import { nhost } from '@/lib/nhost'
 import { fetchReviewById } from '@/services/reviewDetailService'
 import { reviewService, type ReplyRow } from '@/services/reviewService'
@@ -69,6 +70,7 @@ export function useReviewComments({
 
   const promptSignIn = useCallback(() => {
     pushLoginScreen(router, {
+      wall: AUTH_WALL.likeComment,
       resume:
         resumePath ??
         (reviewId

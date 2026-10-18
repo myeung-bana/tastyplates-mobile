@@ -115,7 +115,7 @@ export default function GooglePlaceDetailScreen(): JSX.Element {
   if (state.status === 'error') {
     return (
       <View className="flex-1 items-center justify-center bg-white px-8">
-        <Text className="text-center text-sm" style={{ color: TEXT_MUTED }}>
+        <Text className="text-center text-sm font-body" style={{ color: TEXT_MUTED }}>
           {state.message}
         </Text>
         <Pressable
@@ -123,7 +123,7 @@ export default function GooglePlaceDetailScreen(): JSX.Element {
           className="mt-4 rounded-full px-5 py-2.5"
           style={{ backgroundColor: BRAND_PRIMARY }}
         >
-          <Text className="font-semibold text-white">Retry</Text>
+          <Text className="text-white font-body-semibold">Retry</Text>
         </Pressable>
       </View>
     )
