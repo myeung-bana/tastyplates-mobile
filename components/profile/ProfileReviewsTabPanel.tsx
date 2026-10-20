@@ -7,7 +7,7 @@ import { stripHtml } from '@/lib/restaurantDetailUtils'
 import { firstReviewImageUri } from '@/lib/reviewDisplayUtils'
 
 import { HomeReviewCardSkeleton } from '@/components/review/HomeReviewCard'
-import { BRAND_PRIMARY, SURFACE_FOG, TEXT_HEADING, TEXT_MUTED } from '@/constants/brand'
+import { BRAND_PRIMARY, SURFACE_CARD, SURFACE_FOG, TEXT_HEADING, TEXT_MUTED } from '@/constants/brand'
 import { usePublicProfileReviewsList } from '@/hooks/usePublicProfileReviewsList'
 import type { TrendingReviewRow } from '@/services/homeReviewsService'
 
@@ -106,6 +106,7 @@ export function ProfileReviewsTabPanel({
       data={rows}
       keyExtractor={(item) => item.id}
       numColumns={2}
+      style={{ backgroundColor: SURFACE_CARD }}
       columnWrapperStyle={{ justifyContent: 'space-between', marginBottom: GRID_GAP }}
       contentContainerStyle={{
         flexGrow: 1,

@@ -1,14 +1,13 @@
-import { Image, Pressable, Text, View, useWindowDimensions } from 'react-native'
+import { Pressable, Text, View, useWindowDimensions } from 'react-native'
 import * as Haptics from 'expo-haptics'
 import { router } from 'expo-router'
 
+import { CuisineGlyph } from '@/components/brand/CuisineGlyph'
 import { HomeSectionCard } from '@/components/home/HomeSectionCard'
-import { AppIcon } from '@/components/ui/AppIcon'
 import { BRAND_PRIMARY, TEXT_HEADING } from '@/constants/brand'
-import { QUICK_FINDS } from '@/constants/quickFinds'
+import { HOME_QUICK_FINDS } from '@/constants/quickFinds'
 import { SCREEN_RESTAURANTS } from '@/constants/screens'
 import { FONT } from '@/constants/typography'
-import { getCuisineIconSource } from '@/lib/cuisineIconAssets'
 
 /** 10 cuisines → two rows of five. */
 const COLS = 5
@@ -24,8 +23,7 @@ export function HomeQuickFinds() {
   return (
     <HomeSectionCard title="Quick finds">
       <View className="flex-row flex-wrap" style={{ columnGap: COLUMN_GAP, rowGap: 14 }}>
-        {QUICK_FINDS.map((item) => {
-          const icon = getCuisineIconSource(item.iconFile)
+        {HOME_QUICK_FINDS.map((item) => {
           return (
             <Pressable
               key={item.slug}
@@ -49,14 +47,12 @@ export function HomeQuickFinds() {
                   backgroundColor: '#FFFFFF',
                 }}
               >
-                {icon ? (
-                  <Image source={icon} style={{ width: 34, height: 34 }} resizeMode="contain" />
-                ) : (
-                  <AppIcon name="coffee" size={18} color={BRAND_PRIMARY} />
-                )}
+                <CuisineGlyph slug={item.slug} size={26} color={BRAND_PRIMARY} />
               </View>
               <Text
-                numberOfLines={2}
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.85}
                 className="text-center"
                 style={{ fontFamily: FONT.headingMedium, fontSize: 12, lineHeight: 14, color: TEXT_HEADING }}
               >

@@ -2,11 +2,9 @@ import { useCallback, useEffect, useLayoutEffect, useState } from 'react'
 import { Pressable, Text, View } from 'react-native'
 import { router, useLocalSearchParams, useNavigation } from 'expo-router'
 
-import { AppIcon } from '@/components/ui/AppIcon'
 import { RestaurantDetailSkeleton } from '@/components/restaurant/RestaurantDetailSkeleton'
-import { RestaurantDetailShareHeaderButton } from '@/components/restaurant/RestaurantDetailShareHeaderButton'
 import { RestaurantDetailView } from '@/components/restaurant/RestaurantDetailView'
-import { BRAND_PRIMARY, TEXT_HEADING, TEXT_MUTED } from '@/constants/brand'
+import { BRAND_PRIMARY, TEXT_MUTED } from '@/constants/brand'
 import { SCREEN_RESTAURANT_DETAIL, SCREEN_RESTAURANTS } from '@/constants/screens'
 import { adaptGooglePlaceToDetailRow } from '@/lib/adaptGooglePlaceDetail'
 import { adaptGoogleReviewsToPreviews } from '@/lib/adaptGooglePlaceReviews'
@@ -69,40 +67,19 @@ export default function GooglePlaceDetailScreen(): JSX.Element {
     void load()
   }, [load])
 
+  // Loaded page draws its own back + share over the photo (design S6).
   useLayoutEffect(() => {
-    const title = state.status === 'ready' ? state.place.name?.trim() || 'Restaurant' : 'Restaurant'
+    const ready = state.status === 'ready'
     navigation.setOptions({
-      title,
-      headerShown: true,
-      headerLeft: () => (
-        <Pressable
-          accessibilityLabel="Back"
-          accessibilityRole="button"
-          hitSlop={12}
-          onPress={() => {
-            if (navigation.canGoBack()) {
-              navigation.goBack()
-            } else {
-              router.replace(SCREEN_RESTAURANTS)
-            }
-          }}
-          className="ml-1 rounded-full p-1 active:opacity-70"
-        >
-          <AppIcon name="chevron-left" size={28} color={TEXT_HEADING} />
-        </Pressable>
-      ),
-      headerRight:
-        state.status === 'ready' && placeId
-          ? () => (
-              <RestaurantDetailShareHeaderButton
-                title={title}
-                slug=""
-                googlePlaceId={placeId}
-              />
-            )
-          : undefined,
+      title: ready ? state.place.name?.trim() || 'Restaurant' : 'Restaurant',
+      headerShown: !ready,
     })
-  }, [navigation, placeId, state])
+  }, [navigation, state])
+
+  const goBack = useCallback(() => {
+    if (navigation.canGoBack()) navigation.goBack()
+    else router.replace(SCREEN_RESTAURANTS)
+  }, [navigation])
 
   if (state.status === 'loading') {
     return (
@@ -148,6 +125,7 @@ export default function GooglePlaceDetailScreen(): JSX.Element {
           placeName,
           photoAttribution: googlePhotoAttributionText(place.photos?.[0]),
         }}
+        onBack={goBack}
       />
     </View>
   )

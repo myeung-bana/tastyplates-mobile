@@ -4,21 +4,22 @@ import TastyLogo from '@/assets/icons/TastyPlates_Logo_Colour.svg'
 
 const VIEWBOX_W = 199
 const VIEWBOX_H = 35
-/** Display width in dp; height keeps SVG aspect ratio (15% below prior 200dp). */
-const DISPLAY_WIDTH = 170
+/** 24pt-tall wordmark, left-aligned above the hero headline (design G8 / H1). */
+const DISPLAY_HEIGHT = 24
 
-/** Centered colour wordmark for the home feed (below nav). */
 export function HomeBrandMark() {
-  const aspect = DISPLAY_WIDTH * (VIEWBOX_H / VIEWBOX_W)
-
   return (
     <View
-      accessibilityLabel="TastyPlates"
+      accessibilityLabel="Tastyplates"
       accessibilityRole="image"
-      className="items-center px-4 pb-2"
-      style={{ paddingTop: 20 }}
+      style={{ paddingHorizontal: 20, paddingTop: 4, paddingBottom: 16 }}
     >
-      <TastyLogo accessible={false} importantForAccessibility="no" width={DISPLAY_WIDTH} height={aspect} />
+      <TastyLogo
+        accessible={false}
+        importantForAccessibility="no"
+        height={DISPLAY_HEIGHT}
+        width={Math.round(DISPLAY_HEIGHT * (VIEWBOX_W / VIEWBOX_H))}
+      />
     </View>
   )
 }

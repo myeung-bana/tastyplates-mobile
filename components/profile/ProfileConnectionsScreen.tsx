@@ -128,6 +128,7 @@ function ConnectionsListPanel({
           followLoading={followBusyId === user.id}
           showFollowButton={Boolean(viewerId) && !isSelf}
           useFollowBackLabel={tab === 'followers'}
+          isSelf={isSelf}
           onToggleFollow={() => onToggleFollow(user.id, isFollowing)}
         />
       )

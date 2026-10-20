@@ -46,7 +46,8 @@ export function HomeReviewCard({
   const avatarUrl = resolveReviewAuthorAvatarUrl(review.AuthorProfile)
   const cover = firstReviewImageUri(review.images, DEFAULT_COVER)
   const title = capitalizeWords(stripHtml(review.title ?? '').trim())
-  const bodyRaw = capitalizeWords(stripHtml(review.content ?? '').trim())
+  // Excerpt keeps the author's own casing (design H1).
+  const bodyRaw = stripHtml(review.content ?? '').trim()
   const tags = reviewHashtagLabels(review.hashtags, 3)
   const name = resolveReviewAuthorLabel(review.AuthorProfile)
   const restaurantName = review.restaurant?.title?.trim() ?? ''

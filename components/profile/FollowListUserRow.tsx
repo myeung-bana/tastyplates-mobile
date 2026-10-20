@@ -3,7 +3,16 @@ import * as Haptics from 'expo-haptics'
 import { useRouter } from 'expo-router'
 
 import { ProfileAvatarImage } from '@/components/profile/ProfileAvatarImage'
-import { BRAND_PRIMARY, TEXT_HEADING, TEXT_MUTED } from '@/constants/brand'
+import {
+  BORDER_SUBTLE,
+  BRAND_PRIMARY,
+  BRAND_PRIMARY_DARK,
+  SURFACE_FOG,
+  TEXT_HEADING,
+  TEXT_MUTED,
+  TEXT_TERTIARY,
+} from '@/constants/brand'
+import { FONT } from '@/constants/typography'
 import { parseProfilePalates } from '@/lib/profileFormatting'
 import { pushPublicProfile } from '@/lib/publicProfileNavigation'
 import type { FollowListUser } from '@/services/followListService'
@@ -16,6 +25,8 @@ type Props = {
   /** Followers tab uses “Follow Back” when not following yet. */
   useFollowBackLabel?: boolean
   onToggleFollow: () => void
+  /** The viewer's own row — shows "You" instead of a button. */
+  isSelf?: boolean
 }
 
 function followButtonLabel(isFollowing: boolean, useFollowBackLabel: boolean): string {
@@ -30,6 +41,7 @@ export function FollowListUserRow({
   showFollowButton,
   useFollowBackLabel = false,
   onToggleFollow,
+  isSelf = false,
 }: Props): JSX.Element {
   const router = useRouter()
   const handle = user.username?.trim().replace(/^@/, '')
@@ -48,68 +60,71 @@ export function FollowListUserRow({
   const actionLabel = followButtonLabel(isFollowing, useFollowBackLabel)
 
   return (
-    <View className="flex-row items-start gap-3 px-5 py-3">
+    <View
+      className="flex-row items-center"
+      style={{ gap: 12, paddingVertical: 12, marginHorizontal: 20, borderBottomWidth: 1, borderBottomColor: SURFACE_FOG }}
+    >
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={`Open ${label} profile`}
         onPress={openProfile}
-        className="mt-0.5"
+        className="flex-row items-center active:opacity-80"
+        style={{ flex: 1, minWidth: 0, gap: 12 }}
       >
-        <ProfileAvatarImage size={44} avatarUrl={user.profile_image} />
-      </Pressable>
-
-      <Pressable
-        accessibilityRole="button"
-        className="min-w-0 flex-1"
-        onPress={openProfile}
-      >
-        <Text className="text-base font-body-medium" style={{ color: TEXT_HEADING }} numberOfLines={1}>
-          {handle ? `@${handle}` : label}
-        </Text>
-        {handle && label !== handle ? (
-          <Text className="mt-0.5 text-sm font-body" style={{ color: TEXT_MUTED }} numberOfLines={1}>
-            {label}
+        <ProfileAvatarImage size={48} avatarUrl={user.profile_image} style={{ borderWidth: 1, borderColor: BORDER_SUBTLE }} />
+        <View style={{ flex: 1, minWidth: 0, gap: 4 }}>
+          <Text numberOfLines={1} style={{ fontFamily: FONT.bodySemibold, fontSize: 14, color: TEXT_HEADING }}>
+            {handle ? `@${handle}` : label}
           </Text>
-        ) : null}
-        {palates.length > 0 ? (
-          <View className="mt-2 flex-row flex-wrap gap-1.5">
-            {palates.map((palate) => (
-              <View key={`${user.id}-${palate}`} className="rounded-full bg-[#f1f1f1] px-2 py-0.5">
-                <Text className="text-xs text-[#31343f] font-body-medium">{palate}</Text>
-              </View>
-            ))}
-          </View>
-        ) : null}
+          {handle && label !== handle ? (
+            <Text numberOfLines={1} style={{ fontFamily: FONT.body, fontSize: 13, color: TEXT_MUTED }}>
+              {label}
+            </Text>
+          ) : null}
+          {palates.length > 0 ? (
+            <View className="flex-row flex-wrap" style={{ gap: 4, marginTop: 2 }}>
+              {palates.map((palate) => (
+                <View
+                  key={`${user.id}-${palate}`}
+                  style={{ height: 22, justifyContent: 'center', paddingHorizontal: 8, borderRadius: 999, borderWidth: 1.5, borderColor: BORDER_SUBTLE }}
+                >
+                  <Text style={{ fontFamily: FONT.bodyMedium, fontSize: 11, color: TEXT_HEADING }}>{palate}</Text>
+                </View>
+              ))}
+            </View>
+          ) : null}
+        </View>
       </Pressable>
 
       {showFollowButton ? (
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={isFollowing ? 'Unfollow' : actionLabel}
+          accessibilityState={{ selected: isFollowing, busy: followLoading }}
           disabled={followLoading}
           onPress={() => {
             void Haptics.selectionAsync()
             onToggleFollow()
           }}
-          className="mt-1 items-center justify-center rounded-full border px-3 py-2 active:opacity-90"
+          className="items-center justify-center active:opacity-80"
           style={[
+            { height: 34, paddingHorizontal: 14, borderRadius: 999 },
             isFollowing
-              ? { borderColor: '#000000', backgroundColor: '#ffffff' }
-              : { borderColor: BRAND_PRIMARY, backgroundColor: BRAND_PRIMARY },
+              ? { backgroundColor: SURFACE_FOG }
+              : { borderWidth: 1.5, borderColor: BRAND_PRIMARY },
             followLoading ? { opacity: 0.55 } : null,
           ]}
         >
           {followLoading ? (
-            <ActivityIndicator color={isFollowing ? TEXT_HEADING : '#ffffff'} size="small" />
+            <ActivityIndicator color={TEXT_HEADING} size="small" />
           ) : (
-            <Text
-              className={`text-xs ${isFollowing ? 'font-body-medium' : 'font-body-semibold'}`}
-              style={{ color: isFollowing ? TEXT_HEADING : '#ffffff' }}
-            >
+            <Text style={{ fontFamily: FONT.heading, fontSize: 13, letterSpacing: 0.5, color: isFollowing ? TEXT_HEADING : BRAND_PRIMARY_DARK }}>
               {actionLabel}
             </Text>
           )}
         </Pressable>
+      ) : isSelf ? (
+        <Text style={{ fontFamily: FONT.body, fontSize: 12, color: TEXT_TERTIARY }}>You</Text>
       ) : null}
     </View>
   )

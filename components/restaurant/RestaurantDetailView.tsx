@@ -1,26 +1,21 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { AppIcon, type AppIconName } from '@/components/ui/AppIcon'
-import {
-  Animated,
-  Linking,
-  Pressable,
-  RefreshControl,
-  ScrollView,
-  Text,
-  useWindowDimensions,
-  View,
-} from 'react-native'
-import MapView, { Marker } from 'react-native-maps'
+import { Animated, Image, Linking, Pressable, RefreshControl, ScrollView, Text, View } from 'react-native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import * as Haptics from 'expo-haptics'
 import { usePathname, useRouter } from 'expo-router'
 
-import { HomeReviewCard } from '@/components/review/HomeReviewCard'
+import { ImageFallback } from '@/components/brand/ImageFallback'
+import { TpMark } from '@/components/brand/TpMark'
+import { RestaurantDetailSummary } from '@/components/restaurant/RestaurantDetailSummary'
+import { RestaurantRatingMetricsRow } from '@/components/restaurant/RestaurantRatingMetricsRow'
+import { ProfileAvatarImage } from '@/components/profile/ProfileAvatarImage'
 import {
   GoogleReviewDetailSheet,
   type GoogleReviewDetailSheetHandle,
 } from '@/components/review/GoogleReviewDetailSheet'
-import { GoogleReviewCard } from '@/components/review/GoogleReviewCard'
+import { AppIcon, type AppIconName } from '@/components/ui/AppIcon'
 import { Button } from '@/components/ui/Button'
+import { AUTH_WALL } from '@/constants/authWalls'
 import {
   BORDER_SUBTLE,
   BRAND_PRIMARY,
@@ -30,10 +25,8 @@ import {
   SURFACE_FOG,
   TEXT_HEADING,
   TEXT_MUTED,
+  TEXT_TERTIARY,
 } from '@/constants/brand'
-import { FONT } from '@/constants/typography'
-import { TpMark } from '@/components/brand/TpMark'
-import { toast } from '@/utils/toast'
 import {
   SCREEN_RESTAURANT_REVIEWS,
   SCREEN_REVIEW_VIEWER,
@@ -41,26 +34,20 @@ import {
   SCREEN_STUDIO_ADD_REVIEW_WRITE,
   SCREEN_STUDIO_MY_LISTS,
 } from '@/constants/screens'
+import { FONT } from '@/constants/typography'
+import { useAuth } from '@/hooks/useAuth'
+import { coerceResumeHref, pushLoginScreen } from '@/lib/authRoutes'
 import {
   buildDirectionsUrl,
   buildGoogleMapsPlaceUrl,
   formatDayRange,
-  formatPriceRange,
-  formatRestaurantAddress,
   groupOpeningHours,
-  hasValidCoordinates,
   stripHtml,
   todayOpeningHoursSummary,
 } from '@/lib/restaurantDetailUtils'
-import { useAuth } from '@/hooks/useAuth'
-import { coerceResumeHref, pushLoginScreen } from '@/lib/authRoutes'
-import { AUTH_WALL } from '@/constants/authWalls'
-import { pushPublicProfile } from '@/lib/publicProfileNavigation'
-import { restaurantPreviewToTrendingRow } from '@/lib/restaurantReviewFeed'
-import {
-  resolveReviewAuthorAvatarUrl,
-  resolveReviewAuthorLabel,
-} from '@/lib/reviewAuthorDisplay'
+import { firstReviewImageUri } from '@/lib/reviewDisplayUtils'
+import { resolveReviewAuthorAvatarUrl, resolveReviewAuthorLabel } from '@/lib/reviewAuthorDisplay'
+import { shareRestaurantListing } from '@/lib/shareRestaurantListing'
 import type {
   RatingSummaryRow,
   RestaurantDetailRow,
@@ -72,51 +59,57 @@ import {
   toggleCheckinBySlug,
   toggleFavoriteBySlug,
 } from '@/services/restaurantEngagementService'
+import { toast } from '@/utils/toast'
 
-const REVIEW_CARD_GAP = 12
-/** `mx-4` + inner `p-4` on the reviews section (each side). */
-const REVIEW_SECTION_EDGE_INSET = 32
+const REVIEW_CARD_WIDTH = 200
 
-import { RestaurantDetailSummary } from '@/components/restaurant/RestaurantDetailSummary'
-import { RestaurantRatingMetricsRow } from '@/components/restaurant/RestaurantRatingMetricsRow'
+function Eyebrow({ children }: { children: string }): JSX.Element {
+  return (
+    <Text
+      accessibilityRole="header"
+      style={{ fontFamily: FONT.heading, fontSize: 11, lineHeight: 14, letterSpacing: 2.2, textTransform: 'uppercase', color: TEXT_MUTED }}
+    >
+      {children}
+    </Text>
+  )
+}
 
-/** Website / Call / Directions — outlined pills (design S5). */
-function ActionPill({
+/** Website / Call / Directions — 48pt outlined circle with a label underneath (design S5). */
+function ActionCircle({
   label,
   icon,
   onPress,
-  disabled = false,
 }: {
   label: string
   icon: AppIconName
   onPress?: () => void
-  disabled?: boolean
 }): JSX.Element {
+  const disabled = !onPress
   return (
     <Pressable
       accessibilityRole="button"
+      accessibilityLabel={label}
       accessibilityState={{ disabled }}
       disabled={disabled}
-      onPress={onPress}
-      className="flex-row items-center active:opacity-80"
-      style={{
-        gap: 8,
-        paddingVertical: 9,
-        paddingHorizontal: 14,
-        borderRadius: 50,
-        borderWidth: 1.5,
-        borderColor: BORDER_SUBTLE,
-        backgroundColor: SURFACE_CARD,
-        opacity: disabled ? 0.45 : 1,
+      onPress={() => {
+        void Haptics.selectionAsync()
+        onPress?.()
       }}
+      className="items-center active:opacity-70"
+      style={{ flex: 1, gap: 8, opacity: disabled ? 0.4 : 1 }}
     >
-      <AppIcon name={icon} size={16} color={TEXT_HEADING} />
-      <Text style={{ fontFamily: FONT.headingMedium, fontSize: 14, color: TEXT_HEADING }}>{label}</Text>
+      <View
+        className="items-center justify-center"
+        style={{ width: 48, height: 48, borderRadius: 24, borderWidth: 2, borderColor: BORDER_SUBTLE }}
+      >
+        <AppIcon name={icon} size={20} color={TEXT_HEADING} />
+      </View>
+      <Text style={{ fontFamily: FONT.bodyMedium, fontSize: 13, color: TEXT_HEADING }}>{label}</Text>
     </Pressable>
   )
 }
 
-/** Save (To-Dine) / Check-in toggle (design M2): tap to add, tap again to remove. */
+/** Save (To-Dine) / Check-in toggle (design S5 + M2): tap to add, tap again to remove. */
 function EngageToggle({
   icon,
   on,
@@ -139,114 +132,114 @@ function EngageToggle({
       accessibilityLabel={offLabel}
       disabled={disabled}
       onPress={onPress}
-      className="flex-row items-center active:opacity-80"
+      className="flex-row items-center justify-center active:opacity-80"
       style={{
-        gap: 8,
-        paddingVertical: 9,
-        paddingHorizontal: 14,
-        borderRadius: 50,
+        flex: 1,
+        height: 46,
+        gap: 10,
+        borderRadius: 999,
         borderWidth: 1.5,
         borderColor: on ? BRAND_PRIMARY : BORDER_SUBTLE,
         backgroundColor: on ? BRAND_PRIMARY_TINT : SURFACE_CARD,
       }}
     >
-      <AppIcon name={icon} active={on} size={16} color={on ? BRAND_PRIMARY : TEXT_HEADING} />
-      <Text style={{ fontFamily: FONT.headingMedium, fontSize: 14, color: on ? BRAND_PRIMARY_DARK : TEXT_HEADING }}>
+      <AppIcon name={icon} active={on} size={18} color={on ? BRAND_PRIMARY : TEXT_HEADING} />
+      <Text style={{ fontFamily: FONT.heading, fontSize: 15, letterSpacing: 0.6, color: on ? BRAND_PRIMARY_DARK : TEXT_HEADING }}>
         {on ? onLabel : offLabel}
       </Text>
     </Pressable>
   )
 }
 
-function OpeningHoursRow({ openingHours }: { openingHours: string | object | null | undefined }): JSX.Element {
-  const [expanded, setExpanded] = useState(false)
-  const rotateAnim = useRef(new Animated.Value(0)).current
-  const grouped = groupOpeningHours(openingHours)
-  const summary = todayOpeningHoursSummary(openingHours)
-  const isClosed = summary === 'Closed'
-
-  const toggle = () => {
-    void Haptics.selectionAsync()
-    const next = !expanded
-    setExpanded(next)
-    Animated.timing(rotateAnim, {
-      toValue: next ? 1 : 0,
-      duration: 200,
-      useNativeDriver: true,
-    }).start()
-  }
-
-  const chevronRotate = rotateAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: ['0deg', '180deg'],
-  })
-
-  if (grouped.length === 0) {
-    return (
-      <View className="flex-row items-start gap-3">
-        <AppIcon name="clock" size={20} color="#6b7280" />
-        <View>
-          <Text className="text-sm text-gray-500 font-body">Opening Hours</Text>
-          <Text className="text-sm text-gray-700 font-body">Not available</Text>
-        </View>
-      </View>
-    )
-  }
-
+/** One review in the horizontal row (design S5): photo, author + rating, title. */
+function ReviewCard({
+  review,
+  google,
+  onPress,
+}: {
+  review: RestaurantReviewPreview
+  google: boolean
+  onPress: () => void
+}): JSX.Element {
+  const img = firstReviewImageUri(review.images, '')
+  const author = resolveReviewAuthorLabel(review.AuthorProfile, google ? 'Google user' : 'Member')
+  const title = stripHtml(review.title ?? '').trim() || stripHtml(review.content ?? '').trim()
   return (
-    <View className="flex-row items-start gap-3">
-      <AppIcon name="clock" size={20} color="#6b7280" style={{ marginTop: 2 }} />
-      <View className="min-w-0 flex-1">
-        <Pressable
-          accessibilityRole="button"
-          accessibilityState={{ expanded }}
-          onPress={toggle}
-          className="flex-row items-center justify-between gap-2"
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`Review by ${author}${review.rating ? `, ${review.rating} stars` : ''}`}
+      onPress={onPress}
+      className="active:opacity-90"
+      style={{ width: REVIEW_CARD_WIDTH, gap: 8 }}
+    >
+      {img ? (
+        <Image source={{ uri: img }} style={{ width: REVIEW_CARD_WIDTH, height: 140, borderRadius: 14, backgroundColor: SURFACE_FOG }} />
+      ) : google ? (
+        <View
+          className="items-center justify-center"
+          style={{ width: REVIEW_CARD_WIDTH, height: 140, borderRadius: 14, backgroundColor: SURFACE_FOG }}
         >
-          <View>
-            <Text className="text-sm text-gray-500 font-body">Opening Hours</Text>
-            <Text
-              className={`text-sm font-body-medium ${
-                isClosed ? 'text-gray-500' : 'text-green-600'
-              }`}
-            >
-              {summary}
-            </Text>
-          </View>
-          <Animated.View style={{ transform: [{ rotate: chevronRotate }] }}>
-            <AppIcon name="chevron-down" size={16} color="#9ca3af" />
-          </Animated.View>
-        </Pressable>
-
-        {expanded ? (
-          <View className="mt-3 gap-1.5 border-t border-gray-100 pt-3">
-            {grouped.map((group, index) => (
-              <View key={index} className="flex-row items-center justify-between gap-3 px-2 py-1">
-                <Text
-                  className={`text-sm font-body ${
-                    group.isToday ? 'text-gray-900 font-body-semibold' : 'text-gray-700 font-body'
-                  }`}
-                >
-                  {formatDayRange(group.days)}
-                </Text>
-                <Text
-                  className={`text-sm font-body ${
-                    group.isClosed
-                      ? 'text-gray-400'
-                      : group.isToday
-                        ? 'text-gray-900 font-body-semibold'
-                        : 'text-gray-700 font-body'
-                  }`}
-                >
-                  {group.isClosed ? 'Closed' : group.hours}
-                </Text>
-              </View>
-            ))}
-          </View>
+          <Text style={{ fontFamily: FONT.heading, fontSize: 28, color: TEXT_TERTIARY }}>G</Text>
+        </View>
+      ) : (
+        <ImageFallback style={{ width: REVIEW_CARD_WIDTH, height: 140, borderRadius: 14 }} />
+      )}
+      <View className="flex-row items-center" style={{ gap: 6 }}>
+        <ProfileAvatarImage size={20} avatarUrl={resolveReviewAuthorAvatarUrl(review.AuthorProfile)} style={{ backgroundColor: BORDER_SUBTLE }} />
+        <Text numberOfLines={1} style={{ flex: 1, fontFamily: FONT.bodyMedium, fontSize: 13, color: TEXT_HEADING }}>
+          {author}
+        </Text>
+        {review.rating ? (
+          <Text style={{ fontFamily: FONT.bodySemibold, fontSize: 13, color: BRAND_PRIMARY_DARK }}>★ {review.rating.toFixed(1)}</Text>
         ) : null}
       </View>
-    </View>
+      {title ? (
+        <Text numberOfLines={2} style={{ fontFamily: FONT.heading, fontSize: 15, lineHeight: 19, color: TEXT_HEADING }}>
+          {title}
+        </Text>
+      ) : null}
+    </Pressable>
   )
+}
+
+/** Details list row (design S5): icon, primary line, optional secondary line. */
+function DetailRow({
+  icon,
+  primary,
+  secondary,
+  onPress,
+}: {
+  icon: AppIconName
+  primary: string
+  secondary?: string | null
+  onPress?: () => void
+}): JSX.Element {
+  const body = (
+    <>
+      <AppIcon name={icon} size={18} color={TEXT_MUTED} style={{ marginTop: 1 }} />
+      <View style={{ flex: 1, gap: 4 }}>
+        <Text style={{ fontFamily: FONT.bodyMedium, fontSize: 14, lineHeight: 18, color: TEXT_HEADING }}>{primary}</Text>
+        {secondary ? (
+          <Text style={{ fontFamily: FONT.body, fontSize: 13, lineHeight: 18, color: TEXT_MUTED }}>{secondary}</Text>
+        ) : null}
+      </View>
+    </>
+  )
+  const style = { flexDirection: 'row' as const, gap: 12, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: BORDER_SUBTLE }
+  if (!onPress) return <View style={style}>{body}</View>
+  return (
+    <Pressable accessibilityRole="button" onPress={onPress} className="active:opacity-70" style={style}>
+      {body}
+    </Pressable>
+  )
+}
+
+function hostOf(url: string): string {
+  try {
+    return new URL(url).host.replace(/^www\./, '')
+  } catch {
+    return url
+  }
 }
 
 export interface RestaurantDetailViewProps {
@@ -273,10 +266,17 @@ export interface RestaurantDetailViewProps {
   scoresError?: string | null
   refreshing?: boolean
   onRefresh?: () => void
+  /** Floating back button on the photo; the screen hides its native header. */
+  onBack?: () => void
   /** Google-only listing — hides TP engagement actions, shows add-review CTA. */
   googlePlaceListing?: { placeId: string; placeName: string; photoAttribution?: string | null }
 }
 
+/**
+ * Restaurant detail (design S5 / S6), top to bottom: photo carousel · header · Website / Call /
+ * Directions · Save and Check-in (Tastyplates listings) · ratings · Write a Review · reviews ·
+ * hours, phone, menu, about. Pull to refresh reloads all of it.
+ */
 export function RestaurantDetailView({
   slug,
   restaurant,
@@ -300,41 +300,43 @@ export function RestaurantDetailView({
   scoresError = null,
   refreshing = false,
   onRefresh,
+  onBack,
   googlePlaceListing,
 }: RestaurantDetailViewProps): JSX.Element {
   const router = useRouter()
   const pathname = usePathname()
-  const { width: windowW } = useWindowDimensions()
+  const insets = useSafeAreaInsets()
   const { isAuthenticated } = useAuth()
+  // Status-bar backdrop fades in once the photo has scrolled away.
+  const scrollY = useRef(new Animated.Value(0)).current
+  const scrimOpacity = scrollY.interpolate({ inputRange: [220, 280], outputRange: [0, 1], extrapolate: 'clamp' })
 
-  const address = formatRestaurantAddress(restaurant) ?? undefined
   const about = stripHtml(restaurant.content)
   const phone = restaurant.phone?.trim() ?? ''
   const websiteUrl = restaurant.menu_url?.trim() ?? ''
-  const priceDisplay = formatPriceRange(restaurant.price_range_id) ?? 'Not available'
   const googleMapsUrl = buildGoogleMapsPlaceUrl(restaurant)
   const directionsUrl = buildDirectionsUrl(restaurant)
-  const coordsValid = hasValidCoordinates(restaurant)
 
   const overallAvg = summary?.overall_rating_avg ?? restaurant.average_rating
   const overallCount = summary?.overall_review_count ?? restaurant.ratings_count ?? 0
   const authAvg = summary?.authentic_rating_avg ?? null
   const authCount = summary?.authentic_review_count ?? 0
 
+  const hours = restaurant.opening_hours as string | object | null | undefined
+  const groupedHours = groupOpeningHours(hours)
+  const todayHours = todayOpeningHoursSummary(hours)
+  const weekHours = groupedHours
+    .map((g) => `${formatDayRange(g.days)} ${g.isClosed ? 'Closed' : g.hours}`)
+    .join(' · ')
+
   const [saved, setSaved] = useState<boolean | null>(null)
   const [checkedIn, setCheckedIn] = useState<boolean | null>(null)
   const [engageBusy, setEngageBusy] = useState(false)
   const [aboutExpanded, setAboutExpanded] = useState(false)
-  const [aboutTruncated, setAboutTruncated] = useState(false)
   const googleReviewSheetRef = useRef<GoogleReviewDetailSheetHandle>(null)
 
   const syncEngagement = useCallback(async () => {
-    if (googlePlaceListing || !slug.trim()) {
-      setSaved(null)
-      setCheckedIn(null)
-      return
-    }
-    if (!isAuthenticated) {
+    if (googlePlaceListing || !slug.trim() || !isAuthenticated) {
       setSaved(null)
       setCheckedIn(null)
       return
@@ -353,20 +355,12 @@ export function RestaurantDetailView({
     void syncEngagement()
   }, [syncEngagement])
 
-  useEffect(() => {
-    setAboutExpanded(false)
-    setAboutTruncated(false)
-  }, [about])
-
   const openWriteReview = () => {
     void Haptics.selectionAsync()
     if (googlePlaceListing) {
       router.push({
         pathname: SCREEN_STUDIO_ADD_REVIEW,
-        params: {
-          prefill_place_id: googlePlaceListing.placeId,
-          prefill_name: googlePlaceListing.placeName,
-        },
+        params: { prefill_place_id: googlePlaceListing.placeId, prefill_name: googlePlaceListing.placeName },
       })
       return
     }
@@ -375,25 +369,16 @@ export function RestaurantDetailView({
       pushLoginScreen(router, { resume: coerceResumeHref(pathname) })
       return
     }
-    router.push({
-      pathname: SCREEN_STUDIO_ADD_REVIEW_WRITE,
-      params: { slug },
-    })
+    router.push({ pathname: SCREEN_STUDIO_ADD_REVIEW_WRITE, params: { slug } })
   }
 
   const promptSignInForEngagement = () => {
     void Haptics.selectionAsync()
-    pushLoginScreen(router, {
-      resume: coerceResumeHref(pathname),
-      wall: AUTH_WALL.saveCheckin,
-    })
+    pushLoginScreen(router, { resume: coerceResumeHref(pathname), wall: AUTH_WALL.saveCheckin })
   }
 
   const onToggleSave = async () => {
-    if (!isAuthenticated) {
-      promptSignInForEngagement()
-      return
-    }
+    if (!isAuthenticated) return promptSignInForEngagement()
     setEngageBusy(true)
     await Haptics.selectionAsync()
     try {
@@ -411,10 +396,7 @@ export function RestaurantDetailView({
   }
 
   const onToggleCheckin = async () => {
-    if (!isAuthenticated) {
-      promptSignInForEngagement()
-      return
-    }
+    if (!isAuthenticated) return promptSignInForEngagement()
     setEngageBusy(true)
     await Haptics.selectionAsync()
     try {
@@ -434,122 +416,104 @@ export function RestaurantDetailView({
     }
   }
 
-  const openWebsite = () => {
-    if (!websiteUrl.startsWith('http')) return
-    void Haptics.selectionAsync()
-    void Linking.openURL(websiteUrl)
-  }
+  const openUrl = (url: string) => void Linking.openURL(url)
+  const openWebsite = websiteUrl.startsWith('http') ? () => openUrl(websiteUrl) : undefined
+  const openCall = phone ? () => openUrl(`tel:${phone.replace(/\s/g, '')}`) : undefined
+  const openDirections = () => openUrl(directionsUrl)
+  const openMaps = googleMapsUrl ? () => openUrl(googleMapsUrl) : undefined
 
-  const openCall = () => {
-    if (!phone) return
-    void Haptics.selectionAsync()
-    void Linking.openURL(`tel:${phone.replace(/\s/g, '')}`)
-  }
-
-  const openDirections = () => {
-    void Haptics.selectionAsync()
-    void Linking.openURL(directionsUrl)
-  }
-
-  const openMaps = () => {
-    if (!googleMapsUrl) return
-    void Haptics.selectionAsync()
-    void Linking.openURL(googleMapsUrl)
-  }
+  const onShare = () =>
+    void shareRestaurantListing({
+      title: restaurant.title,
+      slug,
+      googlePlaceId: googlePlaceListing?.placeId ?? null,
+    })
 
   const visibleReviews = reviews.filter((r) => !r.status || r.status === 'approved')
-  const reviewCardWidth = Math.max(
-    148,
-    Math.floor((windowW - REVIEW_SECTION_EDGE_INSET * 2 - REVIEW_CARD_GAP) / 2),
-  )
 
-  const openReview = (reviewId: string) => {
+  const openReview = (item: RestaurantReviewPreview) => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
-    router.push({
-      pathname: SCREEN_REVIEW_VIEWER,
-      params: { reviewId },
-    })
-  }
-
-  const openReviewAuthor = (item: RestaurantReviewPreview) => {
-    void Haptics.selectionAsync()
-    if (!isAuthenticated) {
-      pushLoginScreen(router, { resume: coerceResumeHref(pathname) })
+    if (googlePlaceListing) {
+      // Google snippets can't be liked or commented on (design R5): short sheet, then Maps.
+      googleReviewSheetRef.current?.present({
+        authorName: resolveReviewAuthorLabel(item.AuthorProfile, 'Google user'),
+        avatarUrl: resolveReviewAuthorAvatarUrl(item.AuthorProfile),
+        rating: item.rating,
+        content: item.content,
+        timeLabel: item.relativeTimeLabel ?? undefined,
+        authorUrl: item.googleAuthorUrl ?? undefined,
+      })
       return
     }
-    pushPublicProfile(router, {
-      profileUserId: item.AuthorProfile?.user_id,
-      username: item.AuthorProfile?.username,
-    })
+    router.push({ pathname: SCREEN_REVIEW_VIEWER, params: { reviewId: item.id } })
   }
 
-  const openGoogleReview = (item: RestaurantReviewPreview) => {
-    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
-    googleReviewSheetRef.current?.present({
-      authorName: resolveReviewAuthorLabel(item.AuthorProfile, 'Google user'),
-      avatarUrl: resolveReviewAuthorAvatarUrl(item.AuthorProfile),
-      rating: item.rating,
-      content: item.content,
-      timeLabel: item.relativeTimeLabel ?? undefined,
-      authorUrl: item.googleAuthorUrl ?? undefined,
+  const openAllReviews = () => {
+    void Haptics.selectionAsync()
+    if (googlePlaceListing) {
+      openMaps?.()
+      return
+    }
+    router.push({
+      pathname: SCREEN_RESTAURANT_REVIEWS,
+      params: { restaurant_uuid: restaurant.uuid, restaurant_title: restaurant.title, restaurant_slug: restaurant.slug },
     })
   }
 
   return (
-    <ScrollView
-      className="flex-1 bg-white"
+    <View style={{ flex: 1, backgroundColor: SURFACE_CARD }}>
+    <Animated.ScrollView
+      style={{ flex: 1 }}
+      contentContainerStyle={{ paddingBottom: 120 }}
       showsVerticalScrollIndicator={false}
+      contentInsetAdjustmentBehavior="never"
+      scrollEventThrottle={16}
+      onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: true })}
       refreshControl={
-        onRefresh ? (
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={BRAND_PRIMARY} />
-        ) : undefined
+        onRefresh ? <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={BRAND_PRIMARY} /> : undefined
       }
     >
-      <RestaurantDetailSummary restaurant={restaurant} googleOnly={Boolean(googlePlaceListing)} />
+      <RestaurantDetailSummary
+        restaurant={restaurant}
+        googleOnly={Boolean(googlePlaceListing)}
+        onBack={onBack}
+        onShare={onShare}
+      />
 
-      {googlePlaceListing ? (
-        <Text className="mx-4 mt-2 text-[11px] font-body" style={{ color: TEXT_MUTED }}>
-          Place details from Google
-          {googlePlaceListing.photoAttribution
-            ? ` · Photo: ${googlePlaceListing.photoAttribution}`
-            : ''}
+      {googlePlaceListing?.photoAttribution ? (
+        <Text style={{ marginHorizontal: 20, marginTop: 8, fontFamily: FONT.body, fontSize: 11, color: TEXT_TERTIARY }}>
+          Photo: {googlePlaceListing.photoAttribution}
         </Text>
       ) : null}
 
-      {/* Section 3 — Action buttons */}
-      <View className="mx-4 mt-6 flex-row flex-wrap gap-2">
-        <ActionPill
-          label="Website"
-          icon="globe"
-          disabled={!websiteUrl}
-          onPress={websiteUrl ? openWebsite : undefined}
-        />
-        <ActionPill label="Call" icon="phone" disabled={!phone} onPress={phone ? openCall : undefined} />
-        <ActionPill label="Directions" icon="navigation" onPress={openDirections} />
-        {googlePlaceListing ? null : (
-          <>
-            <EngageToggle
-              icon="bookmark"
-              on={Boolean(saved)}
-              onLabel="Saved"
-              offLabel="Save"
-              disabled={engageBusy}
-              onPress={() => void onToggleSave()}
-            />
-            <EngageToggle
-              icon="map-pin"
-              on={Boolean(checkedIn)}
-              onLabel="Checked in"
-              offLabel="Check in"
-              disabled={engageBusy}
-              onPress={() => void onToggleCheckin()}
-            />
-          </>
-        )}
+      <View className="flex-row" style={{ paddingHorizontal: 20, paddingTop: 20 }}>
+        <ActionCircle label="Website" icon="globe" onPress={openWebsite} />
+        <ActionCircle label="Call" icon="phone" onPress={openCall} />
+        <ActionCircle label="Directions" icon="navigation" onPress={openDirections} />
       </View>
 
-      {/* Section 4 — Ratings */}
-      <View className="mx-4 mt-4 overflow-hidden rounded-2xl bg-white">
+      {googlePlaceListing ? null : (
+        <View className="flex-row" style={{ gap: 10, paddingHorizontal: 20, paddingTop: 20 }}>
+          <EngageToggle
+            icon="bookmark"
+            on={Boolean(saved)}
+            onLabel="Saved"
+            offLabel="Save"
+            disabled={engageBusy}
+            onPress={() => void onToggleSave()}
+          />
+          <EngageToggle
+            icon="map-pin"
+            on={Boolean(checkedIn)}
+            onLabel="Checked in"
+            offLabel="Check-in"
+            disabled={engageBusy}
+            onPress={() => void onToggleCheckin()}
+          />
+        </View>
+      )}
+
+      <View style={{ paddingHorizontal: 20, paddingTop: 8 }}>
         <RestaurantRatingMetricsRow
           overallAvg={overallAvg}
           overallCount={overallCount}
@@ -571,14 +535,13 @@ export function RestaurantDetailView({
           onClearFilter={onClearCuisineFilter}
         />
         {scoresError ? (
-          <Text className="px-6 pb-2 text-center text-xs text-amber-700 font-body">{scoresError}</Text>
-        ) : null}
-        {scoresLoading ? (
-          <Text className="px-6 pb-2 text-center text-xs text-gray-500 font-body">Updating scores…</Text>
+          <Text style={{ fontFamily: FONT.body, fontSize: 12, color: '#b45309' }}>{scoresError}</Text>
+        ) : scoresLoading ? (
+          <Text style={{ fontFamily: FONT.body, fontSize: 12, color: TEXT_TERTIARY }}>Updating scores…</Text>
         ) : null}
       </View>
 
-      <View className="mx-4 mt-3">
+      <View style={{ paddingHorizontal: 20, paddingTop: 12 }}>
         {googlePlaceListing ? (
           <View style={{ borderRadius: 16, backgroundColor: SURFACE_FOG, padding: 18, gap: 10 }}>
             <TpMark size={26} />
@@ -597,226 +560,87 @@ export function RestaurantDetailView({
         )}
       </View>
 
-      {/* Section 5 — Location */}
-      <View className="mx-4 mt-4 rounded-2xl bg-white p-6">
-        <Text className="mb-4 text-lg text-gray-900 font-body">Location</Text>
-        {coordsValid && restaurant.latitude != null && restaurant.longitude != null ? (
-          <View className="mb-2 overflow-hidden rounded-xl" style={{ height: 256 }}>
-            <MapView
-              style={{ flex: 1 }}
-              scrollEnabled={false}
-              zoomEnabled={false}
-              rotateEnabled={false}
-              pitchEnabled={false}
-              initialRegion={{
-                latitude: restaurant.latitude,
-                longitude: restaurant.longitude,
-                latitudeDelta: 0.01,
-                longitudeDelta: 0.01,
-              }}
-            >
-              <Marker coordinate={{ latitude: restaurant.latitude, longitude: restaurant.longitude }} />
-            </MapView>
-          </View>
+      <View style={{ paddingTop: 28, gap: 12 }}>
+        <View className="flex-row items-baseline justify-between" style={{ paddingHorizontal: 20 }}>
+          <Eyebrow>{googlePlaceListing ? 'Google reviews' : 'Reviews'}</Eyebrow>
+          {visibleReviews.length > 0 && (!googlePlaceListing || openMaps) ? (
+            <Pressable accessibilityRole="button" onPress={openAllReviews} hitSlop={8}>
+              <Text style={{ fontFamily: FONT.bodySemibold, fontSize: 14, color: BRAND_PRIMARY_DARK }}>
+                {googlePlaceListing ? 'Open in Google Maps' : `View All Reviews${reviewTotal ? ` (${reviewTotal})` : ''}`}
+              </Text>
+            </Pressable>
+          ) : null}
+        </View>
+        {visibleReviews.length === 0 ? (
+          <Text style={{ paddingHorizontal: 20, fontFamily: FONT.body, fontSize: 14, color: TEXT_MUTED }}>
+            {googlePlaceListing ? 'No Google reviews for this place yet.' : 'No reviews yet. Be the first to write one.'}
+          </Text>
         ) : (
-          <View className="mb-2 h-40 flex-row items-center justify-center rounded-xl bg-gray-100">
-            <AppIcon name="map-pin" size={20} color="#9ca3af" />
-            <Text className="ml-2 text-gray-500 font-body">Map location not available</Text>
-          </View>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ gap: 12, paddingHorizontal: 20 }}
+          >
+            {visibleReviews.map((item) => (
+              <ReviewCard key={item.id} review={item} google={Boolean(googlePlaceListing)} onPress={() => openReview(item)} />
+            ))}
+          </ScrollView>
         )}
+      </View>
 
-        {address ? (
-          <View className="flex-row items-center gap-3 pt-2">
-            <AppIcon name="map-pin" size={18} color="#6b7280" />
-            <Text className="min-w-0 flex-1 text-sm text-gray-700 font-body">{address}</Text>
-            {googleMapsUrl ? (
-              <Pressable accessibilityRole="button" onPress={openMaps} hitSlop={8}>
-                <AppIcon name="external-link" size={16} color={BRAND_PRIMARY} />
-              </Pressable>
-            ) : null}
-          </View>
+      <View style={{ paddingHorizontal: 20, paddingTop: 26 }}>
+        <View style={{ paddingBottom: 4 }}>
+          <Eyebrow>Details</Eyebrow>
+        </View>
+        <DetailRow
+          icon="clock"
+          primary={
+            groupedHours.length === 0
+              ? 'Hours not available'
+              : todayHours === 'Closed'
+                ? 'Closed today'
+                : todayHours.replace(/^Open\s*·\s*/, 'Open today · ')
+          }
+          secondary={weekHours || null}
+        />
+        {phone ? <DetailRow icon="phone" primary={phone} onPress={openCall} /> : null}
+        {websiteUrl ? <DetailRow icon="book-open" primary={`Menu · ${hostOf(websiteUrl)}`} onPress={openWebsite} /> : null}
+        {about ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityHint={aboutExpanded ? 'Collapses the description' : 'Expands the description'}
+            onPress={() => setAboutExpanded((v) => !v)}
+          >
+            <Text
+              numberOfLines={aboutExpanded ? undefined : 4}
+              style={{ marginTop: 14, fontFamily: FONT.body, fontSize: 14, lineHeight: 22, color: TEXT_HEADING }}
+            >
+              {about}
+            </Text>
+          </Pressable>
         ) : null}
       </View>
 
-      {/* Section 6 — Restaurant Details */}
-      <View className="mx-4 mt-4 rounded-2xl border border-gray-200 bg-white p-6">
-        <Text className="mb-4 text-lg text-gray-900 font-body">Restaurant Details</Text>
-        <View className="gap-4">
-          {about ? (
-            <View className="border-b border-gray-200 pb-4">
-              <Text
-                className="text-sm leading-relaxed text-gray-700 font-body"
-                numberOfLines={aboutExpanded ? undefined : 4}
-                onTextLayout={(event) => {
-                  if (aboutExpanded) return
-                  setAboutTruncated(event.nativeEvent.lines.length >= 4)
-                }}
-              >
-                {about}
-              </Text>
-              {!aboutExpanded && aboutTruncated ? (
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel="Show full description"
-                  onPress={() => {
-                    void Haptics.selectionAsync()
-                    setAboutExpanded(true)
-                  }}
-                  className="mt-2 active:opacity-80"
-                >
-                  <Text className="text-sm text-gray-700 font-body-medium">See More</Text>
-                </Pressable>
-              ) : null}
-              {aboutExpanded && aboutTruncated ? (
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel="Show less description"
-                  onPress={() => {
-                    void Haptics.selectionAsync()
-                    setAboutExpanded(false)
-                  }}
-                  className="mt-2 active:opacity-80"
-                >
-                  <Text className="text-sm text-gray-700 font-body-medium">See Less</Text>
-                </Pressable>
-              ) : null}
-            </View>
-          ) : null}
+    </Animated.ScrollView>
 
-          <OpeningHoursRow openingHours={restaurant.opening_hours as string | object | null | undefined} />
-
-          <View className="flex-row items-center gap-3">
-            <AppIcon name="phone" size={20} color="#6b7280" />
-            <View className="min-w-0 flex-1">
-              <Text className="text-sm text-gray-500 font-body">Phone</Text>
-              {phone ? (
-                <Pressable accessibilityRole="button" onPress={openCall}>
-                  <Text className="text-sm text-gray-700 font-body">{phone}</Text>
-                </Pressable>
-              ) : (
-                <Text className="text-sm text-gray-700 font-body">Not available</Text>
-              )}
-            </View>
-          </View>
-
-          <View className="flex-row items-center gap-3">
-            <AppIcon name="dollar-sign" size={20} color="#6b7280" />
-            <View>
-              <Text className="text-sm text-gray-500 font-body">Price Range</Text>
-              <Text className="text-sm text-gray-700 font-body">{priceDisplay}</Text>
-            </View>
-          </View>
-        </View>
-      </View>
-
-      {/* Reviews */}
-      <View className="mx-4 mt-4 rounded-2xl bg-white p-4">
-        <Text
-          accessibilityRole="header"
-          style={{
-            marginBottom: 12,
-            fontFamily: FONT.heading,
-            fontSize: 11,
-            lineHeight: 14,
-            letterSpacing: 2.2,
-            textTransform: 'uppercase',
-            color: TEXT_MUTED,
-          }}
-        >
-          Reviews
-        </Text>
-        {visibleReviews.length === 0 ? (
-          <View>
-            <Text className="text-sm font-body" style={{ color: TEXT_MUTED }}>
-              {googlePlaceListing
-                ? 'No Google reviews available for this place yet.'
-                : 'No reviews yet. Be the first to write one.'}
-            </Text>
-          </View>
-        ) : (
-          <>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={{ paddingRight: 4 }}
-            >
-              {visibleReviews.map((item, index) => (
-                <View
-                  key={item.id}
-                  style={{
-                    width: reviewCardWidth,
-                    marginRight: index < visibleReviews.length - 1 ? REVIEW_CARD_GAP : 0,
-                  }}
-                >
-                  {googlePlaceListing ? (
-                    <GoogleReviewCard
-                      width={reviewCardWidth}
-                      authorName={resolveReviewAuthorLabel(item.AuthorProfile, 'Google user')}
-                      avatarUrl={resolveReviewAuthorAvatarUrl(item.AuthorProfile)}
-                      rating={item.rating}
-                      content={item.content}
-                      timeLabel={item.relativeTimeLabel}
-                      onPress={() => openGoogleReview(item)}
-                    />
-                  ) : (
-                    <HomeReviewCard
-                      width={reviewCardWidth}
-                      review={restaurantPreviewToTrendingRow(item, restaurant.uuid)}
-                      onPressCard={() => openReview(item.id)}
-                      onPressAuthor={() => openReviewAuthor(item)}
-                    />
-                  )}
-                </View>
-              ))}
-            </ScrollView>
-            {googlePlaceListing ? (
-              <>
-                <Text className="mt-3 text-center text-[11px] font-body" style={{ color: TEXT_MUTED }}>
-                  Reviews from Google
-                </Text>
-                {googleMapsUrl ? (
-                  <Pressable
-                    onPress={openMaps}
-                    className="mt-2 w-full items-center justify-center rounded-xl border border-gray-300 bg-white py-3 active:opacity-90"
-                  >
-                    <Text className="text-sm font-body-medium" style={{ color: BRAND_PRIMARY }}>
-                      View on Google Maps ({reviewTotal})
-                    </Text>
-                  </Pressable>
-                ) : null}
-              </>
-            ) : (
-              <Pressable
-                onPress={() => {
-                  void Haptics.selectionAsync()
-                  router.push({
-                    pathname: SCREEN_RESTAURANT_REVIEWS,
-                    params: {
-                      restaurant_uuid: restaurant.uuid,
-                      restaurant_title: restaurant.title,
-                      restaurant_slug: restaurant.slug,
-                    },
-                  })
-                }}
-                className="mt-3 w-full items-center justify-center rounded-xl border border-gray-300 bg-white py-3 active:opacity-90"
-              >
-                <Text className="text-sm font-body-medium" style={{ color: BRAND_PRIMARY }}>
-                  View All Reviews ({reviewTotal})
-                </Text>
-              </Pressable>
-            )}
-          </>
-        )}
-      </View>
-
-      <View style={{ height: 32 }} />
+      <Animated.View
+        pointerEvents="none"
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          height: insets.top,
+          backgroundColor: SURFACE_CARD,
+          opacity: scrimOpacity,
+          borderBottomWidth: 1,
+          borderBottomColor: BORDER_SUBTLE,
+        }}
+      />
 
       {googlePlaceListing ? (
-        <GoogleReviewDetailSheet
-          ref={googleReviewSheetRef}
-          onViewOnGoogleMaps={googleMapsUrl ? openMaps : undefined}
-        />
+        <GoogleReviewDetailSheet ref={googleReviewSheetRef} onViewOnGoogleMaps={openMaps} />
       ) : null}
-    </ScrollView>
+    </View>
   )
 }

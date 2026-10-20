@@ -307,7 +307,8 @@ function ProfileListsTabScroll({
 
   return (
     <ScrollView
-      className="flex-1 bg-white"
+      className="flex-1"
+      style={{ backgroundColor: SURFACE_CARD }}
       contentContainerStyle={{
         paddingHorizontal: HORIZONTAL_PAD,
         paddingTop: 12,

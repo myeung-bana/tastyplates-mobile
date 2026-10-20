@@ -20,3 +20,17 @@ export const QUICK_FINDS: readonly QuickFindItem[] = [
   { slug: 'middle-eastern', label: 'Middle Eastern', iconFile: 'middle-eastern-cuisine.png' },
   { slug: 'north-american', label: 'North American', iconFile: 'na-cuisine.png' },
 ] as const
+
+/** Home "Quick finds" (design H1): ten leaf cuisines, two rows of five, drawn with brand glyphs. */
+export const HOME_QUICK_FINDS: readonly { slug: string; label: string }[] = [
+  { slug: 'korean', label: 'Korean' },
+  { slug: 'chinese', label: 'Chinese' },
+  { slug: 'japanese', label: 'Japanese' },
+  { slug: 'thai', label: 'Thai' },
+  { slug: 'italian', label: 'Italian' },
+  { slug: 'vietnamese', label: 'Vietnamese' },
+  { slug: 'indian', label: 'Indian' },
+  { slug: 'mexican', label: 'Mexican' },
+  { slug: 'french', label: 'French' },
+  { slug: 'ethiopian', label: 'Ethiopian' },
+] as const

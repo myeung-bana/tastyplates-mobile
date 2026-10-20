@@ -34,7 +34,7 @@ export function HomeHero({ recentRefreshKey = 0 }: HomeHeroProps) {
   const recentOnHome = recents.slice(0, HOME_RECENT_LIMIT)
 
   return (
-    <View style={{ paddingHorizontal: 20, paddingTop: 4, gap: 16 }}>
+    <View style={{ paddingHorizontal: 20, gap: 16 }}>
       <Text
         accessibilityRole="header"
         style={{ fontFamily: FONT.heading, fontSize: 28, lineHeight: 32, letterSpacing: -0.4, color: TEXT_HEADING }}

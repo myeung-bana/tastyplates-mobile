@@ -140,7 +140,7 @@ export function RecommendedRestaurantsCarousel({
               paddingHorizontal: hideSectionHeader ? 0 : 16,
               paddingTop: hideSectionHeader ? 0 : 16,
               gap: 12,
-              paddingBottom: 8,
+              paddingBottom: hideSectionHeader ? 0 : 8,
             }}
           >
             {Array.from({ length: skeletonCount }, (_, i) => (
@@ -164,7 +164,7 @@ export function RecommendedRestaurantsCarousel({
             paddingHorizontal: hideSectionHeader ? 0 : 16,
             paddingTop: hideSectionHeader ? 0 : 16,
             gap: 12,
-            paddingBottom: 8,
+            paddingBottom: hideSectionHeader ? 0 : 8,
           }}
         >
           {cardNodes}
