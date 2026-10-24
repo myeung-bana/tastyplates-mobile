@@ -17,8 +17,17 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { ProfileAvatarImage } from '@/components/profile/ProfileAvatarImage'
 import { AppIcon } from '@/components/ui/AppIcon'
-import { RatingDisplay } from '@/components/ui/RatingDisplay'
-import { BRAND_PRIMARY, TEXT_BODY, TEXT_HEADING, TEXT_MUTED } from '@/constants/brand'
+import {
+  BORDER_SUBTLE,
+  BRAND_PRIMARY,
+  BRAND_PRIMARY_DARK,
+  SURFACE_CARD,
+  SURFACE_FOG,
+  TEXT_HEADING,
+  TEXT_MUTED,
+  TEXT_TERTIARY,
+} from '@/constants/brand'
+import { FONT } from '@/constants/typography'
 import { stripHtml } from '@/lib/restaurantDetailUtils'
 
 export type GoogleReviewDetailPayload = {
@@ -72,78 +81,99 @@ export const GoogleReviewDetailSheet = forwardRef<
   }
 
   const body = stripHtml(review?.content ?? '').trim()
+  const rating = review?.rating != null && review.rating > 0 ? review.rating : null
+  const meta = ['Google review', review?.timeLabel?.trim()].filter(Boolean).join(' · ')
 
   return (
     <BottomSheetModal
       ref={sheetRef}
-      snapPoints={['55%', '85%']}
+      enableDynamicSizing
       enablePanDownToClose
       backdropComponent={renderBackdrop}
-      handleIndicatorStyle={{ backgroundColor: '#d1d5db', width: 40 }}
+      handleIndicatorStyle={{ backgroundColor: BORDER_SUBTLE, width: 40, height: 5 }}
+      backgroundStyle={{ backgroundColor: SURFACE_CARD, borderTopLeftRadius: 24, borderTopRightRadius: 24 }}
     >
       <BottomSheetScrollView
         contentContainerStyle={{
-          paddingHorizontal: 20,
-          paddingTop: 8,
-          paddingBottom: Math.max(insets.bottom, 20),
+          paddingHorizontal: 24,
+          paddingTop: 6,
+          paddingBottom: Math.max(insets.bottom, 20) + 12,
+          gap: 16,
         }}
       >
-        <View className="mb-4 flex-row items-center justify-between">
-          <Text className="text-lg font-body" style={{ color: TEXT_HEADING }}>
-            Review
-          </Text>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Close review"
-            hitSlop={12}
-            onPress={dismiss}
-          >
-            <AppIcon name="x" size={22} color={TEXT_HEADING} />
-          </Pressable>
-        </View>
-
         {review ? (
           <>
-            <View className="mb-4 flex-row items-center gap-3">
-              <ProfileAvatarImage size={40} avatarUrl={review.avatarUrl} className="bg-gray-200" />
-              <View className="min-w-0 flex-1">
-                {review.authorUrl?.startsWith('http') ? (
-                  <Pressable accessibilityRole="link" onPress={openAuthorProfile}>
-                    <Text className="text-base font-body-medium" style={{ color: TEXT_HEADING }} numberOfLines={1}>
-                      {review.authorName}
+            {/* Design R5: dashed "G" avatar marks a Google author, not a Tastyplates profile. */}
+            <View className="flex-row items-center" style={{ gap: 10 }}>
+              {review.avatarUrl ? (
+                <ProfileAvatarImage size={36} avatarUrl={review.avatarUrl} style={{ backgroundColor: SURFACE_FOG }} />
+              ) : (
+                <View
+                  className="items-center justify-center"
+                  style={{ width: 36, height: 36, borderRadius: 18, borderWidth: 1, borderStyle: 'dashed', borderColor: TEXT_TERTIARY }}
+                >
+                  <Text style={{ fontFamily: FONT.bodyMedium, fontSize: 11, color: TEXT_MUTED }}>G</Text>
+                </View>
+              )}
+              <Pressable
+                accessibilityRole={review.authorUrl?.startsWith('http') ? 'link' : 'none'}
+                disabled={!review.authorUrl?.startsWith('http')}
+                onPress={openAuthorProfile}
+                className="min-w-0 flex-1"
+                style={{ gap: 4 }}
+              >
+                <Text numberOfLines={1} style={{ fontFamily: FONT.bodySemibold, fontSize: 14, color: TEXT_HEADING }}>
+                  {review.authorName}
+                </Text>
+                <Text numberOfLines={1} style={{ fontFamily: FONT.body, fontSize: 12, color: TEXT_MUTED }}>
+                  {meta}
+                </Text>
+              </Pressable>
+              {rating != null ? (
+                <View className="flex-row items-center" accessibilityLabel={`Rated ${rating.toFixed(1)} out of 5`}>
+                  {[1, 2, 3, 4, 5].map((n) => (
+                    <Text key={n} style={{ fontSize: 13, marginRight: 1, color: n <= Math.round(rating) ? BRAND_PRIMARY : BORDER_SUBTLE }}>
+                      ★
                     </Text>
-                  </Pressable>
-                ) : (
-                  <Text className="text-base font-body-medium" style={{ color: TEXT_HEADING }} numberOfLines={1}>
-                    {review.authorName}
+                  ))}
+                  <Text style={{ marginLeft: 6, fontFamily: FONT.bodySemibold, fontSize: 13, color: TEXT_HEADING }}>
+                    {rating.toFixed(1)}
                   </Text>
-                )}
-                {review.timeLabel ? (
-                  <Text className="text-sm font-body" style={{ color: TEXT_MUTED }}>
-                    {review.timeLabel}
-                  </Text>
-                ) : null}
-              </View>
-              <RatingDisplay size="sm" value={review.rating} />
+                </View>
+              ) : null}
             </View>
 
-            <Text className="text-base leading-6 font-body" style={{ color: TEXT_BODY }}>
+            <Text style={{ fontFamily: FONT.body, fontSize: 15, lineHeight: 23, color: TEXT_HEADING }}>
               {body || 'No review text.'}
             </Text>
 
-            <Text className="mt-6 text-center text-xs font-body" style={{ color: TEXT_MUTED }}>
-              Review from Google
+            <Text
+              style={{
+                fontFamily: FONT.body,
+                fontSize: 12,
+                lineHeight: 18,
+                color: TEXT_MUTED,
+                paddingVertical: 10,
+                paddingHorizontal: 12,
+                borderRadius: 12,
+                backgroundColor: SURFACE_FOG,
+                overflow: 'hidden',
+              }}
+            >
+              This is a Google review, so it can’t be liked or commented on in Tastyplates.
             </Text>
 
             {onViewOnGoogleMaps ? (
               <Pressable
-                accessibilityRole="button"
+                accessibilityRole="link"
                 onPress={onViewOnGoogleMaps}
-                className="mt-3 w-full items-center justify-center rounded-xl border border-gray-300 bg-white py-3 active:opacity-90"
+                className="flex-row items-center justify-center active:opacity-80"
+                style={{ height: 52, gap: 8, borderRadius: 999, borderWidth: 1.5, borderColor: BRAND_PRIMARY }}
               >
-                <Text className="text-sm font-body-medium" style={{ color: BRAND_PRIMARY }}>
-                  View on Google Maps
+                <Text style={{ fontFamily: FONT.heading, fontSize: 17, letterSpacing: 0.7, color: BRAND_PRIMARY_DARK }}>
+                  Open in Google Maps
                 </Text>
+                <AppIcon name="external-link" size={16} color={BRAND_PRIMARY_DARK} />
               </Pressable>
             ) : null}
           </>

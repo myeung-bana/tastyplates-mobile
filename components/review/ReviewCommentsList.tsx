@@ -3,9 +3,9 @@ import { FlashList } from '@shopify/flash-list'
 
 import { ReplyItem } from '@/components/review/ReplyItem'
 import { ReplySkeleton } from '@/components/ui/Skeleton/ReplySkeleton'
-import { BRAND_PRIMARY, TEXT_MUTED } from '@/constants/brand'
+import { BRAND_PRIMARY, TEXT_HEADING, TEXT_MUTED } from '@/constants/brand'
 import type { UseReviewCommentsResult } from '@/hooks/useReviewComments'
-import { FONT, bodyFont } from '@/constants/typography'
+import { FONT } from '@/constants/typography'
 
 
 export type ReviewCommentsListProps = {
@@ -68,7 +68,7 @@ export function ReviewCommentsList({
     <FlashList
       data={replies}
       keyExtractor={(item) => item.id}
-      contentContainerStyle={{ padding: 16, paddingBottom: contentPaddingBottom }}
+      contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: contentPaddingBottom }}
       refreshControl={
         <RefreshControl
           refreshing={refreshing}
@@ -79,11 +79,9 @@ export function ReviewCommentsList({
       ListEmptyComponent={
         !loading ? (
           <View style={{ alignItems: 'center', paddingVertical: 48 }}>
-            <Text style={{  fontSize: 16, fontFamily: bodyFont('500'), color: '#374151' }}>
-              No Comments Yet
-            </Text>
-            <Text style={{ fontFamily: FONT.body, fontSize: 14, color: '#6b7280', marginTop: 4 }}>
-              Be the first to comment!
+            <Text style={{ fontFamily: FONT.heading, fontSize: 18, color: TEXT_HEADING }}>No comments yet</Text>
+            <Text style={{ fontFamily: FONT.body, fontSize: 14, color: TEXT_MUTED, marginTop: 4 }}>
+              Start the conversation.
             </Text>
           </View>
         ) : null

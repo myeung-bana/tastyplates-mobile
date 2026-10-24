@@ -8,6 +8,7 @@ import { AppIcon } from '@/components/ui/AppIcon'
 import {
   BORDER_SUBTLE,
   BRAND_PRIMARY,
+  BRAND_PRIMARY_DARK,
   SURFACE_CARD,
   SURFACE_FOG,
   TEXT_HEADING,
@@ -19,8 +20,10 @@ import { useOwnProfilePresentation } from '@/hooks/useOwnProfilePresentation'
 import type { UseReviewCommentsResult } from '@/hooks/useReviewComments'
 import { FONT } from '@/constants/typography'
 
-const SEND_BUTTON_SIZE = 36
-const COMPOSER_INPUT_MIN_HEIGHT = 36
+const SEND_BUTTON_SIZE = 34
+/** Faded brand orange for the inactive send button (design R3). */
+const SEND_DISABLED = '#FFB070'
+const COMPOSER_INPUT_MIN_HEIGHT = 41
 const COMPOSER_INPUT_MAX_HEIGHT = 120
 
 export type ReviewCommentsComposerProps = {
@@ -38,11 +41,12 @@ export type ReviewCommentsComposerProps = {
   /** Use gorhom input when rendered inside a bottom sheet footer. */
   variant?: 'default' | 'bottomSheet'
   bottomInset?: number
+  placeholder?: string
 }
 
 export const ReviewCommentsComposer = forwardRef<RNTextInput, ReviewCommentsComposerProps>(
   function ReviewCommentsComposer(
-    { comments, variant = 'default', bottomInset = 12 },
+    { comments, variant = 'default', bottomInset = 12, placeholder = 'Add a comment…' },
     ref,
   ): JSX.Element {
     const {
@@ -61,7 +65,7 @@ export const ReviewCommentsComposer = forwardRef<RNTextInput, ReviewCommentsComp
     const inputProps = {
       value: commentText,
       onChangeText: setCommentText,
-      placeholder: 'Add a comment…',
+      placeholder,
       placeholderTextColor: TEXT_TERTIARY,
       maxLength: commentMaxLength,
       editable: cooldown === 0 && !submitting,
@@ -74,10 +78,9 @@ export const ReviewCommentsComposer = forwardRef<RNTextInput, ReviewCommentsComp
         fontFamily: FONT.body,
         fontSize: 15,
         color: TEXT_HEADING,
-        paddingVertical: 8,
-        paddingHorizontal: 12,
-        borderRadius: 18,
-        backgroundColor: SURFACE_FOG,
+        minWidth: 0,
+        paddingTop: 11,
+        paddingBottom: 11,
         minHeight: COMPOSER_INPUT_MIN_HEIGHT,
         maxHeight: COMPOSER_INPUT_MAX_HEIGHT,
       },
@@ -90,19 +93,33 @@ export const ReviewCommentsComposer = forwardRef<RNTextInput, ReviewCommentsComp
           borderTopColor: BORDER_SUBTLE,
           paddingHorizontal: 16,
           paddingTop: 10,
+          gap: 6,
           paddingBottom: bottomInset,
           backgroundColor: SURFACE_CARD,
         }}
       >
         {isAuthenticated ? (
-          <View style={{ flexDirection: 'row', gap: 10 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 10 }}>
             <ProfileAvatarImage
               size={32}
               avatarUrl={avatarUrl}
-              style={{ marginTop: 6, backgroundColor: '#e5e7eb' }}
+              style={{ marginBottom: 6, backgroundColor: SURFACE_FOG, borderWidth: 1, borderColor: BORDER_SUBTLE }}
             />
 
-            <View style={{ flex: 1, flexDirection: 'row', alignItems: 'flex-end', gap: 8 }}>
+            <View
+              style={{
+                flex: 1,
+                flexDirection: 'row',
+                alignItems: 'flex-end',
+                gap: 6,
+                minHeight: 44,
+                borderRadius: 22,
+                borderWidth: 1.5,
+                borderColor: BRAND_PRIMARY,
+                paddingLeft: 16,
+                paddingRight: 4,
+              }}
+            >
               {variant === 'bottomSheet' ? (
                 <BottomSheetTextInput
                   ref={ref as Ref<ElementRef<typeof BottomSheetTextInput>>}
@@ -118,20 +135,21 @@ export const ReviewCommentsComposer = forwardRef<RNTextInput, ReviewCommentsComp
                 hitSlop={8}
                 accessibilityRole="button"
                 accessibilityLabel="Submit comment"
+                accessibilityState={{ disabled: !canSend }}
                 style={{
                   width: SEND_BUTTON_SIZE,
                   height: SEND_BUTTON_SIZE,
                   borderRadius: SEND_BUTTON_SIZE / 2,
                   alignItems: 'center',
                   justifyContent: 'center',
-                  backgroundColor: canSend ? BRAND_PRIMARY : BORDER_SUBTLE,
-                  marginBottom: 2,
+                  backgroundColor: canSend ? BRAND_PRIMARY : SEND_DISABLED,
+                  marginBottom: 3,
                 }}
               >
                 {submitting ? (
                   <ActivityIndicator size="small" color="#ffffff" />
                 ) : (
-                  <AppIcon name="arrow-up" size={18} color={canSend ? '#ffffff' : TEXT_TERTIARY} />
+                  <AppIcon name="arrow-up" size={18} color="#ffffff" />
                 )}
               </Pressable>
             </View>
@@ -139,14 +157,14 @@ export const ReviewCommentsComposer = forwardRef<RNTextInput, ReviewCommentsComp
         ) : null}
         {isAuthenticated ? (
           // Composer meta (design R3): cooldown after posting, then the character count.
-          <View className="flex-row justify-between" style={{ marginTop: 6, paddingLeft: 42 }}>
+          <View className="flex-row justify-between" style={{ paddingLeft: 42 }}>
             <Text
               accessibilityLiveRegion="polite"
-              style={{ fontFamily: FONT.body, fontSize: 11, color: cooldown > 0 ? BRAND_PRIMARY : TEXT_TERTIARY }}
+              style={{ fontFamily: FONT.body, fontSize: 12, color: cooldown > 0 ? BRAND_PRIMARY_DARK : TEXT_MUTED }}
             >
               {cooldown > 0 ? `Posted · next comment in ${cooldown}s` : 'Visible to everyone on this review'}
             </Text>
-            <Text style={{ fontFamily: FONT.body, fontSize: 11, color: TEXT_TERTIARY }}>
+            <Text style={{ fontFamily: FONT.body, fontSize: 12, color: TEXT_MUTED }}>
               {commentText.length.toLocaleString()} / {commentMaxLength.toLocaleString()}
             </Text>
           </View>

@@ -1,4 +1,6 @@
+import { restaurantPalateAndCategoryLabels } from '@/lib/restaurantDetailUtils'
 import { tastyplatesFetch, unwrapEnvelope } from '@/lib/tastyplatesFetch'
+import type { RestaurantDetailRow } from '@/services/restaurantDetailService'
 import type { TrendingReviewAuthor } from '@/services/homeReviewsService'
 
 /** Row returned by `restaurant-reviews/get-review-by-id`. */
@@ -34,6 +36,9 @@ interface GetReviewByIdResponse {
 interface RestaurantBriefPayload {
   title?: string | null
   slug?: string | null
+  palates?: unknown
+  cuisines?: unknown
+  categories?: unknown
 }
 
 interface GetRestaurantByIdResponse {
@@ -54,6 +59,8 @@ export async function fetchReviewById(id: string): Promise<ReviewDetailRow> {
 export interface RestaurantBrief {
   title: string | null
   slug: string | null
+  /** Primary palate / cuisine label, e.g. "Korean" (design R2 restaurant pill). */
+  cuisine: string | null
 }
 
 /** Best-effort: returns null if listing is unavailable or UUID not found. */
@@ -66,5 +73,6 @@ export async function fetchRestaurantBriefByUuid(uuid: string): Promise<Restaura
   return {
     title: typeof r.title === 'string' ? r.title : null,
     slug: typeof r.slug === 'string' ? r.slug : null,
+    cuisine: restaurantPalateAndCategoryLabels(r as RestaurantDetailRow).primaryPalate,
   }
 }

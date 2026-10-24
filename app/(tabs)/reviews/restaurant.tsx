@@ -1,27 +1,18 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useState } from 'react'
-import {
-  ActivityIndicator,
-  FlatList,
-  Pressable,
-  RefreshControl,
-  ScrollView,
-  Text,
-  View,
-} from 'react-native'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { ActivityIndicator, FlatList, Pressable, RefreshControl, Text, View } from 'react-native'
 import * as Haptics from 'expo-haptics'
 import { Stack, useLocalSearchParams, useNavigation, useRouter } from 'expo-router'
 
-import {
-  FollowingFeedReviewCard,
-  FollowingFeedRowSkeleton,
-} from '@/components/following/FollowingFeedReviewCard'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
+
+import { CircleIconButton } from '@/components/navigation/CircleIconButton'
 import {
   RestaurantReviewSortChips,
   type RestaurantReviewSortFilter,
 } from '@/components/restaurant/RestaurantReviewSortChips'
-import { AppIcon } from '@/components/ui/AppIcon'
-import { BRAND_PRIMARY, TEXT_BODY, TEXT_HEADING, TEXT_MUTED } from '@/constants/brand'
-import { STACK_DETAIL_HEADER_OPTIONS } from '@/constants/stackHeader'
+import { RestaurantReviewRow, RestaurantReviewRowSkeleton } from '@/components/review/RestaurantReviewRow'
+import { BRAND_PRIMARY, SURFACE_CARD, TEXT_BODY, TEXT_HEADING, TEXT_MUTED } from '@/constants/brand'
+import { FONT } from '@/constants/typography'
 import {
   SCREEN_RESTAURANT_DETAIL,
   SCREEN_REVIEW_VIEWER,
@@ -44,6 +35,7 @@ function firstParam(value: string | string[] | undefined): string | undefined {
 export default function RestaurantReviewsScreen() {
   const router = useRouter()
   const navigation = useNavigation()
+  const insets = useSafeAreaInsets()
   const params = useLocalSearchParams<{
     restaurant_uuid?: string | string[]
     restaurant_title?: string | string[]
@@ -91,25 +83,6 @@ export default function RestaurantReviewsScreen() {
     }
     router.back()
   }, [navigation, restaurantSlug, router])
-
-  useLayoutEffect(() => {
-    navigation.setOptions({
-      ...STACK_DETAIL_HEADER_OPTIONS,
-      title: headerTitle,
-      headerShown: true,
-      headerLeft: () => (
-        <Pressable
-          accessibilityLabel="Go back"
-          accessibilityRole="button"
-          hitSlop={12}
-          onPress={onGoBack}
-          className="ml-1 rounded-full p-1 active:opacity-70"
-        >
-          <AppIcon name="chevron-left" size={28} color={TEXT_HEADING} />
-        </Pressable>
-      ),
-    })
-  }, [navigation, headerTitle, onGoBack])
 
   const loadPage = useCallback(
     async (
@@ -197,70 +170,62 @@ export default function RestaurantReviewsScreen() {
     pushPublicProfile(router, publicProfileFromAuthorFields(review.author_id, review.AuthorProfile))
   }
 
-  const sortChips = (
-    <View className="border-b border-gray-100 px-4 py-3">
-      <RestaurantReviewSortChips active={sortFilter} onChange={setSortFilter} />
+  const header = (
+    <View style={{ paddingTop: insets.top, backgroundColor: SURFACE_CARD }}>
+      <View className="flex-row items-center" style={{ height: 52, paddingHorizontal: 16, gap: 12 }}>
+        <CircleIconButton icon="chevron-left" accessibilityLabel="Go back" onPress={onGoBack} />
+        <View className="min-w-0 flex-1" style={{ gap: 3 }}>
+          <Text numberOfLines={1} accessibilityRole="header" style={{ fontFamily: FONT.heading, fontSize: 17, color: TEXT_HEADING }}>
+            {headerTitle}
+          </Text>
+          {!loading && !invalidUuid ? (
+            <Text style={{ fontFamily: FONT.body, fontSize: 12, color: TEXT_MUTED }}>
+              {total > 0 ? `${total} review${total === 1 ? '' : 's'}` : 'No reviews yet'}
+            </Text>
+          ) : null}
+        </View>
+      </View>
+      <View style={{ paddingTop: 12, paddingBottom: 4 }}>
+        <RestaurantReviewSortChips active={sortFilter} onChange={setSortFilter} />
+      </View>
     </View>
   )
 
   if (invalidUuid) {
     return (
-      <>
-        <Stack.Screen options={{ headerShown: true, title: 'Reviews' }} />
-        <View className="flex-1 items-center justify-center bg-white px-8">
+      <View className="flex-1" style={{ backgroundColor: SURFACE_CARD }}>
+        <Stack.Screen options={{ headerShown: false }} />
+        {header}
+        <View className="flex-1 items-center justify-center px-8">
           <Text className="text-center text-base font-body" style={{ color: TEXT_BODY }}>
             Invalid restaurant link.
           </Text>
         </View>
-      </>
+      </View>
     )
   }
-
-  if (loading && !refreshing) {
-    return (
-      <>
-        <Stack.Screen options={{ headerShown: true }} />
-        <ScrollView className="flex-1 bg-white" contentContainerStyle={{ paddingBottom: 32 }}>
-          {sortChips}
-          <View className="px-4 pt-4">
-            {[0, 1, 2, 3].map((i) => (
-              <FollowingFeedRowSkeleton key={i} />
-            ))}
-          </View>
-        </ScrollView>
-      </>
-    )
-  }
-
-  const listHeader = (
-    <View>
-      {restaurantTitle ? (
-        <View className="border-b border-gray-100 px-4 pb-3 pt-2">
-          <Text className="text-sm font-body" style={{ color: TEXT_MUTED }}>
-            {total > 0 ? `${total} review${total === 1 ? '' : 's'}` : 'No reviews yet'}
-          </Text>
-        </View>
-      ) : null}
-      {sortChips}
-    </View>
-  )
 
   return (
-    <>
-      <Stack.Screen options={{ headerShown: true }} />
+    <View className="flex-1" style={{ backgroundColor: SURFACE_CARD }}>
+      <Stack.Screen options={{ headerShown: false }} />
+      {header}
+      {loading && !refreshing ? (
+        <View style={{ paddingHorizontal: 20 }}>
+          {[0, 1, 2].map((i) => (
+            <RestaurantReviewRowSkeleton key={i} />
+          ))}
+        </View>
+      ) : (
       <FlatList
-        className="flex-1 bg-white"
+        className="flex-1"
         data={rows}
         keyExtractor={(item) => item.id}
-        ListHeaderComponent={listHeader}
         renderItem={({ item }) => (
-          <View className="px-4">
-            <FollowingFeedReviewCard
-              review={item}
-              onPressCard={() => onOpenReview(item.id)}
-              onPressAuthor={() => onOpenAuthor(item)}
-            />
-          </View>
+          <RestaurantReviewRow
+            review={item}
+            onPress={() => onOpenReview(item.id)}
+            onPressAuthor={() => onOpenAuthor(item)}
+          />
         )}
         ListEmptyComponent={
           error ? (
@@ -298,7 +263,7 @@ export default function RestaurantReviewsScreen() {
             </View>
           ) : null
         }
-        contentContainerStyle={{ flexGrow: 1, paddingBottom: 32 }}
+        contentContainerStyle={{ flexGrow: 1, paddingHorizontal: 20, paddingBottom: 40 + insets.bottom }}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={BRAND_PRIMARY} />
         }
@@ -306,6 +271,7 @@ export default function RestaurantReviewsScreen() {
         onEndReached={onEndReached}
         showsVerticalScrollIndicator={false}
       />
-    </>
+      )}
+    </View>
   )
 }

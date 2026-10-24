@@ -14,6 +14,7 @@ import {
   ImageGalleryLightbox,
   ImageGalleryPageDots,
 } from '@/components/ui/ImageGalleryChrome'
+import { BRAND_PRIMARY, SURFACE_CARD } from '@/constants/brand'
 import { useImageAspectRatios } from '@/hooks/useImageAspectRatios'
 import {
   clampReviewImageAspect,
@@ -27,6 +28,11 @@ interface ReviewDetailImagesProps {
   images: string[]
   /** Shown when `images` is empty. */
   fallbackUri?: string
+  /**
+   * Fixed hero height (design R2): every slide fills it with `cover` and the page dots become
+   * pills, with no counter badge. Omit it for aspect-aware heights.
+   */
+  height?: number
 }
 
 function ReviewDetailImageFrame({
@@ -82,6 +88,7 @@ function ReviewDetailImageFrame({
 export function ReviewDetailImages({
   images,
   fallbackUri,
+  height: fixedHeight,
 }: ReviewDetailImagesProps): JSX.Element | null {
   const { width: windowWidth, height: windowHeight } = useWindowDimensions()
   const layoutWidth = windowWidth
@@ -114,10 +121,11 @@ export function ReviewDetailImages({
   )
 
   const galleryHeight = useMemo(() => {
+    if (fixedHeight != null) return fixedHeight
     if (slideHeights.length === 0) return 0
     if (slideHeights.length === 1) return slideHeights[0]!
     return Math.max(...slideHeights)
-  }, [slideHeights])
+  }, [fixedHeight, slideHeights])
 
   const openLightbox = useCallback((index: number) => {
     setPageIndex(index)
@@ -141,6 +149,24 @@ export function ReviewDetailImages({
   if (uris.length === 0) return null
 
   const renderSlide = (uri: string, index: number) => {
+    if (fixedHeight != null) {
+      return (
+        <Pressable
+          key={`${uri}-${index}`}
+          accessibilityRole="imagebutton"
+          accessibilityLabel={`Review photo ${index + 1} of ${uris.length}`}
+          onPress={() => openLightbox(index)}
+          style={{ width: layoutWidth, height: fixedHeight }}
+        >
+          <Image
+            accessibilityIgnoresInvertColors
+            source={{ uri }}
+            style={{ width: layoutWidth, height: fixedHeight }}
+            resizeMode="cover"
+          />
+        </Pressable>
+      )
+    }
     const aspect = aspects[uri] ?? REVIEW_IMAGE_DEFAULT_ASPECT
     const frameHeight = slideHeights[index] ?? galleryHeight
     const topPad = uris.length > 1 ? Math.max(0, (galleryHeight - frameHeight) / 2) : 0
@@ -188,17 +214,37 @@ export function ReviewDetailImages({
           </ScrollView>
         )}
 
-        <ImageGalleryCounterBadge
-          currentIndex={pageIndex}
-          total={uris.length}
-          onPress={() => openLightbox(pageIndex)}
-        />
+        {fixedHeight != null ? (
+          uris.length > 1 ? (
+            <View pointerEvents="none" className="absolute flex-row justify-center" style={{ bottom: 14, left: 0, right: 0, gap: 5 }}>
+              {uris.map((uri, i) => (
+                <View
+                  key={`${i}-${uri}`}
+                  style={{
+                    width: i === pageIndex ? 18 : 6,
+                    height: 6,
+                    borderRadius: 3,
+                    backgroundColor: i === pageIndex ? BRAND_PRIMARY : SURFACE_CARD,
+                  }}
+                />
+              ))}
+            </View>
+          ) : null
+        ) : (
+          <>
+            <ImageGalleryCounterBadge
+              currentIndex={pageIndex}
+              total={uris.length}
+              onPress={() => openLightbox(pageIndex)}
+            />
 
-        <ImageGalleryPageDots
-          count={uris.length}
-          currentIndex={pageIndex}
-          onSelect={goToPage}
-        />
+            <ImageGalleryPageDots
+              count={uris.length}
+              currentIndex={pageIndex}
+              onSelect={goToPage}
+            />
+          </>
+        )}
       </View>
 
       <ImageGalleryLightbox

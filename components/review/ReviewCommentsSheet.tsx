@@ -21,9 +21,17 @@ import { ReviewCommentsComposer } from '@/components/review/ReviewCommentsCompos
 import { ReplyItem } from '@/components/review/ReplyItem'
 import { ReplySkeleton } from '@/components/ui/Skeleton/ReplySkeleton'
 import { AppIcon } from '@/components/ui/AppIcon'
-import { BRAND_PRIMARY, TEXT_HEADING, TEXT_MUTED } from '@/constants/brand'
+import {
+  BORDER_SUBTLE,
+  BRAND_PRIMARY,
+  SURFACE_CARD,
+  SURFACE_FOG,
+  TEXT_HEADING,
+  TEXT_MUTED,
+  TEXT_TERTIARY,
+} from '@/constants/brand'
+import { FONT } from '@/constants/typography'
 import type { UseReviewCommentsResult } from '@/hooks/useReviewComments'
-import { FONT, bodyFont } from '@/constants/typography'
 
 export type ReviewCommentsSheetHandle = {
   present: (options?: { focusComposer?: boolean }) => void
@@ -32,10 +40,12 @@ export type ReviewCommentsSheetHandle = {
 
 export type ReviewCommentsSheetProps = {
   comments: UseReviewCommentsResult
+  /** Review author, for the composer placeholder ("Add a comment for @jun.eats"). */
+  replyToLabel?: string | null
 }
 
 export const ReviewCommentsSheet = forwardRef<ReviewCommentsSheetHandle, ReviewCommentsSheetProps>(
-  function ReviewCommentsSheet({ comments }, ref): JSX.Element {
+  function ReviewCommentsSheet({ comments, replyToLabel }, ref): JSX.Element {
     const insets = useSafeAreaInsets()
     const sheetRef = useRef<ElementRef<typeof BottomSheetModal>>(null)
     const composerRef = useRef<TextInput>(null)
@@ -79,10 +89,11 @@ export const ReviewCommentsSheet = forwardRef<ReviewCommentsSheetHandle, ReviewC
             comments={comments}
             variant="bottomSheet"
             bottomInset={0}
+            placeholder={replyToLabel ? `Add a comment for ${replyToLabel}` : undefined}
           />
         </BottomSheetFooter>
       ),
-      [comments, footerBottomInset],
+      [comments, footerBottomInset, replyToLabel],
     )
 
     const {
@@ -102,15 +113,17 @@ export const ReviewCommentsSheet = forwardRef<ReviewCommentsSheetHandle, ReviewC
 
     const listHeader = (
       <View style={styles.sheetHeader}>
-        <Text style={styles.sheetTitle}>Comments ({totalCount})</Text>
+        <Text accessibilityRole="header" style={styles.sheetTitle}>
+          Comments <Text style={{ color: TEXT_TERTIARY }}>{totalCount}</Text>
+        </Text>
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Close comments"
-          hitSlop={12}
+          hitSlop={8}
           onPress={dismiss}
           style={styles.closeButton}
         >
-          <AppIcon name="x" size={22} color={TEXT_HEADING} />
+          <AppIcon name="x" size={18} color={TEXT_HEADING} />
         </Pressable>
       </View>
     )
@@ -126,17 +139,18 @@ export const ReviewCommentsSheet = forwardRef<ReviewCommentsSheetHandle, ReviewC
         android_keyboardInputMode="adjustResize"
         backdropComponent={renderBackdrop}
         footerComponent={renderFooter}
-        handleIndicatorStyle={{ backgroundColor: '#d1d5db', width: 40 }}
+        handleIndicatorStyle={{ backgroundColor: BORDER_SUBTLE, width: 40, height: 5 }}
+        backgroundStyle={{ backgroundColor: SURFACE_CARD, borderTopLeftRadius: 24, borderTopRightRadius: 24 }}
         onChange={handleSheetChange}
         onDismiss={() => Keyboard.dismiss()}
       >
         {loading && replies.length === 0 ? (
-          <View style={{ padding: 16 }}>
+          <View style={{ paddingHorizontal: 20 }}>
             {listHeader}
             <ReplySkeleton count={4} />
           </View>
         ) : error && replies.length === 0 ? (
-          <View style={{ padding: 16, alignItems: 'center' }}>
+          <View style={{ paddingHorizontal: 20, alignItems: 'center' }}>
             {listHeader}
             <Text style={{ fontFamily: FONT.body, color: TEXT_MUTED, textAlign: 'center', marginTop: 24 }}>
               {error}
@@ -150,18 +164,17 @@ export const ReviewCommentsSheet = forwardRef<ReviewCommentsSheetHandle, ReviewC
             data={replies}
             keyExtractor={(item) => item.id}
             ListHeaderComponent={listHeader}
-            contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 8 }}
+            contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 8 }}
+            stickyHeaderIndices={[0]}
             keyboardShouldPersistTaps="handled"
             onRefresh={() => void loadReplies({ pull: true })}
             refreshing={refreshing}
             ListEmptyComponent={
               !loading ? (
                 <View style={{ alignItems: 'center', paddingVertical: 48 }}>
-                  <Text style={{  fontSize: 16, fontFamily: bodyFont('500'), color: '#374151' }}>
-                    No Comments Yet
-                  </Text>
-                  <Text style={{ fontFamily: FONT.body, fontSize: 14, color: '#6b7280', marginTop: 4 }}>
-                    Be the first to comment!
+                  <Text style={{ fontFamily: FONT.heading, fontSize: 18, color: TEXT_HEADING }}>No comments yet</Text>
+                  <Text style={{ fontFamily: FONT.body, fontSize: 14, color: TEXT_MUTED, marginTop: 4 }}>
+                    Start the conversation.
                   </Text>
                 </View>
               ) : null
@@ -189,18 +202,26 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    paddingTop: 2,
     paddingBottom: 12,
+    marginHorizontal: -20,
+    paddingHorizontal: 20,
     borderBottomWidth: 1,
-    borderBottomColor: '#f3f4f6',
-    marginBottom: 8,
+    borderBottomColor: BORDER_SUBTLE,
+    backgroundColor: SURFACE_CARD,
   },
   sheetTitle: {
-    
-    fontSize: 18,
-    fontFamily: bodyFont('600'),
+    fontFamily: FONT.heading,
+    fontSize: 20,
+    lineHeight: 26,
     color: TEXT_HEADING,
   },
   closeButton: {
-    padding: 4,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: SURFACE_FOG,
   },
 })
