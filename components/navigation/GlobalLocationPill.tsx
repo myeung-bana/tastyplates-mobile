@@ -17,6 +17,8 @@ export function GlobalLocationPill({ maxWidth = 200 }: Props): JSX.Element {
   const { location, hierarchy, openLocationPicker } = useLocation()
   const countries = hierarchy?.hierarchy.countries ?? null
   const line = formatLocationDisplay(location, countries)
+  // Design H1 shows the city alone ("Toronto"); the country stays in the accessibility label.
+  const city = location.label.trim() || line
 
   return (
     <Pressable
@@ -36,7 +38,7 @@ export function GlobalLocationPill({ maxWidth = 200 }: Props): JSX.Element {
         style={{ fontFamily: FONT.headingMedium, fontSize: 16, color: TEXT_HEADING }}
         maxFontSizeMultiplier={1.15}
       >
-        {line}
+        {city}
       </Text>
       <AppIcon name="chevron-down" size={16} color={TEXT_HEADING} />
     </Pressable>

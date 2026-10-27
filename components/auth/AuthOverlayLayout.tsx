@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import { useEffect, type ReactNode } from 'react'
 import {
   KeyboardAvoidingView,
   Platform,
@@ -8,13 +8,17 @@ import {
   View,
 } from 'react-native'
 import { StatusBar } from 'expo-status-bar'
-import Animated, { FadeIn, FadeOut, SlideInDown, SlideInRight } from 'react-native-reanimated'
+import { GestureHandlerRootView } from 'react-native-gesture-handler'
+import Animated, { SlideInRight, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { TpMark } from '@/components/brand/TpMark'
 import { AppIcon } from '@/components/ui/AppIcon'
+import { SheetPanel } from '@/components/ui/ModalSheet'
 import { BORDER_SUBTLE, SURFACE_CARD, TEXT_HEADING, TEXT_MUTED } from '@/constants/brand'
+import { SHEET_CLOSE_TIMING } from '@/constants/sheet'
 import { FONT } from '@/constants/typography'
+import { useAuthSheetClosing } from '@/contexts/AuthSheetClosingContext'
 
 type AuthOverlayLayoutProps = {
   title: string
@@ -39,32 +43,21 @@ export function AuthOverlayLayout({
   onClose,
 }: AuthOverlayLayoutProps): JSX.Element {
   const insets = useSafeAreaInsets()
+  const closing = useAuthSheetClosing()
+  const pageExit = useSharedValue(0)
+  useEffect(() => {
+    pageExit.value = withTiming(closing ? 1 : 0, SHEET_CLOSE_TIMING)
+  }, [closing, pageExit])
+  const pageExitStyle = useAnimatedStyle(() => ({
+    opacity: 1 - pageExit.value,
+    transform: [{ translateY: pageExit.value * 40 }],
+  }))
 
   if (variant === 'sheet') {
     return (
-      <View style={{ flex: 1, justifyContent: 'flex-end' }}>
+      <GestureHandlerRootView style={{ flex: 1 }}>
         <StatusBar style="light" />
-        <Animated.View
-          entering={FadeIn.duration(200)}
-          exiting={FadeOut.duration(150)}
-          style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, backgroundColor: 'rgba(0,0,0,0.5)' }}
-        >
-          <Pressable accessibilityRole="button" accessibilityLabel="Close" style={{ flex: 1 }} onPress={onClose} />
-        </Animated.View>
-        <Animated.View
-          entering={SlideInDown.springify().damping(20).stiffness(180)}
-          accessibilityViewIsModal
-          style={{
-            backgroundColor: SURFACE_CARD,
-            borderTopLeftRadius: 28,
-            borderTopRightRadius: 28,
-            paddingTop: 10,
-            paddingHorizontal: 24,
-            paddingBottom: Math.max(insets.bottom, 16) + 24,
-            gap: 16,
-          }}
-        >
-          <View style={{ alignSelf: 'center', width: 40, height: 5, borderRadius: 3, backgroundColor: BORDER_SUBTLE }} />
+        <SheetPanel open={!closing} onRequestClose={onClose} accessibilityLabel={title} contentStyle={{ paddingBottom: Math.max(insets.bottom, 16) + 24, gap: 16 }}>
           <View style={{ marginTop: 4 }}>
             <TpMark size={32} />
           </View>
@@ -77,13 +70,13 @@ export function AuthOverlayLayout({
             ) : null}
           </View>
           {children}
-        </Animated.View>
-      </View>
+        </SheetPanel>
+      </GestureHandlerRootView>
     )
   }
 
   return (
-    <Animated.View entering={SlideInRight.duration(260)} style={{ flex: 1, backgroundColor: SURFACE_CARD }}>
+    <Animated.View entering={SlideInRight.duration(260)} style={[{ flex: 1, backgroundColor: SURFACE_CARD }, pageExitStyle]}>
       <StatusBar style="dark" />
       <View className="flex-row items-center justify-between" style={{ paddingTop: insets.top + 8, paddingHorizontal: 20 }}>
         <Pressable

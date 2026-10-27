@@ -1,16 +1,18 @@
 import { useState } from 'react'
-import { Modal, Pressable, Text, View } from 'react-native'
-import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { Pressable, Text, View } from 'react-native'
 
 import { AppIcon } from '@/components/ui/AppIcon'
+import { ModalSheet } from '@/components/ui/ModalSheet'
 import {
   BORDER_SUBTLE,
   BRAND_PRIMARY,
+  BRAND_PRIMARY_DARK,
   TEXT_HEADING,
   TEXT_MUTED,
   mergeTextInputBodyTypography,
 } from '@/constants/brand'
 import { genderLabelForValue, genderOptions } from '@/constants/formOptions'
+import { FONT } from '@/constants/typography'
 
 type Props = {
   value: string
@@ -25,7 +27,6 @@ export function GenderPickerField({
   disabled = false,
   error = false,
 }: Props): JSX.Element {
-  const insets = useSafeAreaInsets()
   const [open, setOpen] = useState(false)
 
   const label = genderLabelForValue(value)
@@ -60,39 +61,29 @@ export function GenderPickerField({
         <AppIcon name="chevron-down" size={18} color={TEXT_MUTED} />
       </Pressable>
 
-      <Modal visible={open} animationType="slide" transparent onRequestClose={() => setOpen(false)}>
-        <Pressable className="flex-1 justify-end bg-black/40" onPress={() => setOpen(false)}>
-          <Pressable
-            className="rounded-t-2xl bg-white"
-            style={{ paddingBottom: Math.max(insets.bottom, 16) }}
-            onPress={(e) => e.stopPropagation()}
-          >
-            <View className="items-center border-b py-3" style={{ borderColor: BORDER_SUBTLE }}>
-              <Text className="text-base font-body-semibold" style={{ color: TEXT_HEADING }}>
-                Gender
+      <ModalSheet visible={open} onClose={() => setOpen(false)} accessibilityLabel="Gender" contentStyle={{ paddingHorizontal: 0 }}>
+        <Text accessibilityRole="header" style={{ marginTop: 6, marginBottom: 6, paddingHorizontal: 24, fontFamily: FONT.heading, fontSize: 22, color: TEXT_HEADING }}>
+          Gender
+        </Text>
+        {genderOptions.map((option) => {
+          const selected = value === option.value
+          return (
+            <Pressable
+              key={option.value}
+              accessibilityRole="radio"
+              accessibilityState={{ selected }}
+              onPress={() => select(option.value)}
+              className="flex-row items-center justify-between active:opacity-70"
+              style={{ minHeight: 52, paddingHorizontal: 24 }}
+            >
+              <Text style={{ fontFamily: selected ? FONT.bodySemibold : FONT.body, fontSize: 16, color: selected ? BRAND_PRIMARY_DARK : TEXT_HEADING }}>
+                {option.label}
               </Text>
-            </View>
-            {genderOptions.map((option) => {
-              const selected = value === option.value
-              return (
-                <Pressable
-                  key={option.value}
-                  onPress={() => select(option.value)}
-                  className="flex-row items-center justify-between px-5 py-4 active:bg-orange-50/60"
-                >
-                  <Text
-                    className="text-base font-body"
-                    style={{ color: selected ? BRAND_PRIMARY : TEXT_HEADING }}
-                  >
-                    {option.label}
-                  </Text>
-                  {selected ? <AppIcon name="check" size={20} color={BRAND_PRIMARY} /> : null}
-                </Pressable>
-              )
-            })}
-          </Pressable>
-        </Pressable>
-      </Modal>
+              {selected ? <AppIcon name="check" size={20} color={BRAND_PRIMARY} /> : null}
+            </Pressable>
+          )
+        })}
+      </ModalSheet>
     </View>
   )
 }

@@ -1,4 +1,3 @@
-export { HomeBrandMark } from './HomeBrandMark'
 export { HomeHero } from './HomeHero'
 export { HomeSectionCard } from './HomeSectionCard'
 export { RecommendedRestaurantsCarousel } from './RecommendedRestaurantsCarousel'

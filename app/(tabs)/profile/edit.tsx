@@ -1,7 +1,6 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import {
   ActivityIndicator,
-  Alert,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -14,17 +13,17 @@ import { Redirect, useRouter } from 'expo-router'
 import { useNhostClient } from '@nhost/react'
 import * as Haptics from 'expo-haptics'
 
-import { CityPickerField } from '@/components/onboarding/CityPickerField'
-import { EditProfilePalateSummary } from '@/components/profile/EditProfilePalateSummary'
 import { EditProfileTopNav } from '@/components/profile/EditProfileTopNav'
 import { ProfileCityPickerOverlay } from '@/components/profile/ProfileCityPickerOverlay'
 import { AppIcon } from '@/components/ui/AppIcon'
+import { Button } from '@/components/ui/Button'
+import { ModalSheet } from '@/components/ui/ModalSheet'
 import { TextField } from '@/components/ui/TextField'
 import {
   BORDER_SUBTLE,
   BRAND_PRIMARY,
+  DANGER,
   SURFACE_CARD,
-  SURFACE_FOG,
   TEXT_HEADING,
   TEXT_MUTED,
   TEXT_TERTIARY,
@@ -39,13 +38,16 @@ import {
   SCREEN_EDIT_PROFILE_DISPLAY_NAME,
   SCREEN_EDIT_PROFILE_PALATES,
   SCREEN_LOGIN,
+  SCREEN_SETTINGS_ACCOUNT_SECURITY,
 } from '@/constants/screens'
 import { FONT } from '@/constants/typography'
 import { aboutMeMaxLimit, palateLimit } from '@/constants/validation'
 import { useAuth } from '@/hooks/useAuth'
 import { invalidateOwnRestaurantUserCache } from '@/hooks/useOwnProfilePresentation'
+import { useHideTabBarWhileFocused } from '@/hooks/useHideTabBarWhileFocused'
 import { buildDisplayName, detectDisplayNameVariant, DISPLAY_NAME_VARIANTS } from '@/lib/displayNameOptions'
 import type { ProfileCitySelection } from '@/lib/googlePlaces'
+import { labelForPalateKey } from '@/lib/palateLabels'
 import { palateKeysFromProfile } from '@/lib/profilePalateKeys'
 import {
   fetchRestaurantUserById,
@@ -147,6 +149,8 @@ export default function EditProfileScreen(): JSX.Element {
   const insets = useSafeAreaInsets()
   const nhost = useNhostClient()
   const { isAuthenticated, loading: authLoading, user } = useAuth()
+  // Full-screen editor (design P5 / P5d / P6) — no floating tab bar.
+  useHideTabBarWhileFocused()
 
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -160,6 +164,8 @@ export default function EditProfileScreen(): JSX.Element {
   )
   const [bioError, setBioError] = useState<string | null>(null)
   const [palateError, setPalateError] = useState<string | null>(null)
+  const [discardOpen, setDiscardOpen] = useState(false)
+  const leaveAfterDiscardRef = useRef(false)
 
   const initialRef = useRef<FormSnapshot | null>(null)
 
@@ -267,16 +273,10 @@ export default function EditProfileScreen(): JSX.Element {
       router.back()
       return
     }
-    const fields = initialRef.current ? changedFieldLabels(currentSnapshot, initialRef.current) : []
-    Alert.alert('Discard changes?', `Your edits to ${joinLabels(fields)} haven’t been saved.`, [
-      { text: 'Keep editing', style: 'cancel' },
-      {
-        text: 'Discard',
-        style: 'destructive',
-        onPress: () => router.back(),
-      },
-    ])
-  }, [currentSnapshot, isDirty, router])
+    setDiscardOpen(true)
+  }, [isDirty, router])
+
+  const discardFields = initialRef.current ? changedFieldLabels(currentSnapshot, initialRef.current) : []
 
   const handleSave = useCallback(async () => {
     if (!user?.id || !doneEnabled) return
@@ -367,7 +367,7 @@ export default function EditProfileScreen(): JSX.Element {
   const variantHint = DISPLAY_NAME_VARIANTS.find((v) => v.id === nameDraft.variant)?.hint ?? ''
 
   return (
-    <View className="flex-1 bg-white">
+    <View className="flex-1" style={{ backgroundColor: SURFACE_CARD }}>
       <EditProfileTopNav
         onCancel={handleCancel}
         onDone={() => {
@@ -385,66 +385,115 @@ export default function EditProfileScreen(): JSX.Element {
         <KeyboardAvoidingView
           className="flex-1"
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          keyboardVerticalOffset={insets.top + 48}
+          keyboardVerticalOffset={insets.top + 52}
         >
           <ScrollView
-            style={{ flex: 1, backgroundColor: SURFACE_CARD }}
-            contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 20, paddingBottom: insets.bottom + 32, gap: 22 }}
+            style={{ flex: 1 }}
+            contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 20, paddingBottom: insets.bottom + 40, gap: 20 }}
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
           >
-            <TextField
-              label="Bio"
-              value={aboutMe}
-              onChangeText={(t) => {
-                setBioError(null)
-                setAboutMe(t)
-              }}
-              editable={!saving}
-              multiline
-              height={110}
-              placeholder="What do you love to eat?"
-              maxLength={aboutMeMaxLimit}
-              error={bioError}
-              hint={`${aboutMe.length} / ${aboutMeMaxLimit}`}
-              style={{ minHeight: 84 }}
-            />
-
-            <ReadOnlyRow label="Username" value={username ? `@${username}` : '@member'} icon="lock" />
-
-            <NavRow
-              label="Display name"
-              value={displayPreview || 'Add your name'}
-              hint={variantHint}
-              onPress={() => router.push(SCREEN_EDIT_PROFILE_DISPLAY_NAME)}
-              disabled={saving}
-            />
-
-            <CityPickerField
-              label="Current city"
-              value={currentLocation?.label ?? null}
-              onPress={() => handleOpenLocationPicker('current')}
-            />
-            <CityPickerField
-              label="Hometown · optional"
-              value={hometownLocation?.label ?? null}
-              onPress={() => handleOpenLocationPicker('hometown')}
-              onClear={() => setHometownLocation(null)}
-            />
-
-            <EditProfilePalateSummary
-              selected={selectedPalates}
-              onPressEdit={handleOpenPalatePicker}
-              disabled={saving}
-              error={palateError}
-            />
-
-            <View style={{ borderRadius: 12, backgroundColor: SURFACE_FOG, padding: 14 }}>
-              <Text style={{ fontFamily: FONT.body, fontSize: 12, lineHeight: 18, color: TEXT_MUTED }}>
-                Current city here is your profile city — separate from the browse city in the top bar. Email, birthdate
-                and gender live in Settings → Account Security.
-              </Text>
+            <View style={{ gap: 8 }}>
+              <View className="flex-row items-baseline justify-between">
+                <Text style={{ fontFamily: FONT.bodySemibold, fontSize: 13, color: TEXT_HEADING }}>Bio</Text>
+                <Text style={{ fontFamily: FONT.body, fontSize: 12, color: TEXT_MUTED }}>
+                  {aboutMe.length} / {aboutMeMaxLimit}
+                </Text>
+              </View>
+              <TextField
+                accessibilityLabel="Bio"
+                value={aboutMe}
+                onChangeText={(t) => {
+                  setBioError(null)
+                  setAboutMe(t)
+                }}
+                editable={!saving}
+                multiline
+                height={96}
+                placeholder="What do you love to eat?"
+                maxLength={aboutMeMaxLimit}
+                error={bioError}
+              />
             </View>
+
+            {/* Design P5: one bordered group of rows — details, cities, palates. */}
+            <View style={{ borderRadius: 12, borderWidth: 1.5, borderColor: BORDER_SUBTLE, overflow: 'hidden' }}>
+              <GroupRow
+                label="Username"
+                value={username ? `@${username}` : '@member'}
+                valueColor={TEXT_TERTIARY}
+                accessibilityHint="Your username can’t be changed"
+                trailing={<AppIcon name="lock" size={16} color={TEXT_TERTIARY} />}
+              />
+              <GroupRow
+                label="Display name"
+                value={displayPreview || 'Add your name'}
+                valueColor={displayPreview ? TEXT_HEADING : TEXT_TERTIARY}
+                trailing={variantHint ? <Text style={{ fontFamily: FONT.body, fontSize: 13, color: TEXT_TERTIARY }}>{variantHint}</Text> : null}
+                onPress={() => router.push(SCREEN_EDIT_PROFILE_DISPLAY_NAME)}
+                disabled={saving}
+              />
+              <GroupRow
+                label="Current city"
+                value={currentLocation?.label ?? 'Add your city'}
+                valueColor={currentLocation ? TEXT_HEADING : TEXT_TERTIARY}
+                onPress={() => handleOpenLocationPicker('current')}
+                disabled={saving}
+              />
+              <GroupRow
+                label="Hometown · optional"
+                value={hometownLocation?.label ?? 'Add your hometown'}
+                valueColor={hometownLocation ? TEXT_HEADING : TEXT_TERTIARY}
+                trailing={
+                  hometownLocation ? (
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel="Clear hometown"
+                      hitSlop={10}
+                      onPress={() => setHometownLocation(null)}
+                      className="active:opacity-60"
+                    >
+                      <AppIcon name="x-circle" size={18} color={TEXT_TERTIARY} />
+                    </Pressable>
+                  ) : null
+                }
+                onPress={() => handleOpenLocationPicker('hometown')}
+                disabled={saving}
+              />
+              <GroupRow label={`Palates · exactly ${palateLimit}`} onPress={handleOpenPalatePicker} disabled={saving} last>
+                {selectedPalates.size > 0 ? (
+                  <View className="flex-row flex-wrap" style={{ gap: 6 }}>
+                    {Array.from(selectedPalates).map((key) => (
+                      <View
+                        key={key}
+                        className="justify-center"
+                        style={{ height: 28, paddingHorizontal: 12, borderRadius: 999, borderWidth: 1.5, borderColor: BORDER_SUBTLE }}
+                      >
+                        <Text style={{ fontFamily: FONT.bodyMedium, fontSize: 13, color: TEXT_HEADING }}>{labelForPalateKey(key)}</Text>
+                      </View>
+                    ))}
+                  </View>
+                ) : (
+                  <Text style={{ fontFamily: FONT.body, fontSize: 15, color: TEXT_TERTIARY }}>Choose {palateLimit} cuisines</Text>
+                )}
+              </GroupRow>
+            </View>
+            {palateError ? (
+              <Text style={{ marginTop: -12, fontFamily: FONT.body, fontSize: 13, color: DANGER }}>{palateError}</Text>
+            ) : null}
+
+            <Text style={{ marginTop: -2, fontFamily: FONT.body, fontSize: 12, lineHeight: 18, color: TEXT_MUTED }}>
+              Current city here is your profile city — separate from the browse city in the top bar. Email, birthdate and
+              gender live in{' '}
+              <Text
+                accessibilityRole="link"
+                onPress={() => router.push(SCREEN_SETTINGS_ACCOUNT_SECURITY)}
+                style={{ textDecorationLine: 'underline', color: TEXT_HEADING }}
+              >
+                Settings → Account Security
+              </Text>
+              .
+            </Text>
           </ScrollView>
         </KeyboardAvoidingView>
       )}
@@ -469,60 +518,110 @@ export default function EditProfileScreen(): JSX.Element {
         onSelectCity={handleSelectProfileCity}
         onClose={handleCloseLocationPicker}
       />
-    </View>
-  )
-}
 
-function ReadOnlyRow({ label, value, icon }: { label: string; value: string; icon: 'lock' }): JSX.Element {
-  return (
-    <View style={{ gap: 8 }}>
-      <Text style={{ fontFamily: FONT.bodySemibold, fontSize: 13, color: TEXT_HEADING }}>{label}</Text>
-      <View
-        className="flex-row items-center"
-        accessible
-        accessibilityLabel={`${label} ${value}, can’t be changed`}
-        style={{ minHeight: 52, borderRadius: 12, borderWidth: 1.5, borderColor: BORDER_SUBTLE, backgroundColor: SURFACE_FOG, paddingHorizontal: 16, gap: 10 }}
+      {/* Design P7: unsaved edits — Discard (dark) or Keep editing (outlined). */}
+      <ModalSheet
+        visible={discardOpen}
+        onClose={() => setDiscardOpen(false)}
+        onClosed={() => {
+          if (!leaveAfterDiscardRef.current) return
+          leaveAfterDiscardRef.current = false
+          router.back()
+        }}
+        accessibilityLabel="Discard changes?"
+        contentStyle={{ gap: 16 }}
       >
-        <Text style={{ flex: 1, fontFamily: FONT.body, fontSize: 16, color: TEXT_MUTED }}>{value}</Text>
-        <AppIcon name={icon} size={16} color={TEXT_TERTIARY} />
-      </View>
+        <View style={{ gap: 6 }}>
+          <Text accessibilityRole="header" style={{ fontFamily: FONT.heading, fontSize: 22, lineHeight: 28, color: TEXT_HEADING }}>
+            Discard changes?
+          </Text>
+          <Text style={{ fontFamily: FONT.body, fontSize: 14, lineHeight: 21, color: TEXT_MUTED }}>
+            Your edits to {joinLabels(discardFields)} haven’t been saved.
+          </Text>
+        </View>
+        <Button
+          variant="dark"
+          onPress={() => {
+            leaveAfterDiscardRef.current = true
+            setDiscardOpen(false)
+          }}
+        >
+          Discard
+        </Button>
+        <Button variant="outline" onPress={() => setDiscardOpen(false)}>
+          Keep editing
+        </Button>
+      </ModalSheet>
     </View>
   )
 }
 
-function NavRow({
+/** One row of the Edit profile group (design P5): small label over the value, chevron when tappable. */
+function GroupRow({
   label,
   value,
-  hint,
+  valueColor = TEXT_HEADING,
+  trailing,
   onPress,
   disabled,
+  last = false,
+  accessibilityHint,
+  children,
 }: {
   label: string
-  value: string
-  hint?: string
-  onPress: () => void
+  value?: string
+  valueColor?: string
+  trailing?: ReactNode
+  onPress?: () => void
   disabled?: boolean
+  last?: boolean
+  accessibilityHint?: string
+  children?: ReactNode
 }): JSX.Element {
+  const content = (
+    <>
+      <View style={{ flex: 1, minWidth: 0, gap: children ? 6 : 4 }}>
+        <Text style={{ fontFamily: FONT.body, fontSize: 12, color: TEXT_MUTED }}>{label}</Text>
+        {children ?? (
+          <Text numberOfLines={1} style={{ fontFamily: FONT.body, fontSize: 15, lineHeight: 20, color: valueColor }}>
+            {value}
+          </Text>
+        )}
+      </View>
+      {trailing}
+      {onPress ? <AppIcon name="chevron-right" size={18} color={TEXT_TERTIARY} /> : null}
+    </>
+  )
+  const rowStyle = {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderBottomWidth: last ? 0 : 1,
+    borderBottomColor: BORDER_SUBTLE,
+  }
+  if (!onPress) {
+    return (
+      <View accessible accessibilityLabel={`${label}, ${value ?? ''}`} accessibilityHint={accessibilityHint} style={rowStyle}>
+        {content}
+      </View>
+    )
+  }
   return (
-    <View style={{ gap: 8 }}>
-      <Text style={{ fontFamily: FONT.bodySemibold, fontSize: 13, color: TEXT_HEADING }}>{label}</Text>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={`${label}: ${value}`}
-        onPress={() => {
-          void Haptics.selectionAsync()
-          onPress()
-        }}
-        disabled={disabled}
-        className="flex-row items-center active:opacity-80"
-        style={{ minHeight: 56, borderRadius: 12, borderWidth: 1.5, borderColor: BORDER_SUBTLE, backgroundColor: SURFACE_CARD, paddingHorizontal: 16, gap: 10 }}
-      >
-        <View style={{ flex: 1, gap: 2, paddingVertical: 8 }}>
-          <Text numberOfLines={1} style={{ fontFamily: FONT.headingMedium, fontSize: 16, color: TEXT_HEADING }}>{value}</Text>
-          {hint ? <Text style={{ fontFamily: FONT.body, fontSize: 12, color: TEXT_MUTED }}>{hint}</Text> : null}
-        </View>
-        <AppIcon name="chevron-right" size={18} color={TEXT_TERTIARY} />
-      </Pressable>
-    </View>
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={value ? `${label}, ${value}` : label}
+      accessibilityHint={accessibilityHint}
+      onPress={() => {
+        void Haptics.selectionAsync()
+        onPress()
+      }}
+      disabled={disabled}
+      className="active:bg-[#EFEFF1]"
+      style={rowStyle}
+    >
+      {content}
+    </Pressable>
   )
 }

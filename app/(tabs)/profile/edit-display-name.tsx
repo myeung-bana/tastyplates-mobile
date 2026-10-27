@@ -6,10 +6,11 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { DisplayNameOptionList } from '@/components/profile/DisplayNameOptionList'
 import { EditProfileTopNav } from '@/components/profile/EditProfileTopNav'
 import { TextField } from '@/components/ui/TextField'
-import { SURFACE_CARD, TEXT_HEADING } from '@/constants/brand'
+import { SURFACE_CARD, TEXT_MUTED } from '@/constants/brand'
 import { FONT } from '@/constants/typography'
 import { useEditProfileDraft } from '@/contexts/EditProfileDraftContext'
 import { useOwnProfilePresentation } from '@/hooks/useOwnProfilePresentation'
+import { useHideTabBarWhileFocused } from '@/hooks/useHideTabBarWhileFocused'
 import type { DisplayNameVariant } from '@/lib/displayNameOptions'
 import { resolveProfileAvatarSource } from '@/lib/profileAvatar'
 
@@ -21,6 +22,8 @@ export default function EditDisplayNameScreen(): JSX.Element {
   const router = useRouter()
   const insets = useSafeAreaInsets()
   const { nameDraft, setNameDraft } = useEditProfileDraft()
+  // Full-screen editor (design P5 / P5d / P6) — no floating tab bar.
+  useHideTabBarWhileFocused()
   const { restaurantUser, avatarUrl } = useOwnProfilePresentation()
   const [firstName, setFirstName] = useState(nameDraft.firstName)
   const [lastName, setLastName] = useState(nameDraft.lastName)
@@ -32,6 +35,7 @@ export default function EditDisplayNameScreen(): JSX.Element {
   return (
     <View style={{ flex: 1, backgroundColor: SURFACE_CARD }}>
       <EditProfileTopNav
+        variant="push"
         title="Display name"
         onCancel={() => router.back()}
         onDone={() => {
@@ -42,12 +46,23 @@ export default function EditDisplayNameScreen(): JSX.Element {
       />
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
         <ScrollView
-          contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 20, paddingBottom: insets.bottom + 32, gap: 16 }}
+          contentContainerStyle={{ paddingHorizontal: 24, paddingTop: 12, paddingBottom: insets.bottom + 40, gap: 16 }}
           keyboardShouldPersistTaps="handled"
         >
-          <TextField label="First name" value={firstName} onChangeText={setFirstName} maxLength={40} autoCapitalize="words" textContentType="givenName" />
-          <TextField label="Last name" value={lastName} onChangeText={setLastName} maxLength={40} autoCapitalize="words" textContentType="familyName" />
-          <Text style={{ marginTop: 6, fontFamily: FONT.bodySemibold, fontSize: 13, color: TEXT_HEADING }}>Show my name as</Text>
+          {/* Design P5d: first and last name side by side. */}
+          <View className="flex-row" style={{ gap: 10 }}>
+            <View style={{ flex: 1 }}>
+              <TextField label="First name" value={firstName} onChangeText={setFirstName} placeholder="First" maxLength={40} autoCapitalize="words" textContentType="givenName" />
+            </View>
+            <View style={{ flex: 1 }}>
+              <TextField label="Last name" value={lastName} onChangeText={setLastName} placeholder="Last" maxLength={40} autoCapitalize="words" textContentType="familyName" />
+            </View>
+          </View>
+          <Text
+            style={{ marginTop: 4, fontFamily: FONT.heading, fontSize: 11, lineHeight: 14, letterSpacing: 2.2, textTransform: 'uppercase', color: TEXT_MUTED }}
+          >
+            Show my name as
+          </Text>
           <DisplayNameOptionList
             firstName={firstName}
             lastName={lastName}

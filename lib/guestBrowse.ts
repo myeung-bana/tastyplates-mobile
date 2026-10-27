@@ -18,7 +18,7 @@ export async function clearGuestBrowseEnabled(): Promise<void> {
   await SecureStore.deleteItemAsync(STORAGE_KEY)
 }
 
-/** Marks intro complete and enables guest tab shell (Home · Restaurants · Profile). */
+/** Marks intro complete and enables the guest tab shell (Home · Explore · Activity). */
 export async function enterGuestBrowseMode(): Promise<void> {
   await setGetStartedCompleted()
   await setGuestBrowseEnabled()

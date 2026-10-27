@@ -1,11 +1,12 @@
+import type { ElementRef } from 'react'
 import { forwardRef, useCallback, useImperativeHandle, useMemo, useRef } from 'react'
 import { Pressable, ScrollView, Text, View } from 'react-native'
 import {
-  BottomSheetBackdrop,
   BottomSheetModal,
   BottomSheetView,
 } from '@gorhom/bottom-sheet'
-import type { BottomSheetBackdropProps } from '@gorhom/bottom-sheet'
+
+import { AppBottomSheetModal } from '@/components/ui/AppBottomSheetModal'
 
 import { mergeTextInputBodyTypography, TEXT_HEADING } from '@/constants/brand'
 import type { LocationCityNode, LocationCountryNode } from '@/services/onboardingService'
@@ -23,7 +24,7 @@ interface Props {
 
 export const LocationPickerSheet = forwardRef<LocationPickerSheetHandle, Props>(
   function LocationPickerSheet({ countries, onSelect, title = 'Choose a city' }, ref) {
-    const sheetRef = useRef<BottomSheetModal>(null)
+    const sheetRef = useRef<ElementRef<typeof BottomSheetModal>>(null)
 
     useImperativeHandle(
       ref,
@@ -40,12 +41,6 @@ export const LocationPickerSheet = forwardRef<LocationPickerSheetHandle, Props>(
 
     const snapPoints = useMemo(() => ['75%', '92%'], [])
 
-    const renderBackdrop = useCallback(
-      (props: BottomSheetBackdropProps) => (
-        <BottomSheetBackdrop {...props} appearsOnIndex={0} disappearsOnIndex={-1} pressBehavior="close" />
-      ),
-      [],
-    )
 
     const onPick = useCallback(
       (city: LocationCityNode) => {
@@ -56,12 +51,10 @@ export const LocationPickerSheet = forwardRef<LocationPickerSheetHandle, Props>(
     )
 
     return (
-      <BottomSheetModal
+      <AppBottomSheetModal
         ref={sheetRef}
         snapPoints={snapPoints}
         enablePanDownToClose
-        backdropComponent={renderBackdrop}
-        handleIndicatorStyle={{ backgroundColor: '#d1d5db', width: 40 }}
       >
         <BottomSheetView style={{ flex: 1, paddingBottom: 24 }}>
           <Text className="mb-3 px-4 pt-2 text-lg font-heading" style={{ color: TEXT_HEADING }}>
@@ -93,7 +86,7 @@ export const LocationPickerSheet = forwardRef<LocationPickerSheetHandle, Props>(
             ))}
           </ScrollView>
         </BottomSheetView>
-      </BottomSheetModal>
+      </AppBottomSheetModal>
     )
   },
 )

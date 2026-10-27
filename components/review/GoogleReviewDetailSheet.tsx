@@ -8,11 +8,11 @@ import {
 } from 'react'
 import { Linking, Pressable, Text, View } from 'react-native'
 import {
-  BottomSheetBackdrop,
   BottomSheetModal,
   BottomSheetScrollView,
 } from '@gorhom/bottom-sheet'
-import type { BottomSheetBackdropProps } from '@gorhom/bottom-sheet'
+
+import { AppBottomSheetModal } from '@/components/ui/AppBottomSheetModal'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { ProfileAvatarImage } from '@/components/profile/ProfileAvatarImage'
@@ -21,7 +21,6 @@ import {
   BORDER_SUBTLE,
   BRAND_PRIMARY,
   BRAND_PRIMARY_DARK,
-  SURFACE_CARD,
   SURFACE_FOG,
   TEXT_HEADING,
   TEXT_MUTED,
@@ -67,12 +66,6 @@ export const GoogleReviewDetailSheet = forwardRef<
 
   useImperativeHandle(ref, () => ({ present, dismiss }), [present, dismiss])
 
-  const renderBackdrop = useCallback(
-    (props: BottomSheetBackdropProps) => (
-      <BottomSheetBackdrop {...props} appearsOnIndex={0} disappearsOnIndex={-1} pressBehavior="close" />
-    ),
-    [],
-  )
 
   const openAuthorProfile = () => {
     const url = review?.authorUrl?.trim()
@@ -85,13 +78,10 @@ export const GoogleReviewDetailSheet = forwardRef<
   const meta = ['Google review', review?.timeLabel?.trim()].filter(Boolean).join(' · ')
 
   return (
-    <BottomSheetModal
+    <AppBottomSheetModal
       ref={sheetRef}
       enableDynamicSizing
       enablePanDownToClose
-      backdropComponent={renderBackdrop}
-      handleIndicatorStyle={{ backgroundColor: BORDER_SUBTLE, width: 40, height: 5 }}
-      backgroundStyle={{ backgroundColor: SURFACE_CARD, borderTopLeftRadius: 24, borderTopRightRadius: 24 }}
     >
       <BottomSheetScrollView
         contentContainerStyle={{
@@ -179,6 +169,6 @@ export const GoogleReviewDetailSheet = forwardRef<
           </>
         ) : null}
       </BottomSheetScrollView>
-    </BottomSheetModal>
+    </AppBottomSheetModal>
   )
 })

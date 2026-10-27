@@ -4,6 +4,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type PropsWithChildren,
 } from 'react'
@@ -15,6 +16,8 @@ import type { AuthScreenMode } from '@/lib/authRoutes'
 import { serializeAuthResume } from '@/lib/authRoutes'
 import type { OpenAuthSheetOptions } from '@/lib/authSheetRef'
 import { authSheetOpenRef } from '@/lib/authSheetRef'
+import { SHEET_CLOSE_MS } from '@/constants/sheet'
+import { AuthSheetClosingContext } from '@/contexts/AuthSheetClosingContext'
 
 export type { OpenAuthSheetOptions } from '@/lib/authSheetRef'
 
@@ -40,13 +43,34 @@ export function AuthSheetProvider({ children }: PropsWithChildren): JSX.Element 
   const [resume, setResume] = useState<string | undefined>(undefined)
   const [showSkipLogin, setShowSkipLogin] = useState(false)
   const [wall, setWall] = useState<OpenAuthSheetOptions['wall']>(undefined)
+  const [closing, setClosing] = useState(false)
+  const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
+  // Slide out first, then drop the Modal — otherwise it vanishes mid-frame.
   const dismissOverlay = useCallback(() => {
     Keyboard.dismiss()
-    setIsOpen(false)
+    if (closeTimerRef.current) return
+    setClosing(true)
+    closeTimerRef.current = setTimeout(() => {
+      closeTimerRef.current = null
+      setIsOpen(false)
+      setClosing(false)
+    }, SHEET_CLOSE_MS)
   }, [])
 
+  useEffect(
+    () => () => {
+      if (closeTimerRef.current) clearTimeout(closeTimerRef.current)
+    },
+    [],
+  )
+
   const openAuthSheet = useCallback((options?: OpenAuthSheetOptions) => {
+    if (closeTimerRef.current) {
+      clearTimeout(closeTimerRef.current)
+      closeTimerRef.current = null
+    }
+    setClosing(false)
     setInitialMode(options?.mode ?? 'chooser')
     setResume(serializeAuthResume(options?.resume))
     setShowSkipLogin(options?.showSkipLogin ?? false)
@@ -83,6 +107,7 @@ export function AuthSheetProvider({ children }: PropsWithChildren): JSX.Element 
         keyboardAvoiding={false}
         style={{ paddingTop: 0, paddingBottom: 0, paddingLeft: 0, paddingRight: 0 }}
       >
+        <AuthSheetClosingContext.Provider value={closing}>
         {isOpen ? (
           <AuthFormBody
             key={overlayKey}
@@ -95,6 +120,7 @@ export function AuthSheetProvider({ children }: PropsWithChildren): JSX.Element 
             onClose={dismissOverlay}
           />
         ) : null}
+        </AuthSheetClosingContext.Provider>
       </FullScreenOverlay>
     </AuthSheetContext.Provider>
   )

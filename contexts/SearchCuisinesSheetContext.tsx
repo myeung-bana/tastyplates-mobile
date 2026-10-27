@@ -11,12 +11,13 @@ import {
 import { View, Text, Pressable, StyleSheet } from 'react-native'
 import { AppIcon } from '@/components/ui/AppIcon'
 import {
-  BottomSheetBackdrop,
   BottomSheetFooter,
   BottomSheetModal,
   BottomSheetView,
 } from '@gorhom/bottom-sheet'
-import type { BottomSheetBackdropProps, BottomSheetFooterProps } from '@gorhom/bottom-sheet'
+import type { BottomSheetFooterProps } from '@gorhom/bottom-sheet'
+
+import { AppBottomSheetModal } from '@/components/ui/AppBottomSheetModal'
 import { useRouter } from 'expo-router'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
@@ -58,12 +59,6 @@ export function SearchCuisinesSheetProvider({ children }: PropsWithChildren) {
     setDraftKey(next)
   }, [])
 
-  const renderBackdrop = useCallback(
-    (props: BottomSheetBackdropProps) => (
-      <BottomSheetBackdrop {...props} appearsOnIndex={0} disappearsOnIndex={-1} pressBehavior="close" />
-    ),
-    [],
-  )
 
   const openSearchCuisines = useCallback((options?: OpenSearchCuisinesOptions) => {
     onApplyRef.current = options?.onApply
@@ -157,7 +152,7 @@ export function SearchCuisinesSheetProvider({ children }: PropsWithChildren) {
   return (
     <SearchCuisinesSheetContext.Provider value={value}>
       {children}
-      <BottomSheetModal
+      <AppBottomSheetModal
         ref={sheetRef}
         snapPoints={['88%']}
         enablePanDownToClose
@@ -165,9 +160,7 @@ export function SearchCuisinesSheetProvider({ children }: PropsWithChildren) {
         keyboardBehavior="interactive"
         keyboardBlurBehavior="restore"
         android_keyboardInputMode="adjustResize"
-        backdropComponent={renderBackdrop}
         footerComponent={renderFooter}
-        handleIndicatorStyle={{ backgroundColor: '#d1d5db', width: 40 }}
       >
         <BottomSheetView style={styles.sheetRoot}>
           <View className="flex-row items-center justify-between border-b border-gray-100 px-4 pb-3 pt-1">
@@ -190,7 +183,7 @@ export function SearchCuisinesSheetProvider({ children }: PropsWithChildren) {
             onClear={handleClear}
           />
         </BottomSheetView>
-      </BottomSheetModal>
+      </AppBottomSheetModal>
     </SearchCuisinesSheetContext.Provider>
   )
 }

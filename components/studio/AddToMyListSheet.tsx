@@ -1,6 +1,6 @@
+import type { ElementRef } from 'react'
 import {
   forwardRef,
-  useCallback,
   useEffect,
   useImperativeHandle,
   useMemo,
@@ -17,11 +17,11 @@ import {
   View,
 } from 'react-native'
 import {
-  BottomSheetBackdrop,
   BottomSheetModal,
   BottomSheetView,
 } from '@gorhom/bottom-sheet'
-import type { BottomSheetBackdropProps } from '@gorhom/bottom-sheet'
+
+import { AppBottomSheetModal } from '@/components/ui/AppBottomSheetModal'
 import * as Haptics from 'expo-haptics'
 import { AppIcon } from '@/components/ui/AppIcon'
 
@@ -65,7 +65,7 @@ export const AddToMyListSheet = forwardRef<AddToMyListSheetHandle, Props>(functi
   { userId, activeListKind = 'checkin', attachPlaceFromGoogleDetails },
   ref,
 ): JSX.Element {
-  const sheetRef = useRef<BottomSheetModal>(null)
+  const sheetRef = useRef<ElementRef<typeof BottomSheetModal>>(null)
   const { location } = useLocation()
   const [query, setQuery] = useState('')
   const [predictions, setPredictions] = useState<PlacesAutocompletePrediction[]>([])
@@ -128,12 +128,6 @@ export const AddToMyListSheet = forwardRef<AddToMyListSheetHandle, Props>(functi
     }
   }, [location.coordinates, query])
 
-  const renderBackdrop = useCallback(
-    (props: BottomSheetBackdropProps) => (
-      <BottomSheetBackdrop {...props} appearsOnIndex={0} disappearsOnIndex={-1} pressBehavior="close" />
-    ),
-    [],
-  )
 
   const photoFromDetail = useMemo(() => {
     const refPhoto = detail?.photos?.[0]?.photo_reference
@@ -215,14 +209,12 @@ export const AddToMyListSheet = forwardRef<AddToMyListSheetHandle, Props>(functi
   }
 
   return (
-    <BottomSheetModal
+    <AppBottomSheetModal
       ref={sheetRef}
       snapPoints={['88%']}
       enablePanDownToClose
       onDismiss={onDismissSheet}
       keyboardBehavior="interactive"
-      backdropComponent={renderBackdrop}
-      handleIndicatorStyle={{ backgroundColor: '#d1d5db', width: 40 }}
     >
       <BottomSheetView style={{ flex: 1, backgroundColor: '#ffffff', paddingHorizontal: 16 }}>
         <SectionTitle className="pb-4">Save a place</SectionTitle>
@@ -339,6 +331,6 @@ export const AddToMyListSheet = forwardRef<AddToMyListSheetHandle, Props>(functi
           </View>
         ) : null}
       </BottomSheetView>
-    </BottomSheetModal>
+    </AppBottomSheetModal>
   )
 })

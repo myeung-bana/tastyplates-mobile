@@ -1,25 +1,27 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { ScrollView, Text, View } from 'react-native'
+import { ScrollView, Text, TextInput, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Redirect, useRouter } from 'expo-router'
 import * as Haptics from 'expo-haptics'
 
-import { ChoosePalatesTopNav } from '@/components/profile/ChoosePalatesTopNav'
-import { PalateIconGrid } from '@/components/onboarding/PalateIconGrid'
+import { EditProfileTopNav } from '@/components/profile/EditProfileTopNav'
+import { PalateChipPicker } from '@/components/profile/PalateChipPicker'
 import { AppIcon } from '@/components/ui/AppIcon'
-import { TextField } from '@/components/ui/TextField'
-import { BRAND_PRIMARY_TINT, SURFACE_CARD, TEXT_HEADING, TEXT_MUTED, TEXT_TERTIARY } from '@/constants/brand'
+import { SURFACE_CARD, SURFACE_FOG, TEXT_HEADING, TEXT_MUTED, TEXT_TERTIARY } from '@/constants/brand'
 import { FONT } from '@/constants/typography'
 import { labelForPalateKey } from '@/lib/palateLabels'
 import { SCREEN_LOGIN } from '@/constants/screens'
 import { palateLimit } from '@/constants/validation'
 import { useEditProfileDraft } from '@/contexts/EditProfileDraftContext'
 import { useAuth } from '@/hooks/useAuth'
+import { useHideTabBarWhileFocused } from '@/hooks/useHideTabBarWhileFocused'
 
 export default function EditProfilePalatesScreen(): JSX.Element {
   const router = useRouter()
   const insets = useSafeAreaInsets()
   const { isAuthenticated, loading: authLoading } = useAuth()
+  // Full-screen editor (design P5 / P5d / P6) — no floating tab bar.
+  useHideTabBarWhileFocused()
   const { selectedPalates, togglePalate, cancelPalatePicker } = useEditProfileDraft()
 
   const userToggledRef = useRef(false)
@@ -56,41 +58,63 @@ export default function EditProfilePalatesScreen(): JSX.Element {
 
   return (
     <View className="flex-1" style={{ backgroundColor: SURFACE_CARD }}>
-      <ChoosePalatesTopNav selectedCount={selectedPalates.size} onCancel={handleCancel} />
+      <EditProfileTopNav
+        title="Palates"
+        onCancel={handleCancel}
+        right={
+          <Text
+            accessibilityLabel={`${selectedPalates.size} of ${palateLimit} selected`}
+            style={{ fontFamily: FONT.body, fontSize: 13, color: TEXT_MUTED }}
+          >
+            {selectedPalates.size}/{palateLimit}
+          </Text>
+        }
+      />
 
-      <ScrollView
-        className="flex-1"
-        contentContainerStyle={{
-          paddingHorizontal: 20,
-          paddingTop: 16,
-          paddingBottom: insets.bottom + 24,
-        }}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
-      >
-        <Text style={{ marginBottom: 14, fontFamily: FONT.body, fontSize: 14, lineHeight: 20, color: TEXT_MUTED }}>
+      <View style={{ paddingHorizontal: 20, paddingTop: 16, gap: 12 }}>
+        <Text style={{ fontFamily: FONT.body, fontSize: 14, lineHeight: 21, color: TEXT_MUTED }}>
           Pick the two cuisines you grew up with. Choosing the second takes you back to Edit profile.
         </Text>
-        <View style={{ marginBottom: 18 }}>
-          <TextField
+        <View
+          className="flex-row items-center"
+          style={{ height: 44, borderRadius: 12, backgroundColor: SURFACE_FOG, paddingHorizontal: 14, gap: 10 }}
+        >
+          <AppIcon name="search" size={18} color={TEXT_TERTIARY} />
+          <TextInput
             value={query}
             onChangeText={setQuery}
             placeholder="Search cuisines"
-            height={46}
+            placeholderTextColor={TEXT_TERTIARY}
             autoCapitalize="none"
             autoCorrect={false}
             accessibilityLabel="Search cuisines"
-            prefix={<AppIcon name="search" size={18} color={TEXT_TERTIARY} style={{ marginRight: 8 }} />}
+            returnKeyType="search"
+            style={{ flex: 1, fontFamily: FONT.body, fontSize: 15, color: TEXT_HEADING, paddingVertical: 0 }}
           />
         </View>
-        {savedPair ? (
-          <View accessibilityLiveRegion="polite" style={{ marginBottom: 16, borderRadius: 12, borderWidth: 1, borderColor: '#FFE2C7', backgroundColor: BRAND_PRIMARY_TINT, padding: 12 }}>
-            <Text style={{ fontFamily: FONT.bodySemibold, fontSize: 13, color: TEXT_HEADING }}>
-              Saved {savedPair}. Returning to Edit profile…
-            </Text>
-          </View>
-        ) : null}
-        <PalateIconGrid selected={selectedPalates} onToggle={handleToggle} query={query} />
+      </View>
+
+      {savedPair ? (
+        <View
+          accessibilityLiveRegion="polite"
+          className="flex-row items-center"
+          style={{ marginTop: 14, marginHorizontal: 20, gap: 10, paddingVertical: 12, paddingHorizontal: 14, borderRadius: 12, backgroundColor: TEXT_HEADING }}
+        >
+          <AppIcon name="check-circle" size={18} color={SURFACE_CARD} />
+          <Text style={{ flex: 1, fontFamily: FONT.bodyMedium, fontSize: 14, lineHeight: 18, color: SURFACE_CARD }}>
+            Saved {savedPair}. Returning to Edit profile…
+          </Text>
+        </View>
+      ) : null}
+
+      <ScrollView
+        className="flex-1"
+        contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: insets.bottom + 40 }}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+        showsVerticalScrollIndicator={false}
+      >
+        <PalateChipPicker selected={selectedPalates} onToggle={handleToggle} query={query} />
       </ScrollView>
     </View>
   )

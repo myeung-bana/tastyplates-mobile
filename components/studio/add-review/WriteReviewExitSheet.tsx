@@ -7,11 +7,11 @@ import {
 } from 'react'
 import { ActivityIndicator, Pressable, Text, View } from 'react-native'
 import {
-  BottomSheetBackdrop,
   BottomSheetModal,
   BottomSheetView,
 } from '@gorhom/bottom-sheet'
-import type { BottomSheetBackdropProps } from '@gorhom/bottom-sheet'
+
+import { AppBottomSheetModal } from '@/components/ui/AppBottomSheetModal'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { BRAND_PRIMARY, TEXT_HEADING, TEXT_MUTED } from '@/constants/brand'
@@ -85,12 +85,6 @@ export const WriteReviewExitSheet = forwardRef<WriteReviewExitSheetHandle, Write
 
     useImperativeHandle(ref, () => ({ present, dismiss }), [present, dismiss])
 
-    const renderBackdrop = useCallback(
-      (props: BottomSheetBackdropProps) => (
-        <BottomSheetBackdrop {...props} appearsOnIndex={0} disappearsOnIndex={-1} pressBehavior="close" />
-      ),
-      [],
-    )
 
     const handleDiscard = useCallback(() => {
       dismiss()
@@ -102,12 +96,10 @@ export const WriteReviewExitSheet = forwardRef<WriteReviewExitSheetHandle, Write
     }, [onSaveDraft])
 
     return (
-      <BottomSheetModal
+      <AppBottomSheetModal
         ref={sheetRef}
         enableDynamicSizing
         enablePanDownToClose
-        backdropComponent={renderBackdrop}
-        handleIndicatorStyle={{ backgroundColor: '#d1d5db', width: 40 }}
       >
         <BottomSheetView style={{ paddingBottom: Math.max(insets.bottom, 16) }}>
           <View className="px-6 pb-5 pt-2" style={{ gap: 6 }}>
@@ -140,7 +132,7 @@ export const WriteReviewExitSheet = forwardRef<WriteReviewExitSheetHandle, Write
             <ActionRow label="Keep editing" onPress={dismiss} disabled={busy && !savingDraft} />
           </View>
         </BottomSheetView>
-      </BottomSheetModal>
+      </AppBottomSheetModal>
     )
   },
 )

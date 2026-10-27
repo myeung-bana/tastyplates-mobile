@@ -10,7 +10,11 @@ import {
   View,
   useWindowDimensions,
 } from 'react-native'
-import BottomSheet, { BottomSheetFlatList, type BottomSheetFlatListMethods } from '@gorhom/bottom-sheet'
+import BottomSheet, {
+  BottomSheetFlatList,
+  useBottomSheetTimingConfigs,
+  type BottomSheetFlatListMethods,
+} from '@gorhom/bottom-sheet'
 import MapView, { PROVIDER_GOOGLE, type Region } from 'react-native-maps'
 import type { MapPressEvent } from 'react-native-maps'
 import * as Haptics from 'expo-haptics'
@@ -38,6 +42,7 @@ import {
 import { AppIcon } from '@/components/ui/AppIcon'
 import { FONT } from '@/constants/typography'
 import { useUserPalate } from '@/hooks/useUserPalate'
+import { SHEET_EASING, SHEET_OPEN_MS } from '@/constants/sheet'
 import { getTabSceneStylePaddingBottom } from '@/constants/tabBar'
 import {
   SCREEN_PLACES_GOOGLE_DETAIL,
@@ -216,6 +221,8 @@ export default function RestaurantsScreen() {
   const mapReadyRef = useRef(false)
   const mapReadyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
+  // Same curve as every other sheet (constants/sheet) when the list snaps between heights.
+  const sheetAnimationConfigs = useBottomSheetTimingConfigs({ duration: SHEET_OPEN_MS, easing: SHEET_EASING })
   const snapPoints = useMemo(() => {
     const scenePad = getTabSceneStylePaddingBottom(insets)
     const containerHeight = Math.max(0, screenHeight - scenePad)
@@ -774,6 +781,7 @@ export default function RestaurantsScreen() {
             enablePanDownToClose={false}
             enableDynamicSizing={false}
             waitFor={mapGestureRef}
+            animationConfigs={sheetAnimationConfigs}
             handleIndicatorStyle={{ backgroundColor: BORDER_SUBTLE, width: 40, height: 5 }}
             backgroundStyle={{ backgroundColor: SURFACE_CARD, borderTopLeftRadius: 24, borderTopRightRadius: 24 }}
             onChange={handleSheetIndexChange}

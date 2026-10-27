@@ -38,7 +38,7 @@ export function useProfilePhotoChange(userId: string | null | undefined, onSaved
       try {
         const url = await uploadPickedImage(picked)
         await save(url)
-        toast.success('Profile saved')
+        toast.success('Photo updated')
       } catch {
         toast.error(UPLOAD_FAILED)
       } finally {
@@ -49,22 +49,18 @@ export function useProfilePhotoChange(userId: string | null | undefined, onSaved
     [save],
   )
 
+  /** Called by the sheet once it has slid away (design P10 → system picker). */
   const choose = useCallback(
     (from: 'camera' | 'library') => {
-      setSheetOpen(false)
-      // Let the sheet close before the system picker opens.
-      setTimeout(() => {
-        const pick = from === 'camera' ? pickFromCamera : pickFromLibrary
-        void pick()
-          .then(uploadPicked)
-          .catch((e) => toast.error(e instanceof Error ? e.message : UPLOAD_FAILED))
-      }, 250)
+      const pick = from === 'camera' ? pickFromCamera : pickFromLibrary
+      void pick()
+        .then(uploadPicked)
+        .catch((e) => toast.error(e instanceof Error ? e.message : UPLOAD_FAILED))
     },
     [uploadPicked],
   )
 
   const remove = useCallback(async () => {
-    setSheetOpen(false)
     setUploading(true)
     try {
       await save(null)

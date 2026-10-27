@@ -193,9 +193,12 @@ export const AUTH_VISIBLE_TABS: TabConfig[] = [
   TAB_CONFIG_BY_NAME.studio,
 ]
 
-/** Guest browse: Home, Explore, Profile. */
+/**
+ * Guest browse (design G1 → H1): Home, Explore, Activity — the signed-in bar without Studio (+).
+ * Activity shows its signed-out prompt (A5); Profile is the header avatar, which opens sign-in.
+ */
 export const GUEST_VISIBLE_TABS: TabConfig[] = [
   TAB_CONFIG_BY_NAME.index,
   TAB_CONFIG_BY_NAME.restaurants,
-  TAB_CONFIG_BY_NAME.profile,
+  TAB_CONFIG_BY_NAME.following,
 ]

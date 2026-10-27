@@ -1,18 +1,9 @@
 import { useEffect, useState } from 'react'
-import {
-  KeyboardAvoidingView,
-  Modal,
-  Platform,
-  Pressable,
-  ScrollView,
-  Text,
-  TextInput,
-  View,
-} from 'react-native'
-import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { Pressable, ScrollView, Text, TextInput, View } from 'react-native'
 
 import { AppIcon } from '@/components/ui/AppIcon'
 import { Button } from '@/components/ui/Button'
+import { ModalSheet } from '@/components/ui/ModalSheet'
 import {
   BORDER_SUBTLE,
   BRAND_PRIMARY,
@@ -48,23 +39,25 @@ export function ReportContentModal({
   target: ReportTarget | null
   onClose: () => void
 }): JSX.Element {
-  const insets = useSafeAreaInsets()
+  // Keep the last target while the sheet slides away, so the title doesn't flicker to "content".
+  const [shown, setShown] = useState<ReportTarget | null>(target)
   const [reason, setReason] = useState<ReportReason | null>(null)
   const [details, setDetails] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
   useEffect(() => {
     if (target) {
+      setShown(target)
       setReason(null)
       setDetails('')
     }
   }, [target])
 
   const submit = async () => {
-    if (!target || !reason) return
+    if (!shown || !reason) return
     setSubmitting(true)
     try {
-      await submitContentReport({ ...target, reason, details })
+      await submitContentReport({ ...shown, reason, details })
       toast.success('Thanks for reporting. Our team will review it within 24 hours.')
       onClose()
     } catch {
@@ -74,25 +67,19 @@ export function ReportContentModal({
     }
   }
 
-  const noun = target ? TARGET_NOUN[target.targetType] : 'content'
+  const noun = shown ? TARGET_NOUN[shown.targetType] : 'content'
 
   return (
-    <Modal visible={target != null} transparent animationType="slide" onRequestClose={onClose}>
-      <KeyboardAvoidingView
-        className="flex-1"
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      >
-        <Pressable
-          className="flex-1"
-          style={{ backgroundColor: 'rgba(0,0,0,0.35)' }}
-          onPress={onClose}
-          accessibilityLabel="Close report"
-        />
-        <View
-          className="rounded-t-3xl bg-white px-5 pt-4"
-          style={{ paddingBottom: Math.max(insets.bottom, 16) + 8, maxHeight: '85%' }}
-        >
-          <View className="mb-3 flex-row items-center justify-between">
+    <ModalSheet
+      visible={target != null}
+      onClose={onClose}
+      dismissible={!submitting}
+      dragArea="handle"
+      avoidKeyboard
+      accessibilityLabel={`Report ${noun}`}
+      contentStyle={{ paddingHorizontal: 20, maxHeight: '85%' }}
+    >
+          <View className="mb-3 mt-2 flex-row items-center justify-between">
             <Text className="text-lg font-heading" style={{ color: TEXT_HEADING }}>
               Report {noun}
             </Text>
@@ -146,8 +133,6 @@ export function ReportContentModal({
           <Button onPress={() => void submit()} disabled={!reason} loading={submitting}>
             Submit report
           </Button>
-        </View>
-      </KeyboardAvoidingView>
-    </Modal>
+    </ModalSheet>
   )
 }

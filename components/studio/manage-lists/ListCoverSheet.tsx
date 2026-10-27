@@ -1,9 +1,9 @@
-import { Image, Modal, Pressable, ScrollView, Text, View } from 'react-native'
-import Animated, { FadeIn, SlideInDown } from 'react-native-reanimated'
-import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { useRef } from 'react'
+import { Image, Pressable, ScrollView, Text, View } from 'react-native'
 
 import { TpMark } from '@/components/brand/TpMark'
 import { AppIcon, type AppIconName } from '@/components/ui/AppIcon'
+import { ModalSheet } from '@/components/ui/ModalSheet'
 import {
   BORDER_SUBTLE,
   BRAND_PRIMARY,
@@ -54,63 +54,60 @@ export function ListCoverSheet({
   onTakePhoto,
   onUseDefault,
 }: Props): JSX.Element {
-  const insets = useSafeAreaInsets()
+  // Library / camera open only after the sheet has slid away (iOS can't present over a closing modal).
+  const pendingRef = useRef<(() => void) | null>(null)
+  const runAfterClose = (action: () => void) => {
+    pendingRef.current = action
+    onClose()
+  }
+
   return (
-    <Modal visible={visible} transparent animationType="none" statusBarTranslucent onRequestClose={onClose}>
-      <View style={{ flex: 1, justifyContent: 'flex-end' }}>
-        <Animated.View entering={FadeIn.duration(180)} style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, backgroundColor: 'rgba(0,0,0,0.5)' }}>
-          <Pressable accessibilityRole="button" accessibilityLabel="Close" style={{ flex: 1 }} onPress={onClose} />
-        </Animated.View>
-        <Animated.View
-          entering={SlideInDown.springify().damping(20).stiffness(180)}
-          accessibilityViewIsModal
-          style={{
-            backgroundColor: SURFACE_CARD,
-            borderTopLeftRadius: 28,
-            borderTopRightRadius: 28,
-            paddingTop: 10,
-            paddingHorizontal: 20,
-            paddingBottom: Math.max(insets.bottom, 16) + 12,
-          }}
-        >
-          <View style={{ alignSelf: 'center', width: 40, height: 5, borderRadius: 3, backgroundColor: BORDER_SUBTLE }} />
-          <Text accessibilityRole="header" style={{ marginTop: 14, fontFamily: FONT.heading, fontSize: 22, color: TEXT_HEADING }}>
-            List cover
+    <ModalSheet
+      visible={visible}
+      onClose={onClose}
+      onClosed={() => {
+        const next = pendingRef.current
+        pendingRef.current = null
+        next?.()
+      }}
+      accessibilityLabel="List cover"
+      contentStyle={{ paddingHorizontal: 20 }}
+    >
+      <Text accessibilityRole="header" style={{ marginTop: 8, fontFamily: FONT.heading, fontSize: 22, color: TEXT_HEADING }}>
+        List cover
+      </Text>
+
+      {options.length > 0 ? (
+        <>
+          <Text style={{ marginTop: 16, marginBottom: 10, fontFamily: FONT.heading, fontSize: 11, letterSpacing: 2.2, textTransform: 'uppercase', color: TEXT_MUTED }}>
+            From this list
           </Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10 }}>
+            {options.map((o) => {
+              const on = selectedUrl === o.imageUrl
+              return (
+                <Pressable key={o.key} accessibilityRole="button" accessibilityLabel={`Use ${o.name} photo`} onPress={() => onPickOption(o)} style={{ width: 84, gap: 6 }}>
+                  <Image
+                    source={{ uri: o.imageUrl }}
+                    style={{ width: 84, height: 84, borderRadius: 12, borderWidth: on ? 3 : 0, borderColor: BRAND_PRIMARY, backgroundColor: SURFACE_FOG }}
+                  />
+                  <Text numberOfLines={1} style={{ fontFamily: FONT.body, fontSize: 11, color: TEXT_MUTED }}>
+                    {o.name}
+                  </Text>
+                </Pressable>
+              )
+            })}
+          </ScrollView>
+        </>
+      ) : null}
 
-          {options.length > 0 ? (
-            <>
-              <Text style={{ marginTop: 16, marginBottom: 10, fontFamily: FONT.heading, fontSize: 11, letterSpacing: 2.2, textTransform: 'uppercase', color: TEXT_MUTED }}>
-                From this list
-              </Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10 }}>
-                {options.map((o) => {
-                  const on = selectedUrl === o.imageUrl
-                  return (
-                    <Pressable key={o.key} accessibilityRole="button" accessibilityLabel={`Use ${o.name} photo`} onPress={() => onPickOption(o)} style={{ width: 84, gap: 6 }}>
-                      <Image
-                        source={{ uri: o.imageUrl }}
-                        style={{ width: 84, height: 84, borderRadius: 12, borderWidth: on ? 3 : 0, borderColor: BRAND_PRIMARY, backgroundColor: SURFACE_FOG }}
-                      />
-                      <Text numberOfLines={1} style={{ fontFamily: FONT.body, fontSize: 11, color: TEXT_MUTED }}>
-                        {o.name}
-                      </Text>
-                    </Pressable>
-                  )
-                })}
-              </ScrollView>
-            </>
-          ) : null}
-
-          <View style={{ marginTop: 10 }}>
-            <Row icon="image" label="Choose from library" onPress={onChooseLibrary} />
-            <Row icon="camera" label="Take photo" onPress={onTakePhoto} />
-            {onUseDefault ? (
-              <Row label="Use default cover" onPress={onUseDefault} glyph={<TpMark size={18} color={BRAND_PRIMARY} />} />
-            ) : null}
-          </View>
-        </Animated.View>
+      <View style={{ marginTop: 10 }}>
+        <Row icon="image" label="Choose from library" onPress={() => runAfterClose(onChooseLibrary)} />
+        <Row icon="camera" label="Take photo" onPress={() => runAfterClose(onTakePhoto)} />
+        {onUseDefault ? (
+          <Row label="Use default cover" onPress={onUseDefault} glyph={<TpMark size={18} color={BRAND_PRIMARY} />} />
+        ) : null}
       </View>
-    </Modal>
+    </ModalSheet>
   )
 }

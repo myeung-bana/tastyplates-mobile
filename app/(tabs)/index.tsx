@@ -4,7 +4,6 @@ import { useFocusEffect } from '@react-navigation/native'
 
 import { useTabBarScrollHandler } from '@/hooks/useTabBarScrollHandler'
 import {
-  HomeBrandMark,
   HomeHero,
   HomeFeaturedRestaurants,
   HomeQuickFinds,
@@ -41,9 +40,10 @@ export default function HomeScreen() {
         keyboardShouldPersistTaps="handled"
         onScroll={onScroll}
         scrollEventThrottle={scrollEventThrottle}
+        // Design H1: content starts 4pt under the city / search / avatar bar — no wordmark.
+        contentContainerStyle={{ paddingTop: 4 }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={BRAND_PRIMARY} />}
       >
-        <HomeBrandMark />
         <HomeHero recentRefreshKey={recentRefreshKey} />
         <HomeQuickFinds />
         <HomeFeaturedRestaurants key={`home-featured-${feedKey}`} />

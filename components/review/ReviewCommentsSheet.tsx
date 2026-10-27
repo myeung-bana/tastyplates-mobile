@@ -8,12 +8,13 @@ import {
 } from 'react'
 import { Keyboard, Pressable, StyleSheet, Text, View } from 'react-native'
 import {
-  BottomSheetBackdrop,
   BottomSheetFlatList,
   BottomSheetFooter,
   BottomSheetModal,
 } from '@gorhom/bottom-sheet'
-import type { BottomSheetBackdropProps, BottomSheetFooterProps } from '@gorhom/bottom-sheet'
+import type { BottomSheetFooterProps } from '@gorhom/bottom-sheet'
+
+import { AppBottomSheetModal } from '@/components/ui/AppBottomSheetModal'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import type { TextInput } from 'react-native'
 
@@ -67,12 +68,6 @@ export const ReviewCommentsSheet = forwardRef<ReviewCommentsSheetHandle, ReviewC
 
     useImperativeHandle(ref, () => ({ present, dismiss }), [present, dismiss])
 
-    const renderBackdrop = useCallback(
-      (props: BottomSheetBackdropProps) => (
-        <BottomSheetBackdrop {...props} appearsOnIndex={0} disappearsOnIndex={-1} pressBehavior="close" />
-      ),
-      [],
-    )
 
     const handleSheetChange = useCallback((index: number) => {
       if (index >= 0 && focusComposerOnPresentRef.current) {
@@ -129,7 +124,7 @@ export const ReviewCommentsSheet = forwardRef<ReviewCommentsSheetHandle, ReviewC
     )
 
     return (
-      <BottomSheetModal
+      <AppBottomSheetModal
         ref={sheetRef}
         snapPoints={snapPoints}
         enableDynamicSizing={false}
@@ -137,10 +132,7 @@ export const ReviewCommentsSheet = forwardRef<ReviewCommentsSheetHandle, ReviewC
         keyboardBehavior="interactive"
         keyboardBlurBehavior="restore"
         android_keyboardInputMode="adjustResize"
-        backdropComponent={renderBackdrop}
         footerComponent={renderFooter}
-        handleIndicatorStyle={{ backgroundColor: BORDER_SUBTLE, width: 40, height: 5 }}
-        backgroundStyle={{ backgroundColor: SURFACE_CARD, borderTopLeftRadius: 24, borderTopRightRadius: 24 }}
         onChange={handleSheetChange}
         onDismiss={() => Keyboard.dismiss()}
       >
@@ -192,7 +184,7 @@ export const ReviewCommentsSheet = forwardRef<ReviewCommentsSheetHandle, ReviewC
             )}
           />
         )}
-      </BottomSheetModal>
+      </AppBottomSheetModal>
     )
   },
 )

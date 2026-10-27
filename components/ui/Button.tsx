@@ -1,10 +1,11 @@
 import type { ReactNode } from 'react'
 import { ActivityIndicator, Pressable, Text, type PressableProps, type ViewStyle } from 'react-native'
 
-import { BORDER_SUBTLE, BRAND_PRIMARY, DANGER, SURFACE_CARD, TEXT_HEADING } from '@/constants/brand'
+import { BORDER_SUBTLE, BRAND_PRIMARY, BRAND_PRIMARY_DARK, DANGER, SURFACE_CARD, TEXT_HEADING } from '@/constants/brand'
 import { FONT } from '@/constants/typography'
 
-type Variant = 'primary' | 'secondary' | 'danger' | 'ghost'
+/** `dark` — confirm a destructive choice (design P7 Discard); `outline` — orange-outlined (Keep editing). */
+type Variant = 'primary' | 'secondary' | 'danger' | 'ghost' | 'dark' | 'outline'
 
 /** Brand v1.0 disabled CTA — a lighter orange, not an opacity fade. */
 const PRIMARY_DISABLED = '#FFB070'
@@ -36,6 +37,8 @@ export function Button({
     secondary: { bg: SURFACE_CARD, fg: TEXT_HEADING, border: BORDER_SUBTLE },
     danger: { bg: disabled ? '#F5C9C3' : DANGER, fg: '#FFFFFF' },
     ghost: { bg: 'transparent', fg: TEXT_HEADING },
+    dark: { bg: TEXT_HEADING, fg: SURFACE_CARD },
+    outline: { bg: SURFACE_CARD, fg: BRAND_PRIMARY_DARK, border: BRAND_PRIMARY },
   }
   const { bg, fg, border } = palette[variant]
 
@@ -45,7 +48,7 @@ export function Button({
     backgroundColor: bg,
     paddingHorizontal: 20,
     ...(border ? { borderWidth: 1.5, borderColor: border } : null),
-    ...(variant === 'secondary' || variant === 'ghost'
+    ...(variant === 'secondary' || variant === 'ghost' || variant === 'dark' || variant === 'outline'
       ? { opacity: disabled ? 0.5 : 1 }
       : null),
   }
