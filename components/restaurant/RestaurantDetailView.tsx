@@ -1,11 +1,11 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import { Animated, Image, Linking, Pressable, RefreshControl, ScrollView, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import * as Haptics from 'expo-haptics'
 import { usePathname, useRouter } from 'expo-router'
 
 import { ImageFallback } from '@/components/brand/ImageFallback'
-import { TpMark } from '@/components/brand/TpMark'
+import { ReadingCard } from '@/components/reading/ReadingCard'
 import { RestaurantDetailSummary } from '@/components/restaurant/RestaurantDetailSummary'
 import { RestaurantRatingMetricsRow } from '@/components/restaurant/RestaurantRatingMetricsRow'
 import { ProfileAvatarImage } from '@/components/profile/ProfileAvatarImage'
@@ -15,7 +15,6 @@ import {
 } from '@/components/review/GoogleReviewDetailSheet'
 import { AppIcon, type AppIconName } from '@/components/ui/AppIcon'
 import { Button } from '@/components/ui/Button'
-import { AUTH_WALL } from '@/constants/authWalls'
 import {
   BORDER_SUBTLE,
   BRAND_PRIMARY,
@@ -28,17 +27,22 @@ import {
   TEXT_TERTIARY,
 } from '@/constants/brand'
 import {
+  SCREEN_EDIT_PROFILE,
+  SCREEN_RESTAURANT_READING,
   SCREEN_RESTAURANT_REVIEWS,
   SCREEN_REVIEW_VIEWER,
   SCREEN_STUDIO_ADD_REVIEW,
   SCREEN_STUDIO_ADD_REVIEW_WRITE,
-  SCREEN_STUDIO_MY_LISTS,
 } from '@/constants/screens'
 import { FONT } from '@/constants/typography'
 import { useAuth } from '@/hooks/useAuth'
+import { useReadingCardState } from '@/hooks/useReadingCardState'
+import { useRestaurantEngagement } from '@/hooks/useRestaurantEngagement'
 import { coerceResumeHref, pushLoginScreen } from '@/lib/authRoutes'
+import type { PlacesDetailsResult } from '@/lib/googlePlaces'
 import {
   buildDirectionsUrl,
+  buildRestaurantImageGallery,
   buildGoogleMapsPlaceUrl,
   formatDayRange,
   groupOpeningHours,
@@ -48,18 +52,8 @@ import {
 import { firstReviewImageUri } from '@/lib/reviewDisplayUtils'
 import { resolveReviewAuthorAvatarUrl, resolveReviewAuthorLabel } from '@/lib/reviewAuthorDisplay'
 import { shareRestaurantListing } from '@/lib/shareRestaurantListing'
-import type {
-  RatingSummaryRow,
-  RestaurantDetailRow,
-  RestaurantReviewPreview,
-} from '@/services/restaurantDetailService'
-import {
-  getCheckinStatus,
-  getFavoriteStatus,
-  toggleCheckinBySlug,
-  toggleFavoriteBySlug,
-} from '@/services/restaurantEngagementService'
-import { toast } from '@/utils/toast'
+import type { RestaurantScores } from '@/services/readingService'
+import type { RestaurantDetailRow, RestaurantReviewPreview } from '@/services/restaurantDetailService'
 
 const REVIEW_CARD_WIDTH = 200
 
@@ -109,44 +103,38 @@ function ActionCircle({
   )
 }
 
-/** Save (To-Dine) / Check-in toggle (design S5 + M2): tap to add, tap again to remove. */
-function EngageToggle({
+/** Save (To-Dine) / Check-in: 52pt outlined circle beside Write a Review; orange when on. */
+function EngageCircle({
   icon,
   on,
-  onLabel,
-  offLabel,
+  label,
   onPress,
   disabled,
 }: {
   icon: AppIconName
   on: boolean
-  onLabel: string
-  offLabel: string
+  label: string
   onPress: () => void
   disabled?: boolean
 }): JSX.Element {
   return (
     <Pressable
       accessibilityRole="switch"
+      accessibilityLabel={label}
       accessibilityState={{ checked: on, disabled }}
-      accessibilityLabel={offLabel}
       disabled={disabled}
       onPress={onPress}
-      className="flex-row items-center justify-center active:opacity-80"
+      className="items-center justify-center active:opacity-80"
       style={{
-        flex: 1,
-        height: 46,
-        gap: 10,
-        borderRadius: 999,
+        width: 52,
+        height: 52,
+        borderRadius: 26,
         borderWidth: 1.5,
         borderColor: on ? BRAND_PRIMARY : BORDER_SUBTLE,
         backgroundColor: on ? BRAND_PRIMARY_TINT : SURFACE_CARD,
       }}
     >
-      <AppIcon name={icon} active={on} size={18} color={on ? BRAND_PRIMARY : TEXT_HEADING} />
-      <Text style={{ fontFamily: FONT.heading, fontSize: 15, letterSpacing: 0.6, color: on ? BRAND_PRIMARY_DARK : TEXT_HEADING }}>
-        {on ? onLabel : offLabel}
-      </Text>
+      <AppIcon name={icon} active={on} size={20} color={on ? BRAND_PRIMARY : TEXT_HEADING} />
     </Pressable>
   )
 }
@@ -245,57 +233,34 @@ function hostOf(url: string): string {
 export interface RestaurantDetailViewProps {
   slug: string
   restaurant: RestaurantDetailRow
-  summary: RatingSummaryRow | null
   reviews: RestaurantReviewPreview[]
   reviewTotal: number
-  searchAvg?: number | null
-  searchCount?: number
-  searchMode?: import('@/hooks/useRestaurantScores').SearchScoreMode
-  searchGroupName?: string | null
-  searchUnlocked?: boolean
-  sharedAvg?: number | null
-  sharedCount?: number
-  sharedUnlocked?: boolean
-  isPersonalised?: boolean
-  trustSet?: string[]
-  cuisineFilterActive?: boolean
-  /** Display label of the cuisine filter the user arrived with (banner + "Your Score · X"). */
-  cuisineFilterLabel?: string | null
-  onClearCuisineFilter?: () => void
+  /** `restaurants-v2/get-restaurant-scores`; null while loading or for an unlisted place. */
+  scores?: RestaurantScores | null
   scoresLoading?: boolean
   scoresError?: string | null
   refreshing?: boolean
   onRefresh?: () => void
   /** Floating back button on the photo; the screen hides its native header. */
   onBack?: () => void
-  /** Google-only listing — hides TP engagement actions, shows add-review CTA. */
-  googlePlaceListing?: { placeId: string; placeName: string; photoAttribution?: string | null }
+  /**
+   * A Google place with no Tastyplates row yet. Same page and layout; Save / Check-in create the
+   * restaurant first, reviews come from the place, and the reading waits for reviews.
+   */
+  googlePlaceListing?: { placeId: string; placeName: string; photoAttribution?: string | null; place: PlacesDetailsResult }
 }
 
 /**
- * Restaurant detail (design S5 / S6), top to bottom: photo carousel · header · Website / Call /
- * Directions · Save and Check-in (Tastyplates listings) · ratings · Write a Review · reviews ·
- * hours, phone, menu, about. Pull to refresh reloads all of it.
+ * Restaurant detail — one template for every restaurant, top to bottom: photo carousel · header ·
+ * Website / Call / Directions · Write a Review with Save and Check-in · ratings · personalised
+ * reading card · reviews · hours, phone, menu, about. Pull to refresh reloads all of it.
  */
 export function RestaurantDetailView({
   slug,
   restaurant,
-  summary,
   reviews,
   reviewTotal,
-  searchAvg = null,
-  searchCount = 0,
-  searchMode = 'none',
-  searchGroupName = null,
-  searchUnlocked = false,
-  sharedAvg = null,
-  sharedCount = 0,
-  sharedUnlocked = false,
-  isPersonalised = false,
-  trustSet = [],
-  cuisineFilterActive = false,
-  cuisineFilterLabel = null,
-  onClearCuisineFilter,
+  scores = null,
   scoresLoading = false,
   scoresError = null,
   refreshing = false,
@@ -317,10 +282,6 @@ export function RestaurantDetailView({
   const googleMapsUrl = buildGoogleMapsPlaceUrl(restaurant)
   const directionsUrl = buildDirectionsUrl(restaurant)
 
-  const overallAvg = summary?.overall_rating_avg ?? restaurant.average_rating
-  const overallCount = summary?.overall_review_count ?? restaurant.ratings_count ?? 0
-  const authAvg = summary?.authentic_rating_avg ?? null
-  const authCount = summary?.authentic_review_count ?? 0
 
   const hours = restaurant.opening_hours as string | object | null | undefined
   const groupedHours = groupOpeningHours(hours)
@@ -329,31 +290,10 @@ export function RestaurantDetailView({
     .map((g) => `${formatDayRange(g.days)} ${g.isClosed ? 'Closed' : g.hours}`)
     .join(' · ')
 
-  const [saved, setSaved] = useState<boolean | null>(null)
-  const [checkedIn, setCheckedIn] = useState<boolean | null>(null)
-  const [engageBusy, setEngageBusy] = useState(false)
   const [aboutExpanded, setAboutExpanded] = useState(false)
   const googleReviewSheetRef = useRef<GoogleReviewDetailSheetHandle>(null)
-
-  const syncEngagement = useCallback(async () => {
-    if (googlePlaceListing || !slug.trim() || !isAuthenticated) {
-      setSaved(null)
-      setCheckedIn(null)
-      return
-    }
-    try {
-      const [f, c] = await Promise.all([getFavoriteStatus(slug), getCheckinStatus(slug)])
-      setSaved(f === 'saved')
-      setCheckedIn(c === 'checkedin')
-    } catch {
-      setSaved(null)
-      setCheckedIn(null)
-    }
-  }, [googlePlaceListing, isAuthenticated, slug])
-
-  useEffect(() => {
-    void syncEngagement()
-  }, [syncEngagement])
+  const engagement = useRestaurantEngagement(slug, restaurant.title, googlePlaceListing?.place ?? null)
+  const reading = useReadingCardState(googlePlaceListing ? null : restaurant.uuid)
 
   const openWriteReview = () => {
     void Haptics.selectionAsync()
@@ -372,48 +312,23 @@ export function RestaurantDetailView({
     router.push({ pathname: SCREEN_STUDIO_ADD_REVIEW_WRITE, params: { slug } })
   }
 
-  const promptSignInForEngagement = () => {
-    void Haptics.selectionAsync()
-    pushLoginScreen(router, { resume: coerceResumeHref(pathname), wall: AUTH_WALL.saveCheckin })
+  const openReading = () => {
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
+    router.push({
+      pathname: SCREEN_RESTAURANT_READING,
+      params: {
+        uuid: restaurant.uuid,
+        title: restaurant.title,
+        slug,
+        image: buildRestaurantImageGallery(restaurant)[0] ?? '',
+      },
+    })
   }
 
-  const onToggleSave = async () => {
-    if (!isAuthenticated) return promptSignInForEngagement()
-    setEngageBusy(true)
-    await Haptics.selectionAsync()
-    try {
-      const status = await toggleFavoriteBySlug(slug)
-      setSaved(status === 'saved')
-      toast.action(status === 'saved' ? 'Saved to To-Dine' : 'Removed from To-Dine', {
-        label: 'View',
-        onPress: () => router.push({ pathname: SCREEN_STUDIO_MY_LISTS, params: { tab: 'todine' } }),
-      })
-    } catch {
-      await syncEngagement()
-    } finally {
-      setEngageBusy(false)
-    }
-  }
-
-  const onToggleCheckin = async () => {
-    if (!isAuthenticated) return promptSignInForEngagement()
-    setEngageBusy(true)
-    await Haptics.selectionAsync()
-    try {
-      const status = await toggleCheckinBySlug(slug)
-      setCheckedIn(status === 'checkedin')
-      if (status === 'checkedin') {
-        await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
-      }
-      toast.action(status === 'checkedin' ? `Checked in at ${restaurant.title}` : 'Check-in removed', {
-        label: 'View',
-        onPress: () => router.push({ pathname: SCREEN_STUDIO_MY_LISTS, params: { tab: 'checkins' } }),
-      })
-    } catch {
-      await syncEngagement()
-    } finally {
-      setEngageBusy(false)
-    }
+  const handleRefresh = () => {
+    onRefresh?.()
+    void engagement.refresh()
+    void reading.reload()
   }
 
   const openUrl = (url: string) => void Linking.openURL(url)
@@ -470,12 +385,11 @@ export function RestaurantDetailView({
       scrollEventThrottle={16}
       onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: true })}
       refreshControl={
-        onRefresh ? <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={BRAND_PRIMARY} /> : undefined
+        onRefresh ? <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={BRAND_PRIMARY} /> : undefined
       }
     >
       <RestaurantDetailSummary
         restaurant={restaurant}
-        googleOnly={Boolean(googlePlaceListing)}
         onBack={onBack}
         onShare={onShare}
       />
@@ -492,88 +406,67 @@ export function RestaurantDetailView({
         <ActionCircle label="Directions" icon="navigation" onPress={openDirections} />
       </View>
 
-      {googlePlaceListing ? null : (
-        <View className="flex-row" style={{ gap: 10, paddingHorizontal: 20, paddingTop: 20 }}>
-          <EngageToggle
-            icon="bookmark"
-            on={Boolean(saved)}
-            onLabel="Saved"
-            offLabel="Save"
-            disabled={engageBusy}
-            onPress={() => void onToggleSave()}
-          />
-          <EngageToggle
-            icon="map-pin"
-            on={Boolean(checkedIn)}
-            onLabel="Checked in"
-            offLabel="Check-in"
-            disabled={engageBusy}
-            onPress={() => void onToggleCheckin()}
-          />
-        </View>
-      )}
+      {/* Write a Review is the main action; Save (To-Dine) and Check-in sit beside it. */}
+      <View className="flex-row items-center" style={{ gap: 10, paddingHorizontal: 20, paddingTop: 20 }}>
+        <Button onPress={openWriteReview} style={{ flex: 1 }}>
+          Write a Review
+        </Button>
+        <EngageCircle
+          icon="bookmark"
+          on={engagement.saved}
+          label={engagement.saved ? 'Saved to To-Dine' : 'Save to To-Dine'}
+          disabled={engagement.busy}
+          onPress={() => void engagement.toggleSave()}
+        />
+        <EngageCircle
+          icon="map-pin"
+          on={engagement.checkedIn}
+          label={engagement.checkedIn ? 'Checked in' : 'Check in'}
+          disabled={engagement.busy}
+          onPress={() => void engagement.toggleCheckin()}
+        />
+      </View>
 
       <View style={{ paddingHorizontal: 20, paddingTop: 8 }}>
         <RestaurantRatingMetricsRow
-          overallAvg={overallAvg}
-          overallCount={overallCount}
-          authenticAvg={authAvg}
-          authenticCount={authCount}
-          searchAvg={searchAvg}
-          searchCount={searchCount}
-          searchMode={searchMode}
-          searchGroupName={searchGroupName}
-          searchUnlocked={searchUnlocked}
+          scores={scores}
+          fallbackOverall={scores ? null : { avg: restaurant.average_rating, count: restaurant.ratings_count ?? 0 }}
           isAuthenticated={isAuthenticated}
-          isPersonalised={isPersonalised}
-          trustSet={trustSet}
-          sharedAvg={sharedAvg}
-          sharedCount={sharedCount}
-          sharedUnlocked={sharedUnlocked}
-          embedded
-          filterLabel={cuisineFilterActive ? cuisineFilterLabel : null}
-          onClearFilter={onClearCuisineFilter}
         />
         {scoresError ? (
           <Text style={{ fontFamily: FONT.body, fontSize: 12, color: '#b45309' }}>{scoresError}</Text>
-        ) : scoresLoading ? (
+        ) : scoresLoading && !scores ? (
           <Text style={{ fontFamily: FONT.body, fontSize: 12, color: TEXT_TERTIARY }}>Updating scores…</Text>
         ) : null}
       </View>
 
-      <View style={{ paddingHorizontal: 20, paddingTop: 12 }}>
-        {googlePlaceListing ? (
-          <View style={{ borderRadius: 16, backgroundColor: SURFACE_FOG, padding: 18, gap: 10 }}>
-            <TpMark size={26} />
-            <Text style={{ fontFamily: FONT.heading, fontSize: 18, lineHeight: 23, color: TEXT_HEADING }}>
-              Be the first to review {restaurant.title}
-            </Text>
-            <Text style={{ fontFamily: FONT.body, fontSize: 13, lineHeight: 19, color: TEXT_MUTED }}>
-              Your review adds it to Tastyplates and starts its palate scores.
-            </Text>
-            <Button onPress={openWriteReview} style={{ marginTop: 4 }}>
-              Write a review
-            </Button>
-          </View>
-        ) : (
-          <Button onPress={openWriteReview}>Write a Review</Button>
-        )}
+      <View style={{ paddingHorizontal: 20, paddingTop: 4 }}>
+        <ReadingCard
+          restaurantTitle={restaurant.title}
+          state={reading.state?.state ?? null}
+          updatedAt={reading.state?.updated_at}
+          onRead={openReading}
+          onView={openReading}
+          onSignIn={() => pushLoginScreen(router, { resume: coerceResumeHref(pathname) })}
+          onSetPalates={() => router.push({ pathname: SCREEN_EDIT_PROFILE, params: { open: 'palates' } })}
+          onWriteReview={openWriteReview}
+        />
       </View>
 
       <View style={{ paddingTop: 28, gap: 12 }}>
         <View className="flex-row items-baseline justify-between" style={{ paddingHorizontal: 20 }}>
-          <Eyebrow>{googlePlaceListing ? 'Google reviews' : 'Reviews'}</Eyebrow>
+          <Eyebrow>Reviews</Eyebrow>
           {visibleReviews.length > 0 && (!googlePlaceListing || openMaps) ? (
             <Pressable accessibilityRole="button" onPress={openAllReviews} hitSlop={8}>
               <Text style={{ fontFamily: FONT.bodySemibold, fontSize: 14, color: BRAND_PRIMARY_DARK }}>
-                {googlePlaceListing ? 'Open in Google Maps' : `View All Reviews${reviewTotal ? ` (${reviewTotal})` : ''}`}
+                {`View All Reviews${reviewTotal ? ` (${reviewTotal})` : ''}`}
               </Text>
             </Pressable>
           ) : null}
         </View>
         {visibleReviews.length === 0 ? (
           <Text style={{ paddingHorizontal: 20, fontFamily: FONT.body, fontSize: 14, color: TEXT_MUTED }}>
-            {googlePlaceListing ? 'No Google reviews for this place yet.' : 'No reviews yet. Be the first to write one.'}
+            No reviews yet. Be the first to write one.
           </Text>
         ) : (
           <ScrollView

@@ -117,13 +117,13 @@ export default function GooglePlaceDetailScreen(): JSX.Element {
       <RestaurantDetailView
         slug=""
         restaurant={restaurant}
-        summary={null}
         reviews={googleReviews}
         reviewTotal={reviewTotal}
         googlePlaceListing={{
           placeId: placeId!,
           placeName,
           photoAttribution: googlePhotoAttributionText(place.photos?.[0]),
+          place,
         }}
         onBack={goBack}
       />

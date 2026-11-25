@@ -1,38 +1,16 @@
-import { Pressable, ScrollView, Text, View } from 'react-native'
+import { ScrollView, Text, View } from 'react-native'
 import { AppIcon } from '@/components/ui/AppIcon'
 
-import {
-  BRAND_PRIMARY,
-  BRAND_PRIMARY_TINT,
-  TEXT_HEADING,
-  TEXT_MUTED,
-  TEXT_TERTIARY,
-} from '@/constants/brand'
+import { BRAND_PRIMARY, TEXT_MUTED, TEXT_TERTIARY } from '@/constants/brand'
 import { FONT } from '@/constants/typography'
-import { labelForPalateKey } from '@/lib/palateLabels'
-import type { SearchScoreMode } from '@/hooks/useRestaurantScores'
+import type { RestaurantScores } from '@/services/readingService'
 
 export type RestaurantRatingMetricsRowProps = {
-  overallAvg: number | null
-  overallCount: number
-  authenticAvg: number | null
-  authenticCount: number
-  searchAvg: number | null
-  searchCount: number
-  searchMode?: SearchScoreMode
-  searchGroupName?: string | null
-  searchUnlocked?: boolean
+  /** From `restaurants-v2/get-restaurant-scores`; null while loading or for an unlisted place. */
+  scores: RestaurantScores | null
+  /** Overall to show when there are no scores yet (unlisted place: its public rating). */
+  fallbackOverall?: { avg: number | null; count: number } | null
   isAuthenticated: boolean
-  isPersonalised: boolean
-  trustSet: string[]
-  sharedAvg: number | null
-  sharedCount: number
-  sharedUnlocked: boolean
-  /** When true, omit outer border — parent provides the white card shell. */
-  embedded?: boolean
-  /** Arrived with a cuisine filter: banner "Showing scores for X" + Clear (design S5). */
-  filterLabel?: string | null
-  onClearFilter?: () => void
 }
 
 function formatRating(n: number | null | undefined): string {
@@ -46,74 +24,41 @@ function formatCount(count: number): string {
 }
 
 /**
- * Horizontal rating metrics — web `RatingSection` parity.
+ * Ratings side-scroll (restaurant detail): Overall · the palate score the backend picked for this
+ * viewer ("Your Score · Korean" / "East Asian Score") · Authentic · Shared. Every number and label
+ * comes from the backend; this only lays them out.
  */
 export function RestaurantRatingMetricsRow({
-  overallAvg,
-  overallCount,
-  authenticAvg,
-  authenticCount,
-  searchAvg,
-  searchCount,
-  searchMode = 'none',
-  searchGroupName = null,
-  searchUnlocked: searchUnlockedProp,
+  scores,
+  fallbackOverall = null,
   isAuthenticated,
-  isPersonalised,
-  trustSet,
-  sharedAvg,
-  sharedCount,
-  sharedUnlocked,
-  embedded = false,
-  filterLabel = null,
-  onClearFilter,
 }: RestaurantRatingMetricsRowProps): JSX.Element {
-  const searchUnlocked =
-    searchUnlockedProp ?? (searchMode === 'cuisine_filter' || searchMode === 'personalised')
+  const min = scores?.min_reviews ?? 3
+  const overallAvg = scores?.overall.avg ?? fallbackOverall?.avg ?? null
+  const overallCount = scores?.overall.review_count ?? fallbackOverall?.count ?? 0
+  const palate = scores?.palate ?? null
+  const shared = scores?.shared ?? null
 
-  const searchTitle =
-    searchMode === 'group' && searchGroupName
-      ? `${searchGroupName} Score`
-      : isPersonalised
-        ? filterLabel
-          ? `Your Score · ${filterLabel}`
-          : 'Your Score'
-        : filterLabel
-          ? `${filterLabel} Score`
-          : 'Search Score'
-
-  const trustReviewerLabel =
-    trustSet.length > 0 ? trustSet.map((slug) => labelForPalateKey(slug)).join(' & ') : null
-
-  const searchSubtitle =
-    searchMode === 'group'
-      ? searchUnlocked
-        ? `From ${searchGroupName ?? 'your group'} palates`
-        : isAuthenticated
-          ? 'Needs 3 reviews from your group'
-          : 'Sign in to see your score'
-      : searchMode === 'none'
-        ? isAuthenticated
-          ? 'Set your palate to unlock'
-          : 'Sign in to see your score'
-        : isPersonalised && trustReviewerLabel
-          ? `From ${trustReviewerLabel} palates`
-          : !isAuthenticated
-            ? 'Reviewers with this cuisine'
-            : 'How much we think you’d like it'
-
-  const sharedSubtitle = sharedUnlocked
-    ? 'People who share your palate'
+  const palateSubtitle = palate
+    ? palate.unlocked
+      ? palate.caption
+      : `Needs ${min} reviews from your palate`
     : isAuthenticated
-      ? 'Needs 3 reviews from your palate'
-      : 'Sign in to see shared score'
+      ? 'Set your palates to unlock'
+      : 'Sign in to see your score'
+
+  const sharedSubtitle = shared
+    ? shared.unlocked
+      ? shared.caption
+      : `Needs ${min} reviews from your palate`
+    : 'Sign in to see shared score'
 
   return (
-    <View style={{ paddingVertical: embedded ? 22 : 16, gap: 12 }}>
+    <View style={{ paddingVertical: 22, gap: 12 }}>
       <Text
         accessibilityRole="header"
         style={{
-          paddingHorizontal: embedded ? 4 : 20,
+          paddingHorizontal: 4,
           fontFamily: FONT.heading,
           fontSize: 11,
           lineHeight: 14,
@@ -124,60 +69,37 @@ export function RestaurantRatingMetricsRow({
       >
         Ratings
       </Text>
-      {filterLabel ? (
-        <View
-          className="flex-row items-center justify-between"
-          style={{
-            marginHorizontal: embedded ? 0 : 20,
-            borderRadius: 12,
-            borderWidth: 1,
-            borderColor: '#FFE2C7',
-            backgroundColor: BRAND_PRIMARY_TINT,
-            paddingVertical: 9,
-            paddingHorizontal: 12,
-          }}
-        >
-          <Text style={{ fontFamily: FONT.body, fontSize: 12, color: TEXT_HEADING }}>
-            Showing scores for <Text style={{ fontFamily: FONT.bodySemibold }}>{filterLabel}</Text>
-          </Text>
-          {onClearFilter ? (
-            <Pressable accessibilityRole="button" accessibilityLabel="Clear cuisine filter" onPress={onClearFilter} hitSlop={8}>
-              <Text style={{ fontFamily: FONT.body, fontSize: 12, color: BRAND_PRIMARY }}>Clear</Text>
-            </Pressable>
-          ) : null}
-        </View>
-      ) : null}
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        style={{ marginHorizontal: embedded ? -16 : 0 }}
+        style={{ marginHorizontal: -16 }}
         contentContainerStyle={{ paddingHorizontal: 6 }}
       >
         <MetricColumn
           title="Overall Score"
           value={formatRating(overallAvg)}
           count={formatCount(overallCount)}
-          subtitle="All reviews + Google"
+          subtitle="All reviews"
         />
         <MetricColumn
-          title={searchTitle}
-          value={searchUnlocked ? formatRating(searchAvg) : null}
-          count={searchUnlocked ? formatCount(searchCount) : undefined}
-          subtitle={searchSubtitle}
-          locked={!searchUnlocked}
+          title={palate?.label ?? 'Your Score'}
+          value={palate?.unlocked ? formatRating(palate.avg) : null}
+          count={palate?.unlocked ? formatCount(palate.review_count) : undefined}
+          subtitle={palateSubtitle}
+          locked={!palate?.unlocked}
         />
         <MetricColumn
           title="Authentic Score"
-          value={formatRating(authenticAvg)}
-          count={formatCount(authenticCount)}
+          value={formatRating(scores?.authentic.avg)}
+          count={formatCount(scores?.authentic.review_count ?? 0)}
           subtitle="Reviewers who grew up with it"
         />
         <MetricColumn
           title="Shared Score"
-          value={sharedUnlocked ? formatRating(sharedAvg) : null}
-          count={sharedUnlocked ? formatCount(sharedCount) : undefined}
+          value={shared?.unlocked ? formatRating(shared.avg) : null}
+          count={shared?.unlocked ? formatCount(shared.review_count) : undefined}
           subtitle={sharedSubtitle}
-          locked={!sharedUnlocked}
+          locked={!shared?.unlocked}
           last
         />
       </ScrollView>

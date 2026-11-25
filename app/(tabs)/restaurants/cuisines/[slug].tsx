@@ -4,12 +4,11 @@ import * as Haptics from 'expo-haptics'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 
 import { ExploreResultRow } from '@/components/restaurant/ExploreResultRow'
-import { BRAND_PRIMARY, BRAND_PRIMARY_TINT, SURFACE_CARD, TEXT_HEADING, TEXT_MUTED } from '@/constants/brand'
+import { BRAND_PRIMARY, SURFACE_CARD, TEXT_HEADING, TEXT_MUTED } from '@/constants/brand'
 import { SCREEN_PLACES_GOOGLE_DETAIL, SCREEN_RESTAURANT_DETAIL } from '@/constants/screens'
 import { FONT } from '@/constants/typography'
 import { useLocation } from '@/contexts/LocationContext'
 import { preferenceStatForSearchResult, usePersonalisedRestaurants } from '@/hooks/usePersonalisedRestaurants'
-import { useUserPalate } from '@/hooks/useUserPalate'
 import { labelForPalateKey } from '@/lib/palateLabels'
 import { browseCardPropsFromSearchResult, cityNameFromLocation } from '@/lib/restaurantDiscoveryHelpers'
 import { restaurantSearchResultId } from '@/lib/restaurantSearchMerge'
@@ -27,8 +26,6 @@ export default function CuisineListingScreen(): JSX.Element {
   const cuisine = firstSegmentParam(params.slug).trim().toLowerCase()
   const label = labelForPalateKey(cuisine)
   const { location } = useLocation()
-  const { palate } = useUserPalate()
-  const inPalate = Boolean(palate?.includes(cuisine))
   const cityName = useMemo(() => cityNameFromLocation(location), [location])
 
   const { displayRows, loading, loadingMore, refreshing, error, isPersonalised, getForRestaurantUuid, refresh, loadMore } =
@@ -45,12 +42,12 @@ export default function CuisineListingScreen(): JSX.Element {
     (item: RestaurantSearchResult) => {
       void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
       if (isTPResult(item)) {
-        router.push({ pathname: SCREEN_RESTAURANT_DETAIL, params: { slug: item.slug, cuisine } })
+        router.push({ pathname: SCREEN_RESTAURANT_DETAIL, params: { slug: item.slug } })
       } else {
         router.push({ pathname: SCREEN_PLACES_GOOGLE_DETAIL, params: { place_id: item.place_id } })
       }
     },
-    [cuisine, router],
+    [router],
   )
 
   const header = (
@@ -61,13 +58,6 @@ export default function CuisineListingScreen(): JSX.Element {
       <Text style={{ fontFamily: FONT.body, fontSize: 13, color: TEXT_MUTED }}>
         {loading ? 'Loading places…' : `${displayRows.length} places · sorted by ${label} score`}
       </Text>
-      {inPalate ? (
-        <View style={{ marginTop: 8, borderRadius: 12, borderWidth: 1, borderColor: '#FFE2C7', backgroundColor: BRAND_PRIMARY_TINT, padding: 12 }}>
-          <Text style={{ fontFamily: FONT.body, fontSize: 12, lineHeight: 17, color: TEXT_HEADING }}>
-            {label} is in your palate, so places reviewed by people who share it come first.
-          </Text>
-        </View>
-      ) : null}
       {error && displayRows.length === 0 ? (
         <Text style={{ marginTop: 12, fontFamily: FONT.body, fontSize: 13, color: '#D93A2B' }}>{error}</Text>
       ) : null}

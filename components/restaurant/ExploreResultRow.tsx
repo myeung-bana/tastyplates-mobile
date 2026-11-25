@@ -30,19 +30,19 @@ type Props = {
   onPress: () => void
 }
 
-function Chip({ label, on = false, muted = false }: { label: string; on?: boolean; muted?: boolean }): JSX.Element {
+function Chip({ label, on = false }: { label: string; on?: boolean }): JSX.Element {
   return (
     <View
       style={{
         paddingHorizontal: 8,
         paddingVertical: 4,
         borderRadius: 50,
-        borderWidth: muted ? 1 : 1.5,
+        borderWidth: 1.5,
         borderColor: on ? BRAND_PRIMARY : BORDER_SUBTLE,
         backgroundColor: SURFACE_CARD,
       }}
     >
-      <Text numberOfLines={1} style={{ fontFamily: FONT.body, fontSize: 11, color: muted ? TEXT_MUTED : TEXT_HEADING }}>
+      <Text numberOfLines={1} style={{ fontFamily: FONT.body, fontSize: 11, color: TEXT_HEADING }}>
         {label}
       </Text>
     </View>
@@ -106,15 +106,13 @@ export function ExploreResultRow({
             {subtitle}
           </Text>
         ) : null}
-        <View className="flex-row flex-wrap" style={{ gap: 6 }}>
-          {tp ? (
-            cuisines.map((c) => (
+        {tp && cuisines.length > 0 ? (
+          <View className="flex-row flex-wrap" style={{ gap: 6 }}>
+            {cuisines.map((c) => (
               <Chip key={c.slug || String(c.id)} label={c.name} on={Boolean(activeCuisine && c.slug === activeCuisine)} />
-            ))
-          ) : (
-            <Chip label="Not on Tastyplates yet" muted />
-          )}
-        </View>
+            ))}
+          </View>
+        ) : null}
         {palateMatchPercent != null ? (
           <View style={{ alignSelf: 'flex-start', paddingVertical: 5, paddingHorizontal: 8, borderRadius: 50, backgroundColor: BRAND_PRIMARY_TINT }}>
             <Text style={{ fontFamily: FONT.bodySemibold, fontSize: 11, color: BRAND_PRIMARY_DARK }}>

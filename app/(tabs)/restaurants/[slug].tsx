@@ -1,13 +1,13 @@
-import { useCallback, useLayoutEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useState } from 'react'
 import { Pressable, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { router, useLocalSearchParams, useNavigation } from 'expo-router'
+import { useLocalSearchParams, useNavigation } from 'expo-router'
 
 import { RestaurantDetailSkeleton } from '@/components/restaurant/RestaurantDetailSkeleton'
 import { RestaurantDetailView } from '@/components/restaurant/RestaurantDetailView'
 import { BRAND_PRIMARY, TEXT_HEADING, TEXT_MUTED } from '@/constants/brand'
-import { cuisineParamFromRouteParams, useRestaurantScores } from '@/hooks/useRestaurantScores'
-import { labelForPalateKey } from '@/lib/palateLabels'
+import { useAuth } from '@/hooks/useAuth'
+import { getRestaurantScores, type RestaurantScores } from '@/services/readingService'
 import {
   getRestaurantBySlug,
   getRestaurantReviewsPreview,
@@ -33,17 +33,14 @@ function slugFromParams(slug: string | string[] | undefined): string {
 }
 
 /**
- * Restaurant detail — cuisine-aware Search / Your score via trust-set preference stats.
+ * Restaurant detail. Scores come from `restaurants-v2/get-restaurant-scores`, which also picks the
+ * viewer's palate score — the app no longer decides it from route params.
  */
 export default function RestaurantDetailScreen() {
   const navigation = useNavigation()
-  const raw = useLocalSearchParams<{
-    slug: string | string[]
-    cuisine?: string | string[]
-    palate?: string | string[]
-  }>()
+  const raw = useLocalSearchParams<{ slug: string | string[] }>()
   const slug = slugFromParams(raw.slug)
-  const cuisineParam = useMemo(() => cuisineParamFromRouteParams(raw), [raw.cuisine, raw.palate])
+  const { isAuthenticated } = useAuth()
   const hasSlug = slug.trim().length > 0
 
   const [refreshing, setRefreshing] = useState(false)
@@ -52,27 +49,27 @@ export default function RestaurantDetailScreen() {
   const restaurantUuid =
     state.status === 'ready' ? state.restaurant.uuid : null
 
-  const {
-    summary,
-    searchAvg,
-    searchCount,
-    searchMode,
-    searchGroupName,
-    searchUnlocked,
-    sharedAvg,
-    sharedCount,
-    sharedUnlocked,
-    isPersonalised,
-    trustSet,
-    cuisineFilterActive,
-    loading: scoresLoading,
-    error: scoresError,
-    refresh: refreshScores,
-  } = useRestaurantScores({
-    restaurantUuid,
-    cuisineParam,
-    enabled: state.status === 'ready',
-  })
+  const [scores, setScores] = useState<RestaurantScores | null>(null)
+  const [scoresLoading, setScoresLoading] = useState(false)
+  const [scoresError, setScoresError] = useState<string | null>(null)
+
+  const loadScores = useCallback(async (uuid: string) => {
+    setScoresLoading(true)
+    setScoresError(null)
+    try {
+      setScores(await getRestaurantScores(uuid))
+    } catch (e) {
+      if (__DEV__) console.warn('[restaurant scores]', e)
+      setScoresError('Couldn’t load scores. Pull to refresh.')
+    } finally {
+      setScoresLoading(false)
+    }
+  }, [])
+
+  // Reload when the restaurant changes or the viewer signs in / out (the palate score is theirs).
+  useEffect(() => {
+    if (restaurantUuid) void loadScores(restaurantUuid)
+  }, [isAuthenticated, loadScores, restaurantUuid])
 
   useLayoutEffect(() => {
     if (!hasSlug) {
@@ -120,8 +117,8 @@ export default function RestaurantDetailScreen() {
 
   const handleRefresh = useCallback(() => {
     void fetchRestaurant('refresh')
-    void refreshScores()
-  }, [fetchRestaurant, refreshScores])
+    if (restaurantUuid) void loadScores(restaurantUuid)
+  }, [fetchRestaurant, loadScores, restaurantUuid])
 
   // Loading / error keep a plain header; the loaded page draws its own back + share over the photo (design S5).
   useLayoutEffect(() => {
@@ -184,22 +181,9 @@ export default function RestaurantDetailScreen() {
       <RestaurantDetailView
         slug={slug}
         restaurant={state.restaurant}
-        summary={summary}
         reviews={state.reviews}
         reviewTotal={state.reviewTotal}
-        searchAvg={searchAvg}
-        searchCount={searchCount}
-        searchMode={searchMode}
-        searchGroupName={searchGroupName}
-        searchUnlocked={searchUnlocked}
-        sharedAvg={sharedAvg}
-        sharedCount={sharedCount}
-        sharedUnlocked={sharedUnlocked}
-        isPersonalised={isPersonalised}
-        trustSet={trustSet}
-        cuisineFilterActive={cuisineFilterActive}
-        cuisineFilterLabel={cuisineParam ? labelForPalateKey(cuisineParam) : null}
-        onClearCuisineFilter={() => router.setParams({ cuisine: undefined, palate: undefined })}
+        scores={scores}
         scoresLoading={scoresLoading}
         scoresError={scoresError}
         refreshing={refreshing}

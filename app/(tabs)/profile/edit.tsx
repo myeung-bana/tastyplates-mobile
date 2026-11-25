@@ -9,7 +9,7 @@ import {
   View,
 } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { Redirect, useRouter } from 'expo-router'
+import { Redirect, useLocalSearchParams, useRouter } from 'expo-router'
 import { useNhostClient } from '@nhost/react'
 import * as Haptics from 'expo-haptics'
 
@@ -146,6 +146,9 @@ function selectionToFormValue(selection: ProfileCitySelection): ProfileLocationF
 
 export default function EditProfileScreen(): JSX.Element {
   const router = useRouter()
+  // `?open=palates` (e.g. "Set your palates" on a restaurant's reading card) jumps to Palates once loaded.
+  const { open } = useLocalSearchParams<{ open?: string }>()
+  const openedPalatesRef = useRef(false)
   const insets = useSafeAreaInsets()
   const nhost = useNhostClient()
   const { isAuthenticated, loading: authLoading, user } = useAuth()
@@ -267,6 +270,12 @@ export default function EditProfileScreen(): JSX.Element {
     openPalatePicker()
     router.push(SCREEN_EDIT_PROFILE_PALATES)
   }, [openPalatePicker, router])
+
+  useEffect(() => {
+    if (loading || open !== 'palates' || openedPalatesRef.current) return
+    openedPalatesRef.current = true
+    handleOpenPalatePicker()
+  }, [handleOpenPalatePicker, loading, open])
 
   const handleCancel = useCallback(() => {
     if (!isDirty) {

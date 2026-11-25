@@ -19,6 +19,11 @@ export default function RestaurantsStackLayout() {
     >
       <Stack.Screen name="[slug]" options={{ headerShown: true }} />
       <Stack.Screen name="cuisines/[slug]" options={{ headerShown: true, title: 'Cuisine' }} />
+      {/* Personalised reading — slides up over the restaurant page. */}
+      <Stack.Screen
+        name="reading/[uuid]"
+        options={{ headerShown: false, presentation: 'fullScreenModal', animation: 'slide_from_bottom' }}
+      />
     </Stack>
   )
 }

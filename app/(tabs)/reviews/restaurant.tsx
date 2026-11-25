@@ -22,6 +22,7 @@ import { stripHtml } from '@/lib/restaurantDetailUtils'
 import { publicProfileFromAuthorFields, pushPublicProfile } from '@/lib/publicProfileNavigation'
 import type { FollowingFeedReviewRow } from '@/services/followingFeedService'
 import { fetchRestaurantReviews } from '@/services/restaurantDetailService'
+import { fetchReviewById } from '@/services/reviewDetailService'
 
 const PAGE_SIZE = 16
 const UUID_RE =
@@ -40,11 +41,20 @@ export default function RestaurantReviewsScreen() {
     restaurant_uuid?: string | string[]
     restaurant_title?: string | string[]
     restaurant_slug?: string | string[]
+    /** Theme link from a reading: show only these reviews (comma-separated ids). */
+    review_ids?: string | string[]
+    filter_label?: string | string[]
   }>()
 
   const restaurantUuid = firstParam(params.restaurant_uuid)?.trim() ?? ''
   const restaurantTitle = stripHtml(firstParam(params.restaurant_title) ?? '').trim()
   const restaurantSlug = firstParam(params.restaurant_slug)?.trim() ?? ''
+  const filterIds = useMemo(
+    () => (firstParam(params.review_ids) ?? '').split(',').map((id) => id.trim()).filter((id) => UUID_RE.test(id)),
+    [params.review_ids],
+  )
+  const filterLabel = firstParam(params.filter_label)?.trim() ?? ''
+  const filtered = filterIds.length > 0
 
   const restaurantBrief = useMemo(
     () => ({
@@ -92,6 +102,25 @@ export default function RestaurantReviewsScreen() {
     ) => {
       if (invalidUuid) return
 
+      if (filtered) {
+        // Reading theme: just the cited reviews, no paging or sort.
+        if (mode === 'refresh') setRefreshing(true)
+        else setLoading(true)
+        try {
+          const found = await Promise.all(filterIds.map((id) => fetchReviewById(id).catch(() => null)))
+          const mapped = found
+            .filter((r): r is NonNullable<typeof r> => r != null)
+            .map((r) => ({ ...r, restaurant: restaurantBrief }) as FollowingFeedReviewRow)
+          setRows(mapped)
+          setTotal(mapped.length)
+          setHasMore(false)
+        } finally {
+          setLoading(false)
+          setRefreshing(false)
+        }
+        return
+      }
+
       if (mode === 'initial') setLoading(true)
       if (mode === 'refresh') setRefreshing(true)
       if (mode === 'append') setLoadingMore(true)
@@ -136,7 +165,7 @@ export default function RestaurantReviewsScreen() {
         setLoadingMore(false)
       }
     },
-    [invalidUuid, restaurantBrief, restaurantUuid],
+    [filterIds, filtered, invalidUuid, restaurantBrief, restaurantUuid],
   )
 
   useEffect(() => {
@@ -180,14 +209,20 @@ export default function RestaurantReviewsScreen() {
           </Text>
           {!loading && !invalidUuid ? (
             <Text style={{ fontFamily: FONT.body, fontSize: 12, color: TEXT_MUTED }}>
-              {total > 0 ? `${total} review${total === 1 ? '' : 's'}` : 'No reviews yet'}
+              {filtered && filterLabel
+                ? `${filterLabel} · ${total} review${total === 1 ? '' : 's'}`
+                : total > 0
+                  ? `${total} review${total === 1 ? '' : 's'}`
+                  : 'No reviews yet'}
             </Text>
           ) : null}
         </View>
       </View>
-      <View style={{ paddingTop: 12, paddingBottom: 4 }}>
-        <RestaurantReviewSortChips active={sortFilter} onChange={setSortFilter} />
-      </View>
+      {filtered ? null : (
+        <View style={{ paddingTop: 12, paddingBottom: 4 }}>
+          <RestaurantReviewSortChips active={sortFilter} onChange={setSortFilter} />
+        </View>
+      )}
     </View>
   )
 

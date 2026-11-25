@@ -50,6 +50,8 @@ export function cuisineBrowsePath(slug: string): string {
 
 export const SCREEN_REVIEW_VIEWER = '/reviews/viewer' as const
 export const SCREEN_RESTAURANT_REVIEWS = '/reviews/restaurant' as const
+/** Personalised reading — full-screen modal over restaurant detail (params: uuid, title, slug, image). */
+export const SCREEN_RESTAURANT_READING = '/(tabs)/restaurants/reading/[uuid]' as const
 export const SCREEN_REVIEW_COMMENTS = '/(tabs)/reviews/[reviewId]/comments' as const
 
 /** Full comments thread for a review UUID. */
